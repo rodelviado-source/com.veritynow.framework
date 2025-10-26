@@ -12,9 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/config")
 public class ConfigController {
 
-
-        @Value("${app.ui.forms.url}")
-        private String uiFormUrl;
+		@Value
+        private String uiFormUrl="http://localhost:8080/ui/forms/bdo/form.html";
 
         @GetMapping
         public Map<String, String> getConfig() {

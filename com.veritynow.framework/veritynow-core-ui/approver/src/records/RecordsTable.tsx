@@ -1,14 +1,15 @@
 import * as React from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { CardTitle, Card, CardContent, CardHeader } from "@/components/ui/card.tsx"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx"
-import { Input } from "@/components/ui/input.tsx";
+import { CardTitle, Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import ComposedNameInput from "@/records/ComposedNameInput"
 import Record from "@/records/Record"
 import ImageGallery from "@/records/ImageGallery"
 import { LabeledButton } from "@/records/LabeledButton"
-import { useSearchAndSort } from "../lib/SearchAndSort"            // ⬅️ your new hook
+import { SortKey, useSearchAndSort } from "../lib/SearchAndSort"            // ⬅️ your new hook
+import { StoreSwitch } from "@/stores/StoreSwitch";
 
 
 type Status = "NEW" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED"
@@ -157,8 +158,9 @@ export function RecordsTable() {
   return (
     <Card className="shadow-lg">
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <CardTitle>BDO Personal Loans</CardTitle>
+        <CardTitle>BDO Personal Loans df</CardTitle>
         <div className="flex items-center gap-2">
+		  
           <Record />
           {/* hook-managed search string */}
           <Input  
@@ -291,7 +293,8 @@ export function RecordsTable() {
                               onClick={() => setViewImagesOf(r)}
                             >
                               <img
-                                src={`${API_BASE}/api/images/${r.imageIds[0]}?t=${Date.now()}`}
+                                src={`${store.imageSrc(r.imageIds[0]) || ""}`}
+								
                                 className="h-8 w-8 rounded border object-cover"
                               />
                               <code className="text-xs bg-gray-100 rounded px-1 py-0.5">

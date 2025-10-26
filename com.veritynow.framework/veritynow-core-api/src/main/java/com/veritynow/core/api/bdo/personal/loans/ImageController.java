@@ -1,12 +1,14 @@
 package com.veritynow.core.api.bdo.personal.loans;
 
+import java.util.Optional;
+
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/images")
-@CrossOrigin(origins = { "http://localhost:5173" }, allowCredentials = "true")
+@CrossOrigin(origins = { "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8080", "http://127.0.0.1:8080" })
 public class ImageController {
 	private final ImageService svc;
 	private final RecordRepository records;
@@ -18,7 +20,15 @@ public class ImageController {
 
 	@GetMapping("/{imageId}")
 	public ResponseEntity<byte[]> get(@PathVariable String imageId) {
-		ImageEntity img = svc.get(imageId);
+		Optional<ImageEntity> optImg = svc.find(imageId);
+		
+		 
+		if (!optImg.isEmpty()) {
+			optImg.get();
+		}
+		
+		ImageEntity img = optImg.get();
+		
 		if (img == null || img.getData() == null)
 			return ResponseEntity.notFound().build();
 		String ct = img.getContentType() == null ? MediaType.IMAGE_PNG_VALUE : img.getContentType();
