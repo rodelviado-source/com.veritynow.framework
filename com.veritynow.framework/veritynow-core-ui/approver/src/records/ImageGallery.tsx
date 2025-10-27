@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
 
 
+import FacadeImage from "@/data/core/FacadeImage";
 import {type RecordItem } from "./RecordsTable";
 
 import ImageViewerDialog from "./ImageViewerDialog";
@@ -11,7 +12,6 @@ interface GalleryProps {
     viewImagesOf: RecordItem | null;
     setViewImagesOf: React.Dispatch<React.SetStateAction<RecordItem | null>>;
 }
-const API_BASE = "http://localhost:8080";
 
 
                         
@@ -46,12 +46,11 @@ export default function ImageGallery({viewImagesOf, setViewImagesOf}: GalleryPro
                                     title="Click to view full size"
                                     className="group relative rounded-2xl border shadow overflow-hidden bg-white"
                                 >
-                                    <img
-                                        src={`${API_BASE}/api/images/${id}`}
-                                        className="block h-40 w-full object-cover transition-transform group-hover:scale-[1.02]"
-                                        alt={id}
-                                        loading="lazy"
-                                    />
+								<FacadeImage
+								    imageId={id}
+								    className="block w-full h-40  object-cover transition-transform group-hover:scale-[1.02]"
+								    alt={id}
+								  />
                                     <span className="absolute bottom-1 right-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
                                         View
                                     </span>
@@ -66,10 +65,11 @@ export default function ImageGallery({viewImagesOf, setViewImagesOf}: GalleryPro
                     
 
                 </DialogContent>
+				
                 <LabeledButton label="close" onClick={() => setViewImagesOf(null)}/>
                 
             </Dialog>
-              <ImageViewerDialog open={open} setOpen={setOpen} baseUrl={API_BASE} imageIds={imageIds} currentIndex={currentIndex} />       
+              <ImageViewerDialog open={open} setOpen={setOpen} imageIds={imageIds} currentIndex={currentIndex} />       
         </div>
     )
 }

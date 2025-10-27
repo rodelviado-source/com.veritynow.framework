@@ -1,10 +1,9 @@
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAgent } from "@/auth/agent";
-import {LabeledButton } from "@/records/LabeledButton";
+import { LabeledButton } from "@/records/LabeledButton";
 import { Input } from "@/components/ui/input";
-
-const API_BASE =  "http://localhost:8080";
+import { DataFacade } from "@/data/core/DataFacade";
 
 export default function NewRecord() {
   const qc = useQueryClient();
@@ -36,12 +35,8 @@ export default function NewRecord() {
 
   const clientIdInputRef = React.useRef<HTMLInputElement | null>(null);
   const agentIdInputRef = React.useRef<HTMLInputElement | null>(null);
- 
 
-
-  // When dialog opens, (re)initialize from the row and focus the first field
   React.useEffect(() => {
-    
     if (open) {
       const agentCurrent = agentIdInputRef.current;
       const clientCurrent = clientIdInputRef.current;
@@ -49,141 +44,144 @@ export default function NewRecord() {
       if (clientCurrent) clientCurrent.value = "";
       form.clientId = "";
 
-      if (agentCurrent) agentCurrent.value=form.agentId;
+      if (agentCurrent) agentCurrent.value = form.agentId;
 
-      //tick to ensure element is mounted
-      requestAnimationFrame(() =>  clientIdInputRef.current?.focus());
+      requestAnimationFrame(() => clientIdInputRef.current?.focus());
       requestAnimationFrame(() => agentIdInputRef.current?.focus());
-      }
+    }
   }, [open, clientIdInputRef, agentIdInputRef]);
-    
+
   const createMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${API_BASE}/api/records`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
-      });
-
-      if (!res.ok) {
-        setErrorMsg("bg-red-500 text-yellow-500 text-center text-bold border rounded-2xl px-2 py-2 mb-2");
-        throw new Error("Create failed");
-      } 
-
-      return res.json();
-    },
-    onSuccess: async (rec) => {
+      // create record via facade
+      const rec = await DataFacade.create(form);
+      // upload images if provided
       if (files.length) {
-        const fd = new FormData();
-        files.forEach(f => fd.append("files", f));
-        const up = await fetch(`${API_BASE}/api/images/records/${rec.id}`, { method: "POST", body: fd });
-        if (!up.ok) throw new Error("Upload failed");
+        await DataFacade.uploadImages(rec.id, files);
       }
+      return rec;
+    },
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["records"] });
       setOpen(false);
       setFiles([]);
+    },
+    onError: () => {
+      setErrorMsg("bg-red-500 text-yellow-500 text-center text-bold border rounded-2xl px-2 py-2 mb-2");
     }
   });
-  
-  function handleCreate() {
 
+  function handleCreate() {
     setErrorMsg("hidden");
     let focusSet = false;
 
-
     if (!form.agentId || form.agentId.trim().length <= 0) {
-        setAgentHilightOnOff("border-red-500 text-red-500");
-        requestAnimationFrame(() => agentIdInputRef.current?.focus());
-        focusSet = true;
+      setAgentHilightOnOff("border-red-500 text-red-500");
+      requestAnimationFrame(() => agentIdInputRef.current?.focus());
+      focusSet = true;
     }
-    
+
     if (!form.clientId || form.clientId.trim().length <= 0) {
-        setClientHilightOnOf("border-red-500 text-red-500");
-        if (!focusSet)   requestAnimationFrame(() => clientIdInputRef.current?.focus());
-        focusSet = true;
+      setClientHilightOnOf("border-red-500 text-red-500");
+      if (!focusSet) requestAnimationFrame(() => clientIdInputRef.current?.focus());
+      focusSet = true;
     }
-    
+
     if (!focusSet) createMutation.mutate();
   }
 
-function handleCancel() {
-  setAgentHilightOnOff("");
-  setClientHilightOnOf("");
-  setErrorMsg("hidden");
-  setOpen(false);
-}
+  function handleCancel() {
+    setAgentHilightOnOff("");
+    setClientHilightOnOf("");
+    setErrorMsg("hidden");
+    setOpen(false);
+  }
 
-const clientCurrent = clientIdInputRef.current;
+  const clientCurrent = clientIdInputRef.current;
 
   return (
     <>
-      <LabeledButton label="New Records" onClick={()=>setOpen(true)}/>
+      <LabeledButton label="New Records" onClick={() => setOpen(true)} />
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={()=>setOpen(false)}>
-          <div className="bg-white rounded-2xl p-6 w-[95%] max-w-3xl" onClick={e=>e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setOpen(false)}>
+          <div className="bg-white rounded-2xl p-6 w-[95%] max-w-3xl" onClick={e => e.stopPropagation()}>
             <h2 className="text-lg font-bold mb-3">New Loan Application</h2>
-            
-            <h2  className={errorMsg}>
-               Record already exist
-            </h2>
-            
-            <div className="space-y-3">
-              { 
-                
-              (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
-                <div className="whitespace-nowrap">
-                 {form.agentId != null && form.agentId.trim().length > 0 ? "✅" : ""}
-                <Input ref={agentIdInputRef} className={agentHilightOnOff} placeholder="Agent ID (required)" value={form.agentId} onChange={e=>setForm({...form, agentId: e.target.value})} />
-                 
 
+            <h2 className={errorMsg}>Record already exist</h2>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="whitespace-nowrap">
+                  {form.agentId != null && form.agentId.trim().length > 0 ? "✅" : ""}
+                  <Input
+                    ref={agentIdInputRef}
+                    className={agentHilightOnOff}
+                    placeholder="Agent ID (required)"
+                    value={form.agentId}
+                    onChange={e => setForm({ ...form, agentId: e.target.value })}
+                  />
                 </div>
                 <div className="whitespace-nowrap">
                   {clientCurrent?.value != null && clientCurrent?.value.trim().length > 0 ? "✅" : ""}
-                <Input ref={clientIdInputRef} className={clientHilightOnOf} placeholder="Client ID (required)" value={form.clientId} onChange={e=>setForm({...form, clientId: e.target.value})} />
-                
+                  <Input
+                    ref={clientIdInputRef}
+                    className={clientHilightOnOf}
+                    placeholder="Client ID (required)"
+                    value={form.clientId}
+                    onChange={e => setForm({ ...form, clientId: e.target.value })}
+                  />
                 </div>
               </div>
-                )
-              }
 
               <div className="font-bold">Personal Information</div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <Input placeholder="Agent First" value={form.agentFirstName} onChange={e=>setForm({...form, agentFirstName: e.target.value})}/>
-                <Input placeholder="Agent Middle" value={form.agentMiddleName} onChange={e=>setForm({...form, agentMiddleName: e.target.value})}/>
-                <Input placeholder="Agent Last" value={form.agentLastName} onChange={e=>setForm({...form, agentLastName: e.target.value})}/>
-                <Input placeholder="Agent Suffix" value={form.agentSuffix} onChange={e=>setForm({...form, agentSuffix: e.target.value})}/>
+                <Input placeholder="Agent First" value={form.agentFirstName} onChange={e => setForm({ ...form, agentFirstName: e.target.value })} />
+                <Input placeholder="Agent Middle" value={form.agentMiddleName} onChange={e => setForm({ ...form, agentMiddleName: e.target.value })} />
+                <Input placeholder="Agent Last" value={form.agentLastName} onChange={e => setForm({ ...form, agentLastName: e.target.value })} />
+                <Input placeholder="Agent Suffix" value={form.agentSuffix} onChange={e => setForm({ ...form, agentSuffix: e.target.value })} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <Input placeholder="Client First" value={form.clientFirstName} onChange={e=>setForm({...form, clientFirstName: e.target.value})}/>
-                <Input placeholder="Client Middle" value={form.clientMiddleName} onChange={e=>setForm({...form, clientMiddleName: e.target.value})}/>
-                <Input placeholder="Client Last" value={form.clientLastName} onChange={e=>setForm({...form, clientLastName: e.target.value})}/>
-                <Input placeholder="Client Suffix" value={form.clientSuffix} onChange={e=>setForm({...form, clientSuffix: e.target.value})}/>
+                <Input placeholder="Client First" value={form.clientFirstName} onChange={e => setForm({ ...form, clientFirstName: e.target.value })} />
+                <Input placeholder="Client Middle" value={form.clientMiddleName} onChange={e => setForm({ ...form, clientMiddleName: e.target.value })} />
+                <Input placeholder="Client Last" value={form.clientLastName} onChange={e => setForm({ ...form, clientLastName: e.target.value })} />
+                <Input placeholder="Client Suffix" value={form.clientSuffix} onChange={e => setForm({ ...form, clientSuffix: e.target.value })} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Input placeholder="Title" value={form.title} onChange={e=>setForm({...form, title: e.target.value})}/>
-                <Input placeholder="Priority" type="number" value={form.priority} onChange={e=>setForm({...form, priority: Number(e.target.value)})}/>
-                <select className="border rounded-2xl px-2 py-1" value={form.status} onChange={e=>setForm({...form, status: e.target.value})}>
-                  {["NEW","IN_REVIEW","APPROVED","REJECTED","CLOSED"].map(s=><option key={s} value={s}>{s}</option>)}
+                <Input placeholder="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+                <Input placeholder="Priority" type="number" value={form.priority} onChange={e => setForm({ ...form, priority: Number(e.target.value) })} />
+                <select className="border rounded-2xl px-2 py-1" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                  {["NEW", "IN_REVIEW", "APPROVED", "REJECTED", "CLOSED"].map(s => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              <textarea className="border rounded-2xl p-3 w-full min-h-[100px]" placeholder="Description"
-                        value={form.description} onChange={e=>setForm({...form, description: e.target.value})}/>
+              <textarea
+                className="border rounded-2xl p-3 w-full min-h-[100px]"
+                placeholder="Description"
+                value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+              />
 
               <label className="border rounded-2xl px-3 py-2 inline-block cursor-pointer">
                 Choose Images
-                <input type="file" accept="image/*" multiple className="hidden"
-                       onChange={e=>setFiles(e.currentTarget.files ? Array.from(e.currentTarget.files) : [])}/>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={e => setFiles(e.currentTarget.files ? Array.from(e.currentTarget.files) : [])}
+                />
               </label>
 
               <div className="flex items-center justify-end gap-2 pt-2">
-                <LabeledButton label="Cancel" onClick={handleCancel}/>
-                <LabeledButton onClick={handleCreate} disabled={createMutation.isPending}>
+                <LabeledButton label="Cancel" onClick={handleCancel} />
+                <LabeledButton onClick={() => handleCreate()} disabled={createMutation.isPending}>
                   {createMutation.isPending ? "Creating…" : "Create"}
                 </LabeledButton>
               </div>
