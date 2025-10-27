@@ -117,7 +117,7 @@ const clientCurrent = clientIdInputRef.current;
 
   return (
     <>
-      <LabeledButton label="New Records" onClick={() => setOpen(true)} disabled={false}/>
+      <LabeledButton label="New Records" onClick={()=>setOpen(true)}/>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={()=>setOpen(false)}>
           <div className="bg-white rounded-2xl p-6 w-[95%] max-w-3xl" onClick={e=>e.stopPropagation()}>

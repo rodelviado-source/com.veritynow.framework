@@ -1,4 +1,4 @@
-package veritynow.core.utils;
+package com.veritynow.core.utils;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

@@ -1,4 +1,4 @@
-package veritynow.core.utils;
+package com.veritynow.core.utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;

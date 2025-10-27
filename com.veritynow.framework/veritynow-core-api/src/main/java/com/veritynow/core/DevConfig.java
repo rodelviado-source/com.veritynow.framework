@@ -1,4 +1,4 @@
-package veritynow.core;
+package com.veritynow.core;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

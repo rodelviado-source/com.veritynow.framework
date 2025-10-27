@@ -8,7 +8,7 @@ import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/records")
-@CrossOrigin(origins = { "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8080", "http://127.0.0.1:8080" })
+@CrossOrigin(origins = { "http://localhost:5173" }, allowCredentials = "true")
 public class RecordsController {
 
 	private final RecordRepository repo;
@@ -19,8 +19,7 @@ public class RecordsController {
 
 	// list with search/sort/paging (unchanged)
 	@GetMapping
-	public PageResponse<RecordEntity> list(
-			@RequestParam(name = "page", defaultValue = "0") int page,
+	public PageResponse<RecordEntity> list(@RequestParam(name = "page", defaultValue = "0") int page,
 			@RequestParam(name = "size", defaultValue = "10") int size,
 			@RequestParam(name = "query", required = false) String query,
 			@RequestParam(name = "sort", defaultValue = "createdAt") String sortField,

@@ -51,14 +51,15 @@ public class ImagesController {
   // Stream single image by id
   @GetMapping("/{id}")
   public ResponseEntity<byte[]> get(@PathVariable String id) {
-    return imageService.find(id)
-        .map(img -> {
+     ImageEntity re = imageService.find(id);
+        if (re != null) {  
           HttpHeaders h = new HttpHeaders();
           h.setContentType(MediaType.parseMediaType(
-              Optional.ofNullable(img.getContentType()).orElse("application/octet-stream")));
+              Optional.ofNullable(re.getContentType()).orElse("application/octet-stream")));
           h.setCacheControl(CacheControl.noCache());
-          return new ResponseEntity<>(img.getData(), h, HttpStatus.OK);
-        })
-        .orElse(ResponseEntity.notFound().build());
-  }
+          return new ResponseEntity<>(re.getData(), h, HttpStatus.OK);
+        } 
+        return ResponseEntity.notFound().build();
+  };
+
 }

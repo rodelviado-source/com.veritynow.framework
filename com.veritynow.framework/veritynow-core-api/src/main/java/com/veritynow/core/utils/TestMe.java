@@ -1,4 +1,4 @@
-package veritynow.core.utils;
+package com.veritynow.core.utils;
 
 public class TestMe {
 

@@ -6,7 +6,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = { "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8080", "http://127.0.0.1:8080" })
+@CrossOrigin(origins = { "http://localhost:5173" }, allowCredentials = "true")
 public class UserController {
 	private final UserRepository repo;
 
