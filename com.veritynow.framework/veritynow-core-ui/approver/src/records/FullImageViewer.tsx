@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { ApiImage } from "@/data/ApiImage";
 
 export default function FullImageViewer({
   ids,
@@ -74,17 +75,10 @@ export default function FullImageViewer({
         title="Drag bottom-right corner to resize (clamped to viewport)"
       >
         <div className="min-w-max min-h-max p-2">
-          <img
-            src={src}
-            alt={id}
-            onDoubleClick={toggleFit}
-            className="select-none mx-auto cursor-zoom-in"
-            style={
-              fit === "contain"
-                ? { maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }
-                : { maxWidth: "none", maxHeight: "none" }
-            }
-            draggable={false}
+          <ApiImage
+		  imageId={id}
+		    className="h-8 w-8 rounded border object-cover"
+		    alt={id}
           />
         </div>
       </div>

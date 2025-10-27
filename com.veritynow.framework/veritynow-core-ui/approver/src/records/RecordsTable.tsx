@@ -8,8 +8,8 @@ import ComposedNameInput from "@/records/ComposedNameInput"
 import Record from "@/records/Record"
 import ImageGallery from "@/records/ImageGallery"
 import { LabeledButton } from "@/records/LabeledButton"
-import { useSearchAndSort } from "../lib/SearchAndSort"            // ⬅️ your new hook
-
+import { useSearchAndSort, SortKey } from "../lib/SearchAndSort"            // ⬅️ your new hook
+import { DataModeSwitch } from "@/data/DataModeSwitch";
 
 type Status = "NEW" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED"
 const STATUSES: Status[] = ["NEW", "IN_REVIEW", "APPROVED", "REJECTED", "CLOSED"]
@@ -159,6 +159,7 @@ export function RecordsTable() {
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <CardTitle>BDO Personal Loans</CardTitle>
         <div className="flex items-center gap-2">
+		  <DataModeSwitch  />
           <Record />
           {/* hook-managed search string */}
           <Input  
