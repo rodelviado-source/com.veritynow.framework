@@ -1,6 +1,9 @@
 // src/records/ComposedNameInput.tsx
 import * as React from "react";
 
+import {CancelSharp  as CancelIcon} from '@mui/icons-material'
+import {Save  as ApplyIcon} from '@mui/icons-material'
+import {Edit  as EditIcon} from '@mui/icons-material'
 
 import { Input } from "@/components/ui/input";
 
@@ -12,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import { LabeledButton } from "./LabeledButton";
+import { Button } from "@mui/material";
 
 type NameDraft = {
   clientFirstName?: string;
@@ -89,37 +92,35 @@ export default function ComposedNameInput({
     setOpen(false);
   }
 
-  function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-      applyChanges();
-    }
-  }
+  // function onKeyDown(e: React.KeyboardEvent) {
+  //   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+  //     applyChanges();
+  //   }
+  // }
 
   return (
     <>
       {/* Table cell trigger */}
       {isEditing ? (
         <div className="flex items-start gap-2">
-          <LabeledButton 
-            label={label ?  `${label}✏️` : "set client name✏️"}
-            onClick={() => setOpen(true)}
-            title="Edit client full name"
-          />
           
+          <Button title="Edit client full name" endIcon={<EditIcon/>} variant="text" onClick = {() => setOpen(true)} >
+                {label ?  `${label}` : "set client name"}
+          </Button>
         </div>
       ) : (
         <span className="text-sm">{label || "—"}</span>
       )}
 
       {/* Popup dialog */}
-      <Dialog open={open} onOpenChange={(v) => setOpen(v)}>
+      <Dialog open={open} onOpenChange={(v) => setOpen(v)} >
         
-          <DialogHeader>
+        <DialogHeader>
           <DialogTitle>Edit Client Full Name</DialogTitle>
         </DialogHeader>
         
 
-        <DialogContent onKeyDown={onKeyDown}>
+        <DialogContent>
           {/* Live preview */}
           <div className="mb-2 rounded-2xl border bg-white px-3 py-2 text-sm">
             <span className="text-gray-500 mr-2">Preview:</span>
@@ -127,7 +128,7 @@ export default function ComposedNameInput({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Input border 
+            <Input title= "First Name" 
               ref={firstRef}
               placeholder="First name"
               value={first}
@@ -135,16 +136,19 @@ export default function ComposedNameInput({
             />
             <Input
               placeholder="Middle name"
+              title="Middle name"
               value={middle}
               onChange={(e) => setMiddle(e.target.value)}
             />
             <Input
               placeholder="Last name"
+              title="Last name"
               value={last}
               onChange={(e) => setLast(e.target.value)}
             />
             <Input
               placeholder="Suffix (e.g., Jr., Sr.)"
+              title="Suffix"
               value={suffix}
               onChange={(e) => setSuffix(e.target.value)}
             />
@@ -156,8 +160,12 @@ export default function ComposedNameInput({
 
          <DialogFooter>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2 mr-2 ml-2">
-            <LabeledButton label="Cancel" disabled={false} onClick={() => setOpen(false)}/>
-            <LabeledButton label="Apply"  disabled={false} onClick={applyChanges}/>
+            <Button title="Cancel changes" variant="outlined" startIcon={<CancelIcon/>} onClick={() => setOpen(false)} >
+                Cancel
+            </Button>
+            <Button title="Apply changes" variant="outlined" startIcon={<ApplyIcon/>} onClick ={applyChanges} >
+                Apply
+            </Button>
           </div>
         </DialogFooter>
       </Dialog>

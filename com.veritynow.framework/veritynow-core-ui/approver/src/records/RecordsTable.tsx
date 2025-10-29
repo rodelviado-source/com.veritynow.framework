@@ -1,17 +1,24 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { CardTitle, Card, CardContent, CardHeader } from "@/components/ui/card.tsx";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table.tsx";
-import { Input } from "@/components/ui/input.tsx";
+import { Button, CardContent, TextField } from "@mui/material";
+import { Box, Stack, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { Input } from "@mui/material";
 import ComposedNameInput from "@/records/ComposedNameInput";
 import Record from "@/records/Record";
 import ImageGallery from "@/records/ImageGallery";
-import { LabeledButton } from "@/records/LabeledButton";
-import { useSearchAndSort, SortKey } from "../lib/SearchAndSort";
-import { DataModeSwitch } from "@/data/DataModeSwitch";
-import { FacadeImage } from "@/data/core/FacadeImage";
-import { DataFacade } from "@/data/core/DataFacade";
+import { LabeledButton } from "@/components/ui/LabeledButton";
+import { Edit as EditIcon } from '@mui/icons-material';
+import { Save as SaveIcon } from '@mui/icons-material';
+import { Cancel as CancelIcon } from '@mui/icons-material';
+
+import { useSearchAndSort, SortKey } from "@/data/util/SearchAndSort";
+import { ImageFacade } from "@/data/facade/ImageFacade";
+import { DataFacade } from "@/data/facade/DataFacade";
+
+import { DataModeSelect } from "@/data/control/DataModeSelect";
+import { CircularIntegration } from "@/data/control/CirularIntegration";
+
 
 type Status = "NEW" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED";
 const STATUSES: Status[] = ["NEW", "IN_REVIEW", "APPROVED", "REJECTED", "CLOSED"];
@@ -106,7 +113,7 @@ export function RecordsTable() {
   function cancelEdit() { setEditingId(null); setDraft({}); }
   function saveEdit() {
     if (editingId == null) return;
-    const payload: RecordItem = { id: editingId };
+    const payload: RecordItem = { id: editingId }
     if (draft.title !== undefined) payload.title = draft.title;
     if (draft.description !== undefined) payload.description = draft.description;
     if (draft.priority !== undefined) payload.priority = draft.priority;
@@ -121,57 +128,69 @@ export function RecordsTable() {
   const formatName = (first?: string, middle?: string, last?: string, suffix?: string) =>
     [first, middle, last, suffix].filter(Boolean).join(" ");
 
+  const [refreshKey, setRefreshKey] = React.useState(0);
+  const refresh = () => setRefreshKey(prev => prev + 1);
+
   return (
-    <Card className="shadow-lg">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <CardTitle>BDO Personal Loans</CardTitle>
-        <div className="flex items-center gap-2">
-          <DataModeSwitch />
-          <Record />
-          <Input
-            placeholder="Search client, description, title, agent…"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-            className="w-70 border rounded-2xl px-2 py-2 cursor-text whitespace-nowrap  text-sl text-left"
-          />
-          <div className="text-sm text-gray-600">
-            {isFetching ? "Refreshing…" : "Up to date"}
-          </div>
-        </div>
-      </CardHeader>
+    <Box sx={{ minWidth:1100 }}>
+
+      <Stack direction="row" justifyContent="flex-start" spacing={5}>
+
+        <DataModeSelect onModeChange={refresh} />
+        {!isLoading && !isFetching && !isError && (
+        <React.Fragment>
+        <Record />
+        <TextField
+          variant="outlined"
+          label="Search client, description, title, agent…"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+          className="w-70"
+        /> 
+        </React.Fragment>
+        )}
+
+        <CircularIntegration
+          errMsg={error?.message}
+          isError={isError}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          refresh={refresh}
+        />
+
+      </Stack>
+
 
       <CardContent>
-        {isLoading && <p>Loading records…</p>}
-        {isError && <p className="text-red-600">Error: {(error as Error).message}</p>}
 
         {!isLoading && !isError && (
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+              <Table key={refreshKey}   >
+                <TableHead>
                   <TableRow>
-                    <TableHead onClick={() => toggleSort("id")} className="cursor-pointer">
+                    <TableCell onClick={() => toggleSort("id")} className="cursor-pointer">
                       <div className="font-bold whitespace-nowrap">ID {arrow("id")}</div>
-                    </TableHead>
-                    <TableHead onClick={() => toggleSort("priority")} className="cursor-pointer">
+                    </TableCell>
+                    <TableCell onClick={() => toggleSort("priority")} className="cursor-pointer">
                       <div className="font-bold whitespace-nowrap">Priority {arrow("priority")}</div>
-                    </TableHead>
-                    <TableHead onClick={() => toggleSort(["clientLastName", "clientFirstName", "clientMiddleName"])} className="cursor-pointer">
+                    </TableCell>
+                    <TableCell onClick={() => toggleSort(["clientLastName", "clientFirstName", "clientMiddleName"])} className="cursor-pointer">
                       <div className="font-bold whitespace-nowrap">
                         Client Name {arrow(["clientLastName", "clientFirstName", "clientMiddleName"])}
                       </div>
-                    </TableHead>
-                    <TableHead><div className="font-bold whitespace-nowrap">Description / Notes</div></TableHead>
-                    <TableHead><div className="font-bold">Images</div></TableHead>
-                    <TableHead onClick={() => toggleSort("createdAt")} className="cursor-pointer">
+                    </TableCell>
+                    <TableCell><div className="font-bold whitespace-nowrap">Description / Notes</div></TableCell>
+                    <TableCell><div className="font-bold">Images</div></TableCell>
+                    <TableCell onClick={() => toggleSort("createdAt")} className="cursor-pointer">
                       <div className="font-bold whitespace-nowrap">Created {arrow("createdAt")}</div>
-                    </TableHead>
-                    <TableHead onClick={() => toggleSort("status")} className="cursor-pointer">
+                    </TableCell>
+                    <TableCell onClick={() => toggleSort("status")} className="cursor-pointer">
                       <div className="font-bold whitespace-nowrap">Status {arrow("status")}</div>
-                    </TableHead>
-                    <TableHead className="w-56 justify-center"><div className="font-bold">Actions</div></TableHead>
+                    </TableCell>
+                    <TableCell className="w-56 justify-center"><div className="font-bold">Actions</div></TableCell>
                   </TableRow>
-                </TableHeader>
+                </TableHead>
 
                 <TableBody>
                   {pageSorted.map((r) => {
@@ -184,7 +203,7 @@ export function RecordsTable() {
                     const clientLabel = formatName(clientFirst, clientMiddle, clientLast, clientSuffix);
 
                     return (
-                      <TableRow key={r.id} onDoubleClick={() => { beginEdit(r); }}>
+                      <TableRow key={r.id} onDoubleClick={() => { beginEdit(r); }} >
                         <TableCell>{r.id}</TableCell>
                         <TableCell>
                           {isEditing ? (
@@ -214,10 +233,10 @@ export function RecordsTable() {
                         <TableCell>
                           {r.imageIds?.length ? (
                             <div className="flex items-center gap-2 cursor-pointer" onClick={() => setViewImagesOf(r)}>
-                              <FacadeImage 
-							       imageId={r.imageIds[0]} 
-								   className="h-8 w-8 rounded border object-cover" 
-								   alt={r.imageIds[0]} />
+                              <ImageFacade
+                                imageId={r.imageIds[0]}
+                                className="h-8 w-8 rounded border object-cover"
+                                alt={r.imageIds[0]} />
                               <code className="text-xs bg-gray-100 rounded px-1 py-0.5">
                                 {r.imageIds.length} image{r.imageIds.length > 1 ? "s" : ""}
                               </code>
@@ -248,7 +267,7 @@ export function RecordsTable() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2 justify-center">
-                            <label className="border rounded-2xl px-3 py-2 cursor-pointer">
+                            <label className="border rounded-2xl px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
                               {uploadingId === r.id ? "Uploading…" : "Upload"}
                               <input
                                 type="file"
@@ -271,14 +290,24 @@ export function RecordsTable() {
                                 }}
                               />
                             </label>
-                            {!isEditing ? (
-                              <LabeledButton label="Edit" onClick={() => beginEdit(r)} />
-                            ) : (
-                              <>
-                                <LabeledButton label="Save" onClick={saveEdit} />
-                                <LabeledButton label="Cancel" onClick={cancelEdit} />
-                              </>
+                            {!isEditing && (
+
+                              <Button title="Edit" variant="outlined" startIcon={<EditIcon />} onClick={() => beginEdit(r)} disabled={isEditing && editingId === r.id} >
+                                Edit
+                              </Button>
+
                             )}
+                            {isEditing && (
+                              <React.Fragment>
+                                <Button title="Save" variant="outlined" startIcon={<SaveIcon />} onClick={saveEdit} disabled={!isEditing && editingId !== r.id} >
+                                  Save
+                                </Button>
+                                <Button title="Cancel" variant="outlined" startIcon={<CancelIcon />} onClick={cancelEdit}  >
+                                  Cancel
+                                </Button>
+                              </React.Fragment>
+                            )}
+
                           </div>
                         </TableCell>
                       </TableRow>
@@ -298,7 +327,7 @@ export function RecordsTable() {
                     <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
-                <LabeledButton label={page > 0 ? "{page} ← Prev" : "Prev"} onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page == 0} />
+                <LabeledButton label={page > 0 ? `${page} ← Prev` : "Prev"} onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page == 0} />
                 <div>{`Page ${page + 1} of ${pages}`}</div>
                 <LabeledButton label={page + 1 < pages ? `Next → ${page + 2}` : "Next"} onClick={() => setPage((p) => (p + 1 < pages ? p + 1 : p))} disabled={page + 2 > pages} />
               </div>
@@ -308,6 +337,6 @@ export function RecordsTable() {
       </CardContent>
 
       {viewImagesOf && <ImageGallery viewImagesOf={viewImagesOf} setViewImagesOf={setViewImagesOf} />}
-    </Card>
+    </Box>
   );
 }

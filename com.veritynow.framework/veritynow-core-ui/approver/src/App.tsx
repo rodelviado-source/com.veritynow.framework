@@ -1,8 +1,9 @@
-import { RecordsTable } from "@/records/RecordsTable";
+// import { RecordsTable } from "@/records/RecordsTable";
 import Login from "@/auth/Login";
 import { getAgent, clearAgent } from "@/auth/agent";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import BDODemo from "./records/BDODemo";
 
 export default function App(){
   const [agent, setAgent] = React.useState(() => getAgent());
@@ -25,9 +26,9 @@ export default function App(){
         </div>
       </div>
 
-      
+      <BDODemo></BDODemo>
 
-      <RecordsTable/>
+    {/* <RecordsTable/> */}
     </div>
   );
 }

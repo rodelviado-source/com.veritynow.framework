@@ -1,9 +1,12 @@
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAgent } from "@/auth/agent";
-import { LabeledButton } from "@/records/LabeledButton";
 import { Input } from "@/components/ui/input";
-import { DataFacade } from "@/data/core/DataFacade";
+import { DataFacade } from "@/data/facade/DataFacade";
+import { Button } from "@mui/material";
+import {CancelSharp  as CancelIcon} from '@mui/icons-material'
+import {CreateSharp  as CreateIcon} from '@mui/icons-material'
+
 
 export default function NewRecord() {
   const qc = useQueryClient();
@@ -101,7 +104,7 @@ export default function NewRecord() {
 
   return (
     <>
-      <LabeledButton label="New Records" onClick={() => setOpen(true)} />
+      <Button startIcon={<CreateIcon/>} variant="outlined" onClick={() => setOpen(true)} >New Records</Button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-2xl p-6 w-[95%] max-w-3xl" onClick={e => e.stopPropagation()}>
@@ -180,10 +183,14 @@ export default function NewRecord() {
               </label>
 
               <div className="flex items-center justify-end gap-2 pt-2">
-                <LabeledButton label="Cancel" onClick={handleCancel} />
-                <LabeledButton onClick={() => handleCreate()} disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Creating…" : "Create"}
-                </LabeledButton>
+                 <Button title="Cancel changes" variant="outlined" startIcon={<CancelIcon/>} onClick={handleCancel} >
+                    Cancel
+                </Button>
+            <Button title="Create new record" variant="outlined" startIcon={<CreateIcon/>} onClick ={handleCreate} >
+                 {createMutation.isPending ? "Creating…" : "Create"}
+            </Button>
+
+                
               </div>
             </div>
           </div>
