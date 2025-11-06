@@ -1,43 +1,31 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { Button, CardContent, TextField } from "@mui/material";
+import { Button, CardContent, FormControl, Input, InputLabel, MenuItem, Select, SelectChangeEvent, TableContainer, TextField } from "@mui/material";
 import { Box, Stack, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import { Input } from "@mui/material";
-import ComposedNameInput from "@/records/ComposedNameInput";
-import Record from "@/records/Record";
-import ImageGallery from "@/records/ImageGallery";
-import { LabeledButton } from "@/components/ui/LabeledButton";
-import { Edit as EditIcon } from '@mui/icons-material';
-import { Save as SaveIcon } from '@mui/icons-material';
-import { Cancel as CancelIcon } from '@mui/icons-material';
 
-import { useSearchAndSort, SortKey } from "@/data/util/SearchAndSort";
-import { ImageFacade } from "@/data/facade/ImageFacade";
+import ComposedNameInput from "@/records/ComposedNameInput";
+
+import ImageGallery from "@/records/ImageGallery";
+import { ArrowCircleLeftRounded as ArrowLeftIcon, ArrowCircleRightRounded as ArrowRightIcon, Edit as EditIcon, CloudUploadOutlined as CloudUploadIcon } from '@mui/icons-material';
+import { SaveOutlined as SaveIcon } from '@mui/icons-material';
+import { CancelOutlined as CancelIcon } from '@mui/icons-material';
+
+import { useSearchAndSort, SortKey } from "@/components/ui/util/SearchAndSort";
 import { DataFacade } from "@/data/facade/DataFacade";
 
 import { DataModeSelect } from "@/data/control/DataModeSelect";
 import { CircularIntegration } from "@/data/control/CirularIntegration";
+import { Statuses, StatusValues, PageResult, type RecordItem } from "@/data/types/Record";
+import NewRecord from "@/records/NewRecord";
+import { VisuallyHiddenInput } from "@/components/ui/util/VisuallyHiddenInput";
+import PictureAsPdfTwoToneIcon from '@mui/icons-material/PictureAsPdfTwoTone';
+import EditRequirements, { DEFAULT_TEMPLATE } from "@/records/EditRequirements";
+import { Requirements } from "@/records/Requirements";
 
-
-type Status = "NEW" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED";
-const STATUSES: Status[] = ["NEW", "IN_REVIEW", "APPROVED", "REJECTED", "CLOSED"];
-interface PageResult<T> { items: T[]; page: number; size: number; total: number }
-export interface RecordItem {
-  id: number;
-  agentId: string;
-  agentFirstName?: string; agentMiddleName?: string; agentLastName?: string; agentSuffix?: string;
-  clientId: string;
-  clientFirstName?: string; clientMiddleName?: string; clientLastName?: string; clientSuffix?: string;
-  title: string;
-  priority?: number;
-  status?: Status;
-  description?: string;
-  createdAt: string;
-  imageIds: string[];
-}
 
 export function RecordsTable() {
+
   const [page, setPage] = React.useState(0);
   const [size, setSize] = React.useState(10);
 
@@ -62,7 +50,7 @@ export function RecordsTable() {
       clientSuffix?: string;
       description?: string;
       priority?: number;
-      status?: Status;
+      status?: Statuses;
       title?: string;
     }) => DataFacade.update(payload.id, payload),
     onSuccess: () => {
@@ -83,7 +71,7 @@ export function RecordsTable() {
     "clientLastName",
     "clientSuffix",
     "description",
-    "title",
+    "status",
     "agentFirstName",
     "agentMiddleName",
     "agentLastName",
@@ -113,7 +101,7 @@ export function RecordsTable() {
   function cancelEdit() { setEditingId(null); setDraft({}); }
   function saveEdit() {
     if (editingId == null) return;
-    const payload: RecordItem = { id: editingId }
+    const payload: Partial<RecordItem> = { id: editingId }
     if (draft.title !== undefined) payload.title = draft.title;
     if (draft.description !== undefined) payload.description = draft.description;
     if (draft.priority !== undefined) payload.priority = draft.priority;
@@ -122,7 +110,7 @@ export function RecordsTable() {
     if (draft.clientMiddleName !== undefined) payload.clientMiddleName = draft.clientMiddleName;
     if (draft.clientLastName !== undefined) payload.clientLastName = draft.clientLastName;
     if (draft.clientSuffix !== undefined) payload.clientSuffix = draft.clientSuffix;
-    updateMutation.mutate(payload);
+    updateMutation.mutate(payload as RecordItem);
   }
 
   const formatName = (first?: string, middle?: string, last?: string, suffix?: string) =>
@@ -130,24 +118,61 @@ export function RecordsTable() {
 
   const [refreshKey, setRefreshKey] = React.useState(0);
   const refresh = () => setRefreshKey(prev => prev + 1);
+  const uploadRef = React.useRef<HTMLInputElement>(null);
+
+  function uploadRequirement(label: string): boolean | null {
+    if (label == null) return null;
+    if (uploadRef != null) {
+      const input = uploadRef.current;
+      if (!input) return null;
+      input.click();
+
+      return true;
+    }
+    return null;
+  }
+
+  function onChangeFileUpload(r:RecordItem): void {
+    
+    if (!uploadRef || !uploadRef.current) return;
+    
+    const input = uploadRef.current;
+    const files:File[] = input.files ? Array.from(input.files) : [];
+      if (files.length === 0) return;
+      setUploadingId(r.id);
+      uploadMutation.mutate(
+        { id: r.id, files },
+        {
+          onSettled: () => {
+            setUploadingId(null);
+            input.value = "";
+          },
+        }
+      );
+
+  }
+
+
+
+
 
   return (
-    <Box sx={{ minWidth:1100 }}>
-
+    <Box sx={{ minWidth: 1000 }}>
+      
       <Stack direction="row" justifyContent="flex-start" spacing={5}>
 
         <DataModeSelect onModeChange={refresh} />
         {!isLoading && !isFetching && !isError && (
-        <React.Fragment>
-        <Record />
-        <TextField
-          variant="outlined"
-          label="Search client, description, title, agent…"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          className="w-70"
-        /> 
-        </React.Fragment>
+          <React.Fragment>
+            <NewRecord />
+            <TextField
+              variant="outlined"
+              label="Search client, description, status, agent…"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              className="w-70"
+            />
+          </React.Fragment>
         )}
 
         <CircularIntegration
@@ -165,8 +190,8 @@ export function RecordsTable() {
 
         {!isLoading && !isError && (
           <div className="space-y-2">
-            <div className="overflow-x-auto">
-              <Table key={refreshKey}   >
+            <TableContainer sx={{ maxHeight: 1000 }} >
+              <Table key={refreshKey} stickyHeader aria-label="sticky table" >
                 <TableHead>
                   <TableRow>
                     <TableCell onClick={() => toggleSort("id")} className="cursor-pointer">
@@ -180,8 +205,8 @@ export function RecordsTable() {
                         Client Name {arrow(["clientLastName", "clientFirstName", "clientMiddleName"])}
                       </div>
                     </TableCell>
-                    <TableCell><div className="font-bold whitespace-nowrap">Description / Notes</div></TableCell>
-                    <TableCell><div className="font-bold">Images</div></TableCell>
+                    <TableCell><div className="font-bold whitespace-nowrap">Requirements / Notes</div></TableCell>
+                    <TableCell><div className="font-bold">Documents</div></TableCell>
                     <TableCell onClick={() => toggleSort("createdAt")} className="cursor-pointer">
                       <div className="font-bold whitespace-nowrap">Created {arrow("createdAt")}</div>
                     </TableCell>
@@ -194,6 +219,9 @@ export function RecordsTable() {
 
                 <TableBody>
                   {pageSorted.map((r) => {
+
+
+
                     const isEditing = editingId === r.id;
 
                     const clientFirst = isEditing && draft.clientFirstName !== undefined ? (draft.clientFirstName as string) : r.clientFirstName;
@@ -221,59 +249,38 @@ export function RecordsTable() {
                         </TableCell>
                         <TableCell>
                           {isEditing ? (
-                            <textarea
-                              className="border rounded-2xl px-2 py-2 cursor-pointer whitespace-nowrap"
-                              value={draft.description ?? ""}
-                              onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+                          <div>
+                            <input ref={uploadRef} multiple type="file" hidden onChange={() =>onChangeFileUpload(r)}/>
+                            <EditRequirements
+                              defaultValue={DEFAULT_TEMPLATE}
+                              value={r.description ?? JSON.stringify(DEFAULT_TEMPLATE)}
+                              onChange={(value) => setDraft((d) => ({ ...d, description: value }))}
+                              onUploadRequirement={uploadRequirement}
                             />
-                          ) : (
-                            <span className="text-gray-600">{r.description}</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {r.imageIds?.length ? (
-                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setViewImagesOf(r)}>
-                              <ImageFacade
-                                imageId={r.imageIds[0]}
-                                className="h-8 w-8 rounded border object-cover"
-                                alt={r.imageIds[0]} />
-                              <code className="text-xs bg-gray-100 rounded px-1 py-0.5">
-                                {r.imageIds.length} image{r.imageIds.length > 1 ? "s" : ""}
-                              </code>
                             </div>
                           ) : (
-                            <span className="text-gray-400">none</span>
+                            <Requirements
+                              requirement={r.description ?? JSON.stringify(DEFAULT_TEMPLATE)}
+                              dense includeFulfilled tooltipPlacement="right"
+                            />
+
                           )}
                         </TableCell>
-                        <TableCell>{new Date(r.createdAt).toLocaleString()}</TableCell>
                         <TableCell>
-                          {editingId === r.id ? (
-                            <select
-                              className="border rounded-2xl px-2 py-1"
-                              value={draft.status ?? r.status ?? "NEW"}
-                              onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value as Status }))}
+                          {isEditing && (
+                            <Button
+                              component="label"
+                              role={undefined}
+                              variant="outlined"
+                              sx={{ alignContent: "flex-start" }}
+                              tabIndex={-1}
+                              startIcon={<CloudUploadIcon />}
                             >
-                              {STATUSES.map((s) => (
-                                <option key={s} value={s}>
-                                  {s.replaceAll("_", " ")}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-2xl bg白 text-xs whitespace-nowrap">
-                              {(r.status ?? "NEW").replaceAll("_", " ")}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2 justify-center">
-                            <label className="border rounded-2xl px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
                               {uploadingId === r.id ? "Uploading…" : "Upload"}
-                              <input
+                              <VisuallyHiddenInput
+
                                 type="file"
-                                accept="image/*"
                                 multiple
-                                className="hidden"
                                 onChange={(e) => {
                                   const files = e.currentTarget.files ? Array.from(e.currentTarget.files) : [];
                                   if (files.length === 0) return;
@@ -288,8 +295,49 @@ export function RecordsTable() {
                                     }
                                   );
                                 }}
+
                               />
-                            </label>
+                            </Button>
+                          )}
+                          {!isEditing && (
+                            r.imageIds?.length ? (
+                              <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setViewImagesOf(r) }}>
+                                <PictureAsPdfTwoToneIcon />
+                                <code className="text-xs bg-gray-100 rounded px-1 py-0.5">
+                                  {r.imageIds.length}
+                                </code>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">none</span>
+                            ))
+                          }
+                        </TableCell>
+                        <TableCell>{new Date(r.createdAt).toLocaleString()}</TableCell>
+                        <TableCell>
+                          {editingId === r.id ? (
+                            <FormControl sx={{ width: '18ch' }} variant="outlined">
+                              <InputLabel htmlFor='status-select'>Status</InputLabel>
+                              <Select
+                                id="status-select"
+                                value={draft.status ?? r.status ?? "NEW"}
+                                label="Status"
+                                onChange={(e: SelectChangeEvent) => setDraft((d) => ({ ...d, status: e.target.value as Statuses }))}>
+                                {StatusValues.map((s) => (
+                                  <MenuItem key={s} value={s}> {s.replaceAll("_", " ")}</MenuItem>
+                                ))}
+
+                              </Select>
+                            </FormControl>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-2xl bg白 text-xs whitespace-nowrap">
+                              {(r.status ?? "NEW").replaceAll("_", " ")}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Stack width={110} direction="column" spacing={1}>
+
+
                             {!isEditing && (
 
                               <Button title="Edit" variant="outlined" startIcon={<EditIcon />} onClick={() => beginEdit(r)} disabled={isEditing && editingId === r.id} >
@@ -308,7 +356,7 @@ export function RecordsTable() {
                               </React.Fragment>
                             )}
 
-                          </div>
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     );
@@ -316,7 +364,7 @@ export function RecordsTable() {
                   <TableRow />
                 </TableBody>
               </Table>
-            </div>
+            </TableContainer>
 
             <div className="flex items-center justify-between text-sm">
               <div>Showing records {start}-{end} of {total}</div>
@@ -327,9 +375,13 @@ export function RecordsTable() {
                     <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
-                <LabeledButton label={page > 0 ? `${page} ← Prev` : "Prev"} onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page == 0} />
+                <Button title="Previos page" startIcon={<ArrowLeftIcon />} variant="outlined" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page <= 0} >
+                  Prev
+                </Button>
                 <div>{`Page ${page + 1} of ${pages}`}</div>
-                <LabeledButton label={page + 1 < pages ? `Next → ${page + 2}` : "Next"} onClick={() => setPage((p) => (p + 1 < pages ? p + 1 : p))} disabled={page + 2 > pages} />
+                <Button title="Next page" endIcon={<ArrowRightIcon />} variant="outlined" onClick={() => setPage((p) => (p + 1 < pages ? p + 1 : p))} disabled={page + 2 > pages}  >
+                  Next
+                </Button>
               </div>
             </div>
           </div>
@@ -340,3 +392,5 @@ export function RecordsTable() {
     </Box>
   );
 }
+export { RecordItem };
+

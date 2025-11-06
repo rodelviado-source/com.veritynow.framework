@@ -14,6 +14,15 @@ public class ImageEntity {
 	@Column(length = 64)
 	private String contentType;
 
+	@Column
+	long size;
+	
+	@Column
+	private String filename;
+	
+	
+	
+	
 	public String getId() {
 		return id;
 	}
@@ -37,4 +46,15 @@ public class ImageEntity {
 	public void setContentType(String contentType) {
 		this.contentType = contentType;
 	}
+
+	public String getFilename() {
+		return filename;
+	}
+
+	public void setFilename(String filename) {
+		this.filename = filename;
+	}
+	
+	public long getSize() { return size; }
+    public void setSize(long size) { this.size = size; }
 }

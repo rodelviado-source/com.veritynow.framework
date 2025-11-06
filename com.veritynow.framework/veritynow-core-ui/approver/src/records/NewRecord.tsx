@@ -4,8 +4,11 @@ import { getAgent } from "@/auth/agent";
 import { Input } from "@/components/ui/input";
 import { DataFacade } from "@/data/facade/DataFacade";
 import { Button } from "@mui/material";
-import {CancelSharp  as CancelIcon} from '@mui/icons-material'
-import {CreateSharp  as CreateIcon} from '@mui/icons-material'
+import { CancelOutlined as CancelIcon } from '@mui/icons-material'
+import { CreateOutlined as CreateIcon } from '@mui/icons-material'
+
+import { Statuses, StatusValues } from "@/data/types/Record";
+
 
 
 export default function NewRecord() {
@@ -28,7 +31,7 @@ export default function NewRecord() {
     // biz
     title: "",
     priority: 0,
-    status: "NEW",
+    status: Statuses.NEW,
     description: ""
   });
   const [files, setFiles] = React.useState<File[]>([]);
@@ -104,7 +107,7 @@ export default function NewRecord() {
 
   return (
     <>
-      <Button startIcon={<CreateIcon/>} variant="outlined" onClick={() => setOpen(true)} >New Records</Button>
+      <Button startIcon={<CreateIcon />} variant="outlined" onClick={() => setOpen(true)} >New Records</Button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setOpen(false)}>
           <div className="bg-white rounded-2xl p-6 w-[95%] max-w-3xl" onClick={e => e.stopPropagation()}>
@@ -156,10 +159,8 @@ export default function NewRecord() {
                 <Input placeholder="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
                 <Input placeholder="Priority" type="number" value={form.priority} onChange={e => setForm({ ...form, priority: Number(e.target.value) })} />
                 <select className="border rounded-2xl px-2 py-1" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                  {["NEW", "IN_REVIEW", "APPROVED", "REJECTED", "CLOSED"].map(s => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
+                  {StatusValues.map(s => (
+                    <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
               </div>
@@ -182,15 +183,31 @@ export default function NewRecord() {
                 />
               </label>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                 <Button title="Cancel changes" variant="outlined" startIcon={<CancelIcon/>} onClick={handleCancel} >
-                    Cancel
-                </Button>
-            <Button title="Create new record" variant="outlined" startIcon={<CreateIcon/>} onClick ={handleCreate} >
-                 {createMutation.isPending ? "Creating…" : "Create"}
-            </Button>
+              {files.length != null && files.length > 0 && (
+                <div className="flex items-center gap-2 cursor-pointer" >
+                  {files.map((e) => (
+                    <div key={e.name}  className="group relative rounded border shadow overflow-hidden bg-white">
+                      <img src={URL.createObjectURL(e)}  alt={e.name} className="block w-full h-35 w-20 object-cover transition-transform group-hover:scale-[1.02]"/>
+                        <span className="absolute bottom-1 right-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
+                              {files[0].name}
+                         </span>
 
-                
+                    </div>
+                  ))}
+
+
+                </div>
+              )
+              }
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button title="Cancel changes" variant="outlined" startIcon={<CancelIcon />} onClick={handleCancel} >
+                  Cancel
+                </Button>
+                <Button title="Create new record" variant="outlined" startIcon={<CreateIcon />} onClick={handleCreate} >
+                  {createMutation.isPending ? "Creating…" : "Create"}
+                </Button>
+
+
               </div>
             </div>
           </div>

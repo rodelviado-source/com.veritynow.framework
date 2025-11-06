@@ -1,19 +1,29 @@
-import {Transport, ListParams, PageResult, TransportTypes, ModeTypes} from "@/data/transports/Transport";
+import {Transport, ListParams, PageResult, TransportTypes, ModeTypes, MediaResource, MediaKind} from "@/data/transports/Transport";
 import {RecordItem} from "@/data/types/Record";
+import { DataFacade } from "../facade/DataFacade";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+const CT_PDF = 'application/pdf';
 
-function isEmbedded(): boolean {
-  return  localStorage.getItem("vn_store_mode") ===  ModeTypes[ModeTypes.embedded];
+function isModeEmbedded(): boolean {
+  return  DataFacade.getMode() ===  ModeTypes.embedded;
 }
 
 function assertNotEmbedded() {
-  if (isEmbedded()) {
+  if (isModeEmbedded()) {
     // Prevent accidental remote calls when user expects offline
     throw new Error("Remote transport disabled in embedded mode");
   }
 }  
-  
+
+function pickKind(mime: string | null): MediaKind {
+  if (!mime) return MediaKind.download;
+  const m = mime.toLowerCase();
+  if (m === CT_PDF) return MediaKind.pdf;
+  if (m.startsWith('image/')) return MediaKind.image;
+  if (m.startsWith('video/')) return MediaKind.video;
+  return MediaKind.download;
+}
 
 export class RemoteTransport implements Transport {
   label = TransportTypes.Remote;
@@ -107,4 +117,31 @@ export class RemoteTransport implements Transport {
     assertNotEmbedded();
     return `${API_BASE}/api/images/${imageId}`;
   }
+
+  async mediaFor(imageId: string): Promise<MediaResource> {
+    assertNotEmbedded();
+    
+    const meta = await this.tryFetchMeta(imageId);
+    console.log(meta);
+    if (meta) return {id:imageId, url: meta.url, kind: pickKind(meta.contentType) };
+
+    // Fallback: if input looked like a direct image URL, use it
+    return {id:imageId, url: await this.imageUrl(imageId), kind: MediaKind.download };
+  }
+
+  // --- API meta (remote) ---
+async  tryFetchMeta(id: string): Promise<{ url: string; contentType: string ; filename: string} | null> {
+  assertNotEmbedded();
+  try {
+    const u = `${await this.imageUrl(id)}/meta`;
+    const r = await fetch(u);
+    console.log(r);
+    if (!r.ok) return null;
+    const j = await r.json(); // { id, contentType, filename, size, url } 
+    return { url: j.url, contentType: j.contentType , filename:j.filename};
+  } catch {
+    return null;
+  }
+}
+
 }

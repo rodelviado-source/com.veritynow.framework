@@ -4,6 +4,7 @@ import Tab from '@mui/material/Tab';
 //import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import { RecordsTable } from './RecordsTable';
+import ClearStorageCard from '@/components/ui/settings/SystemSetting';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -45,6 +46,8 @@ export default function VerticalTabs() {
     setValue(newValue);
   };
 
+
+
   return (
     <Box
       sx={{  bgcolor: 'background.paper' }}
@@ -58,7 +61,7 @@ export default function VerticalTabs() {
       >
         <Tab label="BDO Personal Loans" {...a11yProps(0)} />
         <Tab label="Loan onboarding" {...a11yProps(1)} />
-        <Tab label="Item Three" {...a11yProps(2)} />
+        <Tab label="System" {...a11yProps(2)} />
         <Tab label="Item Four" {...a11yProps(3)} />
         <Tab label="Item Five" {...a11yProps(4)} />
         <Tab label="Item Six" {...a11yProps(5)} />
@@ -73,7 +76,7 @@ export default function VerticalTabs() {
         Item Two
       </TabPanel>
       <TabPanel value={value} index={2}>
-        Item Three
+        <ClearStorageCard/>
       </TabPanel>
       <TabPanel value={value} index={3}>
         Item Four

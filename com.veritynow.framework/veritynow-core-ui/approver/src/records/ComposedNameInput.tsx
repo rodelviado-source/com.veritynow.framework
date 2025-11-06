@@ -1,19 +1,18 @@
 // src/records/ComposedNameInput.tsx
 import * as React from "react";
 
-import {CancelSharp  as CancelIcon} from '@mui/icons-material'
-import {Save  as ApplyIcon} from '@mui/icons-material'
-import {Edit  as EditIcon} from '@mui/icons-material'
+import { CancelOutlined as CancelIcon } from '@mui/icons-material'
+import { SaveOutlined as ApplyIcon } from '@mui/icons-material'
+import { EditOutlined as EditIcon } from '@mui/icons-material'
 
-import { Input } from "@/components/ui/input";
+import { Stack, TextField } from "@mui/material";
 
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+  Typography,
+} from "@mui/material";
 
 import { Button } from "@mui/material";
 
@@ -49,7 +48,7 @@ export default function ComposedNameInput({
   isEditing,             // row is in edit mode?
   row,                   // current row (for initial values)
   setDraft,           // setDraft from parent (Partial<RecordItem>)
-  
+
 
 }: {
   label: string;
@@ -92,83 +91,81 @@ export default function ComposedNameInput({
     setOpen(false);
   }
 
-  // function onKeyDown(e: React.KeyboardEvent) {
-  //   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-  //     applyChanges();
-  //   }
-  // }
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      applyChanges();
+    }
+  }
 
   return (
     <>
       {/* Table cell trigger */}
       {isEditing ? (
         <div className="flex items-start gap-2">
-          
-          <Button title="Edit client full name" endIcon={<EditIcon/>} variant="text" onClick = {() => setOpen(true)} >
-                {label ?  `${label}` : "set client name"}
+
+          <Button title="Edit client full name" endIcon={<EditIcon />} variant="outlined" onClick={() => setOpen(true)} >
+            {label ? `${label}` : "set client name"}
           </Button>
         </div>
       ) : (
-        <span className="text-sm">{label || "—"}</span>
-      )}
 
-      {/* Popup dialog */}
-      <Dialog open={open} onOpenChange={(v) => setOpen(v)} >
-        
-        <DialogHeader>
-          <DialogTitle>Edit Client Full Name</DialogTitle>
-        </DialogHeader>
-        
 
-        <DialogContent>
-          {/* Live preview */}
-          <div className="mb-2 rounded-2xl border bg-white px-3 py-2 text-sm">
-            <span className="text-gray-500 mr-2">Preview:</span>
-            <span className="font-medium">{preview || "(empty)"}</span>
-          </div>
+        <Typography sx={{ cursor: "pointer", maxWidth: 80, overflow: "clip" }}>{label || "—"}</Typography >
+          
+      )
+}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Input title= "First Name" 
-              ref={firstRef}
-              placeholder="First name"
-              value={first}
-              onChange={(e) => setFirst(e.target.value)}
-            />
-            <Input
-              placeholder="Middle name"
-              title="Middle name"
-              value={middle}
-              onChange={(e) => setMiddle(e.target.value)}
-            />
-            <Input
-              placeholder="Last name"
-              title="Last name"
-              value={last}
-              onChange={(e) => setLast(e.target.value)}
-            />
-            <Input
-              placeholder="Suffix (e.g., Jr., Sr.)"
-              title="Suffix"
-              value={suffix}
-              onChange={(e) => setSuffix(e.target.value)}
-            />
-          </div>
-          <p className="text-xs text-gray-500 pt-1">
-            Tip: <kbd>Ctrl/⌘ + Enter</kbd> to apply.
-          </p>
-        </DialogContent>
+{/* Popup dialog */ }
+<Dialog open={open}  >
 
-         <DialogFooter>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2 mr-2 ml-2">
-            <Button title="Cancel changes" variant="outlined" startIcon={<CancelIcon/>} onClick={() => setOpen(false)} >
-                Cancel
-            </Button>
-            <Button title="Apply changes" variant="outlined" startIcon={<ApplyIcon/>} onClick ={applyChanges} >
-                Apply
-            </Button>
-          </div>
-        </DialogFooter>
-      </Dialog>
+  <DialogTitle>Edit Client Full Name</DialogTitle>
+  
+   <DialogContent onKeyDown={(e) => onKeyDown(e)}>
+    {/* Live preview */}
+    <div className="mb-2 rounded-2xl border bg-white px-3 py-2 text-sm">
+      <span className="text-gray-500 mr-2">Preview:</span>
+      <span className="font-medium">{preview || "(empty)"}</span>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <TextField title="First Name"
+        ref={firstRef}
+        label="First name"
+        value={first}
+        onChange={(e) => setFirst(e.target.value)}
+      />
+      <TextField
+        label="Middle name"
+        value={middle}
+        onChange={(e) => setMiddle(e.target.value)}
+      />
+      <TextField
+        label="Last name"
+        value={last}
+        onChange={(e) => setLast(e.target.value)}
+      />
+      <TextField
+        label="Suffix (e.g., Jr., Sr.)"
+        value={suffix}
+        onChange={(e) => setSuffix(e.target.value)}
+      />
+    </div>
+    <p className="text-xs text-gray-500 pt-1">
+      Tip: <kbd>Ctrl/⌘ + Enter</kbd> to apply.
+    </p>
+  </DialogContent>
+
+  <Stack  direction="row" spacing={1} justifyContent="flex-end" mr={2} ml={2} mb={2}>
+    
+      <Button title="Cancel changes" variant="outlined" startIcon={<CancelIcon />} onClick={() => setOpen(false)} >
+        Cancel
+      </Button>
+      <Button title="Apply changes" variant="outlined" startIcon={<ApplyIcon />} onClick={applyChanges} >
+        Apply
+      </Button>
+    
+  </Stack>
+</Dialog>
     </>
   );
 }

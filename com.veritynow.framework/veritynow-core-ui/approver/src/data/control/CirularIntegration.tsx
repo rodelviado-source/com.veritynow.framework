@@ -116,7 +116,7 @@ open &&
             isLoading || isFetching ?
               'Fetching data remotely...'  
             :
-               'Reverting back to offline'
+               `Setting mode to ${DataFacade.getMode()}`
            }
         </Button>
         

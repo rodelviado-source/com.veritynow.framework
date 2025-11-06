@@ -13,25 +13,33 @@ export enum ModeTypes {
 	auto="auto"
 } ;
 
+export enum MediaKind {
+  image='image',
+  pdf='pdf',
+  video='video',
+  download='download',
+} 
+export type MediaResource = {
+  id: string;
+  url: string;
+  kind: MediaKind;
+  filename?: string;       // <- new
+  size?: number;           // <- new (bytes)
+  contentType?: string;    // <- new (MIME)
+};
+
 export interface Transport {
-  label: TransportTypes;  
+  mode?: ModeTypes;
+  label?: TransportTypes;  
   
   list(params: ListParams): Promise<PageResult<RecordItem>>;
   create(payload: Partial<RecordItem>): Promise<RecordItem>;
   update(id: number, patch: Partial<RecordItem>): Promise<RecordItem>;
   uploadImages(id: number, files: File[]): Promise<{ imageIds: string[] }>;
   imageUrl(id: string): Promise<string>;
+  mediaFor(id: string): Promise<MediaResource>;
 }
 
-export interface Store {
-  mode: "remote" | "embedded";
-  label: string;
-  list(page: number, size: number): Promise<PageResult<RecordItem>>;
-  create(payload: Partial<RecordItem>): Promise<RecordItem>;
-  update(payload: Partial<RecordItem> & { id: number }): Promise<RecordItem>;
-  uploadImages(id: number, files: File[]): Promise<{ imageIds: string[] }>;
-  imageSrc(id: string): string | null;
-}
 
 export interface ListParams {
   page: number;

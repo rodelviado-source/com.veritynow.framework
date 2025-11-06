@@ -11,7 +11,7 @@ public interface RecordRepository extends JpaRepository<RecordEntity, Long> {
 	@Query("""
 			  select r from RecordEntity r
 			  where (:q is null or
-			    lower(coalesce(r.title,'')) like lower(concat('%', :q, '%')) or
+			    lower(coalesce(r.status,'')) like lower(concat('%', :q, '%')) or
 			    lower(coalesce(r.description,'')) like lower(concat('%', :q, '%')) or
 			    lower(coalesce(r.agentFirstName,'')) like lower(concat('%', :q, '%')) or
 			    lower(coalesce(r.agentLastName,'')) like lower(concat('%', :q, '%')) or

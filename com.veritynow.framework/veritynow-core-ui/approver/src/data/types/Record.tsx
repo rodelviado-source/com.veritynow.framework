@@ -1,4 +1,11 @@
-export type Status = "NEW" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED";
+export enum Statuses {
+  NEW = "NEW",
+  IN_REVIEW = "IN_REVIEW",
+  APPROVED ="APPROVED",
+  REJECTED = "REJECTED",
+  CLOSED= "CLOSED"
+}
+export const StatusValues = Object.values(Statuses);
 
 export interface RecordItem {
   id: number;
@@ -8,12 +15,11 @@ export interface RecordItem {
   clientFirstName?: string; clientMiddleName?: string; clientLastName?: string; clientSuffix?: string;
   title: string;
   priority?: number;
-  status?: Status;
+  status?: Statuses;
   description?: string;
   createdAt: string;
   imageIds: string[];
 }
 
 
-
-
+export interface PageResult<T> { items: T[]; page: number; size: number; total: number }
