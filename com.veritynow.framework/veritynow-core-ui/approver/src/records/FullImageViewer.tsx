@@ -8,7 +8,7 @@ import Slide from "@mui/material/Slide";
 import { TransitionProps } from "@mui/material/transitions";
 import { Button, DialogContent } from "@mui/material";
 import { CloseFullscreenSharp as CloseIcon } from "@mui/icons-material"
-import { PDFViewer } from "@/components/ui/util/PDFViewer";
+import { PDFViewer, CleanupHandle } from "@/components/ui/util/PDFViewer";
 import { MediaKind, MediaResource } from "@/data/transports/Transport";
 import { useRef, useState } from "react";
 import { DataFacade } from "@/data/facade/DataFacade";
@@ -30,7 +30,7 @@ interface Props {
 export default function FullImageViewer({ open, setOpen, imageIds, currentIndex }: Props) {
   const imageId:string = imageIds![currentIndex]  ;
   const [media, setMedia] = useState<MediaResource>({ id:imageId, url: "", kind: MediaKind.image });
-  const viewerRef = useRef<{ cleanup: () => void }>(null);
+  const viewerRef = useRef<CleanupHandle>(null);
 
   const handleClose = () => { /* viewerRef.current?.cleanup(); */ setOpen(false) };
 
@@ -45,7 +45,7 @@ export default function FullImageViewer({ open, setOpen, imageIds, currentIndex 
       );
     })();
     return () => { alive = false; };
-  }, [imageIds, currentIndex, media]);
+  }, [imageIds, currentIndex]);
 
 
   return (

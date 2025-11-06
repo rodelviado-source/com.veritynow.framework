@@ -108,61 +108,61 @@ export class EmbeddedTransport implements Transport {
   }
 
   async uploadImages(id: number, files: File[]): Promise<{ imageIds: string[] }> {
-  assertNotEmbedded();
-  const recs = Store.loadRecs<RecordItem>();
-  const i = recs.findIndex(r => r.id === id);
-  if (i < 0) throw new Error("record not found");
+    assertNotEmbedded();
+    const recs = Store.loadRecs<RecordItem>();
+    const i = recs.findIndex(r => r.id === id);
+    if (i < 0) throw new Error("record not found");
 
-  const imgs = Store.loadImgs();
-  const useOpfs = Store.hasOPFS();
-  const newIds: string[] = [];
+    const imgs = Store.loadImgs();
+    const useOpfs = Store.hasOPFS();
+    const newIds: string[] = [];
 
-  for (const f of files) {
-    const logicalId = Store.uid();
+    for (const f of files) {
+      const logicalId = Store.uid();
 
-    if (useOpfs) {
-      const indexName = `index-file-${Object.keys(imgs).length + 1}`;
-      await Store.write(indexName, f);
+      if (useOpfs) {
+        const indexName = `index-file-${Object.keys(imgs).length + 1}`;
+        await Store.write(indexName, f);
 
-      const contentType = f.type || "application/octet-stream";
-      const url = await Store.toObjectUrl(indexName);
+        const contentType = f.type || "application/octet-stream";
+        const url = await Store.toObjectUrl(indexName);
 
-      prefillMeta(logicalId, {
-        id: logicalId,
-        url,
-        kind: pickKind(contentType),
-        filename: f.name ?? "",
-        size: f.size ?? 0,
-        contentType,
-      });
+        prefillMeta(logicalId, {
+          id: logicalId,
+          url,
+          kind: pickKind(contentType),
+          filename: f.name ?? "",
+          size: f.size ?? 0,
+          contentType,
+        });
 
-      imgs[logicalId] = `opfs:${indexName}`;
-      newIds.push(logicalId);
-    } else {
-      const buf = await f.arrayBuffer();
-      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-      const mime = f.type || "application/octet-stream";
-      const dataUrl = `data:${mime};base64,${b64}`;
+        imgs[logicalId] = `opfs:${indexName}`;
+        newIds.push(logicalId);
+      } else {
+        const buf = await f.arrayBuffer();
+        const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const mime = f.type || "application/octet-stream";
+        const dataUrl = `data:${mime};base64,${b64}`;
 
-      prefillMeta(logicalId, {
-        id: logicalId,
-        url: dataUrl,
-        kind: pickKind(mime),
-        filename: f.name ?? "",
-        size: f.size ?? 0,
-        contentType: mime,
-      });
+        prefillMeta(logicalId, {
+          id: logicalId,
+          url: dataUrl,
+          kind: pickKind(mime),
+          filename: f.name ?? "",
+          size: f.size ?? 0,
+          contentType: mime,
+        });
 
-      imgs[logicalId] = dataUrl;
-      newIds.push(logicalId);
+        imgs[logicalId] = dataUrl;
+        newIds.push(logicalId);
+      }
     }
-  }
 
-  Store.saveImgs(imgs);
-  recs[i].imageIds = [...(recs[i].imageIds || []), ...newIds];
-  Store.saveRecs(recs);
-  return { imageIds: recs[i].imageIds };
-}
+    Store.saveImgs(imgs);
+    recs[i].imageIds = [...(recs[i].imageIds || []), ...newIds];
+    Store.saveRecs(recs);
+    return { imageIds: recs[i].imageIds };
+  }
 
 
 
@@ -182,74 +182,71 @@ export class EmbeddedTransport implements Transport {
     return mapping;
   }
 
- async mediaFor(imageId: string): Promise<MediaResource> {
-  assertNotEmbedded();
+  async mediaFor(imageId: string): Promise<MediaResource> {
+    assertNotEmbedded();
 
-  /** cache-first **/
-  const cached = getMetaSync(imageId);
-  if (cached) return cached;
 
-  const s = await this.imageUrl(imageId);
-  if (!s) {
-    const r: MediaResource = {
-      id: imageId,
-      url: "",
-      kind: MediaKind.download,
-      filename: "",
-      size: 0,
-      contentType: "application/octet-stream",
+    const cached = getMetaSync(imageId) || null;
+    const s = await this.imageUrl(imageId);
+
+
+    let base: MediaResource;
+
+
+    if (!s) {
+      base = {
+        id: imageId,
+        url: "",
+        kind: MediaKind.download,
+        filename: imageId,
+        size: 0,
+        contentType: "application/octet-stream",
+      };
+    } else if (s.startsWith("data:")) {
+      const mime = parseDataUrlMime(s) || "application/octet-stream";
+      base = {
+        id: imageId,
+        url: s,
+        kind: MediaKind.image,
+        filename: imageId,
+        size: 0,
+        contentType: mime,
+      };
+    } else if (s.startsWith("blob:")) {
+      const blob = await fetchBlob(s);
+      const mime = (await sniffMime(blob)) || blob.type || "application/octet-stream";
+      base = {
+        id: imageId,
+        url: s,
+        kind: MediaKind.image,
+        filename: imageId,
+        size: blob.size,
+        contentType: mime,
+      };
+    } else {
+      base = {
+        id: imageId,
+        url: s,
+        kind: MediaKind.download,
+        filename: imageId,
+        size: 0,
+        contentType: "application/octet-stream",
+      };
+    }
+
+
+    const merged: MediaResource = {
+      ...base,
+      filename: cached?.filename || base.filename,
+      size: (cached?.size ?? 0) > 0 ? cached!.size : base.size,
+      contentType: cached?.contentType || base.contentType,
+      ...(cached && ('meta' in cached) ? { meta: (cached as any).meta } : {}),
     };
-    prefillMeta(imageId, r);
-    return r;
+
+
+    prefillMeta(imageId, merged);
+    return merged;
   }
-
-  /** data: URL **/
-  if (s.startsWith("data:")) {
-    const mime = parseDataUrlMime(s) || "application/octet-stream";
-    const r: MediaResource = {
-      id: imageId,
-      url: s,
-      kind: pickKind(mime),
-      contentType: mime,
-      filename: imageId,
-      size: 0,
-    };
-    prefillMeta(imageId, r);
-    return r;
-  }
-
-  // blob: URL
-  if (s.startsWith("blob:")) {
-    const blob = await fetchBlob(s);
-    const mime = (await sniffMime(blob)) || blob.type || "application/octet-stream";
-    const r: MediaResource = {
-      id: imageId,
-      url: s,
-      kind: pickKind(mime),
-      contentType: mime,
-      filename: imageId,
-      size: blob.size,
-    };
-    prefillMeta(imageId, r);
-    return r;
-  }
-
-  // (Optional) Back-compat OPFS meta path — likely unreachable with current imageUrl()
-  // const meta = await readMetaFromOpfs(s);
-  // if (meta?.contentType || meta?.mime) { ... }
-
-  // Remote/other URL fallback
-  const r: MediaResource = {
-    id: imageId,
-    url: s,
-    kind: MediaKind.download,
-    filename: imageId,
-    size: 0,
-    contentType: "application/octet-stream",
-  };
-  prefillMeta(imageId, r);
-  return r;
-}
 
 
 

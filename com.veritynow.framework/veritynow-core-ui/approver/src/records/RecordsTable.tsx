@@ -1,13 +1,21 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { Button, CardContent, FormControl, Input, InputLabel, MenuItem, Select, SelectChangeEvent, TableContainer, TextField } from "@mui/material";
+import { 
+  Button, CardContent, FormControl, Input, InputLabel, MenuItem, 
+  Select, SelectChangeEvent, TableContainer, TextField 
+} from "@mui/material";
+
 import { Box, Stack, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
 
 import ComposedNameInput from "@/records/ComposedNameInput";
 
-import ImageGallery from "@/records/ImageGallery";
-import { ArrowCircleLeftRounded as ArrowLeftIcon, ArrowCircleRightRounded as ArrowRightIcon, Edit as EditIcon, CloudUploadOutlined as CloudUploadIcon } from '@mui/icons-material';
+//import ImageGallery from "@/records/ImageGallery";
+import { 
+  ArrowCircleLeftRounded as ArrowLeftIcon, ArrowCircleRightRounded as ArrowRightIcon, 
+  Edit as EditIcon, CloudUploadOutlined as CloudUploadIcon 
+} from '@mui/icons-material';
+
 import { SaveOutlined as SaveIcon } from '@mui/icons-material';
 import { CancelOutlined as CancelIcon } from '@mui/icons-material';
 
@@ -22,6 +30,7 @@ import { VisuallyHiddenInput } from "@/components/ui/util/VisuallyHiddenInput";
 import PictureAsPdfTwoToneIcon from '@mui/icons-material/PictureAsPdfTwoTone';
 import EditRequirements, { DEFAULT_TEMPLATE } from "@/records/EditRequirements";
 import { Requirements } from "@/records/Requirements";
+import Gallery from "@/components/ui/util/Gallery";
 
 
 export function RecordsTable() {
@@ -231,6 +240,7 @@ export function RecordsTable() {
                     const clientLabel = formatName(clientFirst, clientMiddle, clientLast, clientSuffix);
 
                     return (
+                     
                       <TableRow key={r.id} onDoubleClick={() => { beginEdit(r); }} >
                         <TableCell>{r.id}</TableCell>
                         <TableCell>
@@ -388,7 +398,8 @@ export function RecordsTable() {
         )}
       </CardContent>
 
-      {viewImagesOf && <ImageGallery viewImagesOf={viewImagesOf} setViewImagesOf={setViewImagesOf} />}
+       { /** viewImagesOf && <ImageGallery viewImagesOf={viewImagesOf} setViewImagesOf={setViewImagesOf} /> **/} 
+      {viewImagesOf && <Gallery open={!!viewImagesOf} imageIds={viewImagesOf?.imageIds} onClose={()=>setViewImagesOf(null)}/>}
     </Box>
   );
 }

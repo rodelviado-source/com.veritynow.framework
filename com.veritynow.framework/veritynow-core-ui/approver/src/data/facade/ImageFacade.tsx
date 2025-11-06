@@ -29,7 +29,7 @@ export default function ImageFacade({ id, cacheKey, meta, className, ...rest }: 
 
       if (m?.kind === MediaKind.pdf) {
         const url = await PDF.thumbnail(m.url);
-        if (cancelled) {/* URL.revokeObjectURL(url); */return; }
+        if (cancelled) { URL.revokeObjectURL(url); return; }
         setThumb(k, url);
         revokeRef.current = url;
         setThumbLocal(url);

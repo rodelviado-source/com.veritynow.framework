@@ -1,12 +1,13 @@
-import {Transport, ListParams, PageResult, TransportTypes, ModeTypes, MediaResource, MediaKind} from "@/data/transports/Transport";
-import {RecordItem} from "@/data/types/Record";
+import { Transport, ListParams, PageResult, TransportTypes, ModeTypes, MediaResource, MediaKind } from "@/data/transports/Transport";
+import { RecordItem } from "@/data/types/Record";
 import { DataFacade } from "../facade/DataFacade";
+import { prefillMeta, getMetaSync } from "@/data/mediaStore";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 const CT_PDF = 'application/pdf';
 
 function isModeEmbedded(): boolean {
-  return  DataFacade.getMode() ===  ModeTypes.embedded;
+  return DataFacade.getMode() === ModeTypes.embedded;
 }
 
 function assertNotEmbedded() {
@@ -14,7 +15,7 @@ function assertNotEmbedded() {
     // Prevent accidental remote calls when user expects offline
     throw new Error("Remote transport disabled in embedded mode");
   }
-}  
+}
 
 function pickKind(mime: string | null): MediaKind {
   if (!mime) return MediaKind.download;
@@ -28,7 +29,7 @@ function pickKind(mime: string | null): MediaKind {
 export class RemoteTransport implements Transport {
   label = TransportTypes.Remote;
 
-    async list(params: ListParams): Promise<PageResult<RecordItem>> {
+  async list(params: ListParams): Promise<PageResult<RecordItem>> {
     assertNotEmbedded();
     const qs = new URLSearchParams({
       page: String(params.page),
@@ -107,10 +108,29 @@ export class RemoteTransport implements Transport {
   async uploadImages(id: number, files: File[]): Promise<{ imageIds: string[] }> {
     assertNotEmbedded();
     const fd = new FormData();
-    files.forEach(f => fd.append("files", f));
+    files.forEach((f) => fd.append("files", f));
     const r = await fetch(`${API_BASE}/api/images/records/${id}`, { method: "POST", body: fd });
     if (!r.ok) throw new Error(`POST /api/images/records/${id} ${r.status}`);
-    return r.json();
+    const result = await r.json();
+
+
+    // Pre-seed cache with filenames for offline use
+    result.imageIds?.forEach((_:string, i:number) => {
+      const file = files[i];
+      if (file) {
+        prefillMeta?.(result.imageIds[i], {
+          id: result.imageIds[i],
+          filename: file.name,
+          size: file.size,
+          contentType: file.type,
+          url: `${API_BASE}/api/images/${result.imageIds[i]}`,
+          kind: pickKind(file.type),
+        });
+      }
+    });
+
+
+    return result;
   }
 
   async imageUrl(imageId: string): Promise<string> {
@@ -120,28 +140,66 @@ export class RemoteTransport implements Transport {
 
   async mediaFor(imageId: string): Promise<MediaResource> {
     assertNotEmbedded();
-    
-    const meta = await this.tryFetchMeta(imageId);
-    console.log(meta);
-    if (meta) return {id:imageId, url: meta.url, kind: pickKind(meta.contentType) };
 
-    // Fallback: if input looked like a direct image URL, use it
-    return {id:imageId, url: await this.imageUrl(imageId), kind: MediaKind.download };
+
+    const cached = getMetaSync?.(imageId) || null;
+    const remoteMeta = await this.tryFetchMeta(imageId);
+
+
+    const baseUrl = remoteMeta?.url ?? (await this.imageUrl(imageId));
+    const mime = remoteMeta?.contentType ?? cached?.contentType ?? "application/octet-stream";
+    const kind = pickKind(mime);
+
+
+    const merged: MediaResource = {
+      id: imageId,
+      url: baseUrl,
+      kind,
+      filename: remoteMeta?.filename ?? cached?.filename ?? imageId,
+      size: cached?.size ?? 0,
+      contentType: mime,
+      ...(cached && ("meta" in cached) ? { meta: (cached as any).meta } : {}),
+    };
+
+
+    prefillMeta?.(imageId, merged);
+    return merged;
   }
 
   // --- API meta (remote) ---
-async  tryFetchMeta(id: string): Promise<{ url: string; contentType: string ; filename: string} | null> {
-  assertNotEmbedded();
-  try {
-    const u = `${await this.imageUrl(id)}/meta`;
-    const r = await fetch(u);
-    console.log(r);
-    if (!r.ok) return null;
-    const j = await r.json(); // { id, contentType, filename, size, url } 
-    return { url: j.url, contentType: j.contentType , filename:j.filename};
-  } catch {
-    return null;
+  async tryFetchMeta(id: string): Promise<{ url: string; contentType: string; filename: string } | null> {
+    assertNotEmbedded();
+    try {
+      const u = `${await this.imageUrl(id)}/meta`;
+      const r = await fetch(u, { cache: "no-store" });
+      if (!r.ok) return null;
+      const j = await r.json();
+
+
+      const cached = getMetaSync?.(id) || null;
+      const url = j.url ?? (await this.imageUrl(id));
+      const contentType = j.contentType ?? cached?.contentType ?? "application/octet-stream";
+      const filename = j.filename ?? cached?.filename ?? id;
+      const size = (j.size ?? cached?.size) ?? 0;
+
+
+      const merged: MediaResource = {
+        id,
+        url,
+        kind: pickKind(contentType),
+        filename,
+        size,
+        contentType,
+        ...(cached && ("meta" in cached) ? { meta: (cached as any).meta } : {}),
+      };
+
+
+      prefillMeta?.(id, merged);
+      return { url, contentType, filename };
+    } catch {
+      return null;
+    }
   }
 }
 
-}
+

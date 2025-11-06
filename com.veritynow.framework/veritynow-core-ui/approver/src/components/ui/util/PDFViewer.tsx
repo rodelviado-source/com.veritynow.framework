@@ -1,100 +1,116 @@
 import { MediaKind, MediaResource } from "@/data/transports/Transport";
-import React, { useEffect, useImperativeHandle, useRef, useState, forwardRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  
+} from "react";
 import PDF from "@/components/ui/util/PDF";
+import { Button, CircularProgress, Stack, Typography } from "@mui/material";
 
 
 
-
-export type CleanupHandle = { cleanup: () => void };
-type PDFViewerProps = { m: MediaResource };
-
-// tiny helper: only revoke blob: URLs
-const revokeIfBlob = (u: string) => {
-  if (typeof u === "string" && u.startsWith("blob:")) {
-    try { URL.revokeObjectURL(u); } catch {/* ignore */}
-  }
-};
-
-export const PDFViewer = forwardRef<CleanupHandle, PDFViewerProps>(({ m }, ref) => {
+export function PDFViewer( m:MediaResource ) {
   const [pages, setPages] = useState<string[]>([]);
   const [pageNumber, setPageNumber] = useState(0);
-
-  // keep latest pages for imperative cleanup
-  const pagesRef = useRef<string[]>([]);
-  pagesRef.current = pages;
-
-  useImperativeHandle(ref, () => ({
-    cleanup() {
-      pagesRef.current.forEach(revokeIfBlob);
-      setPages([]);
-      setPageNumber(0);
-      console.log("PDFViwer cleanup called");
-    },
-  }));
-
-  PDFViewer.displayName = "PDFViewer"; 
-
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [prevUrl, setPrevUrl] = useState("");
+  
   useEffect(() => {
+    // cleanup from prior run happens in returned function below
+    if (!m?.url) {
+      pages.forEach((p) => { if (p.startsWith("blob:")) URL.revokeObjectURL(p); });
+      setPages([]); setPageNumber(0); setErr(null); setLoading(false);
+      return;
+    }
+
+    // URL changed → reset visible state
+    if (prevUrl !== m.url) {
+      pages.forEach((p) => { if (p.startsWith("blob:")) URL.revokeObjectURL(p); });
+      setPages([]); setPageNumber(0); setErr(null); setLoading(true); // ← set true
+      setPrevUrl(m.url);
+    } else {
+      setLoading(true); // new render of same URL (e.g., version bump)
+    }
+
+    const controller = new AbortController();
     let cancelled = false;
 
-     // optional: ignore if nothing changed
-    if (!m?.url) return;
-  
-
-    // load current media
     (async () => {
-        // clean up previous media when m changes
-        const prev = pagesRef.current.slice();
-        if (prev.length) prev.forEach(revokeIfBlob);
-
-      if (m.kind === MediaKind.pdf) {
-        const p = await PDF.getPagesAsImage(m.url); // should return data- or blob-URLs
-        if (!cancelled) {
-          setPages(p);
-          setPageNumber(0);
+      try {
+        if (m.kind === MediaKind.pdf) {
+          for await (const { index, src, total } of PDF.getPagesAsImageStream(m.url, { signal: controller.signal })) {
+            if (cancelled) return;
+            setPages((prev) => {
+              if (prev.length !== total) {
+                const next = Array.from({ length: total }, (_, i) => prev[i] ?? "");
+                next[index] = src;
+                return next;
+              }
+              const next = [...prev];
+              next[index] = src;
+              return next;
+            });
+          }
+        } else {
+          if (!cancelled) setPages([m.url]);
         }
-      } else {
-        // non-pdf: single page/image
-        if (!cancelled) {
-          setPages([m.url]);
-          setPageNumber(0);
-        }
+      } catch (e) {
+        if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
 
-    // on unmount or when m changes again
     return () => {
       cancelled = true;
-      
+      controller.abort();
+      pages.forEach((p) => { if (p.startsWith("blob:")) URL.revokeObjectURL(p); });
     };
-   
-  }, [m.url, m.kind]); // m is the only dependency
+  }, [m.kind, m.url]);// keep url/kind for safety, but version drives reloads
+      
+  if (loading && pages.length === 0) return <p>Loading, please wait…  <CircularProgress/>  </p>;
+  if (err) return <p style={{ color: "red" }}>{err}</p>;
 
   if (m.kind === MediaKind.pdf) {
+
     const src = pages[pageNumber];
+    
     return src ? (
       <div>
-        <img src={src} alt={`Page ${pageNumber + 1}`} />
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <button
+        
+        <Stack direction="row" style={{ justifyContent:"left", display: "flex", gap: 8, marginTop: 8 }}>
+          <Button
+          variant="outlined"
             onClick={() => setPageNumber((n) => Math.max(0, n - 1))}
             disabled={pageNumber <= 0}
           >
             Previous
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setPageNumber((n) => Math.min(pages.length - 1, n + 1))}
             disabled={pageNumber >= pages.length - 1}
+            variant="outlined"
           >
             Next
-          </button>
-        </div>
+          </Button>
+           <Typography variant="h6"  justifyContent="center" sx={{ display: 'block' }}>
+                 {pages.length > 0 ? `${pageNumber + 1} / ${pages.length}` : ""}
+            </Typography>
+          
+        </Stack>
+        <img key={src} src={src} alt={`Page ${pageNumber + 1}`} />
       </div>
+
     ) : (
-      <p>Loading PDF, please wait…</p>
+
+      <CircularProgress/>
     );
   }
 
-  // Non-PDF: render directly (no state mutation in render)
-  return <img src={pages[0]} alt="media" />;
-});
+  // Non-PDF: render directly
+  return pages[0] ? <img key={pages[0]} src={pages[0]} alt="media" /> : <CircularProgress/>
+};
+
+PDFViewer.displayName = "PDFViewer";
+export default PDFViewer;
