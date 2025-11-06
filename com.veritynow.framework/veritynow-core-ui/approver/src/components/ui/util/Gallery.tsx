@@ -275,7 +275,7 @@ export default function Gallery({
                           }}
                         >
                           {t.thumbUrl ? (
-                            <img src={t.thumbUrl} alt={t.id} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img src={t.thumbUrl} alt={current.media?.filename} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           ) : t.error ? (
                             <Box sx={{ fontSize: 11, color: "error.main", p: 1, textAlign: "center" }}>err</Box>
                           ) : (
@@ -332,7 +332,7 @@ export default function Gallery({
                   <img
                     key={`img|${current.id}|${current.media.url}`}
                     src={current.media.url}
-                    alt={current.id}
+                    alt={current.media.filename}
                     style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
                   />
                 ) : (

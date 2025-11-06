@@ -1,6 +1,7 @@
 import { pdfjs } from "react-pdf";
 import worker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import dummy from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { blobUrlCache } from "@/data/store/BlobUrlCache";
 
 if (!dummy) console.log("GOT NULL");
 pdfjs.GlobalWorkerOptions.workerSrc = worker.toString();
@@ -26,7 +27,7 @@ export type GetPagesStreamOptions = {
   /** 1-based inclusive range (optional) */
   endPage?: number;
 
-  refresh?:() => void;
+  refresh?: () => void;
 };
 
 /**
@@ -64,18 +65,25 @@ async function* getPagesAsImageStream(
 
       await page.render({ canvasContext, canvas, viewport }).promise;
 
-      const src = canvas.toDataURL("image/png"); // PNG ignores quality param
+     
 
-      // clean up page resources immediately after producing image
-      try {
-        page.cleanup?.();
-         
-      } catch {
-        /* ignore */
-      }
+      // toBlob wrapper
+      const blob: Blob = await new Promise((resolve, reject) =>
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png")
+      ); 
+        
+
+      // cache the page image for 5 minutes (adjust as needed)
+      const cacheKey = `pdf:${pdfUrl}:${i}`;
+     const src =  blobUrlCache.set(cacheKey, blob, 5 * 60_000);
       opts.refresh?.();
+     // const src = canvas.toDataURL('image/png');
+      // release pdf.js page resources
+      try { page.cleanup?.(); } catch { /* ignore */ }
+
       yield { index: i - 1, src, total };
-      
+      // clean up page resources immediately after producing image
+      try { page.cleanup?.(); } catch {/* ignore */ }
     }
   } finally {
     // finalize pdf / worker resources
@@ -89,8 +97,6 @@ async function* getPagesAsImageStream(
     } catch {
       /* ignore */
     }
-
-    
   }
 }
 

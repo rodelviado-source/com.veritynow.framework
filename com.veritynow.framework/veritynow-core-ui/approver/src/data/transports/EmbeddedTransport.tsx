@@ -2,7 +2,8 @@ import { Transport, ListParams, PageResult, TransportTypes, ModeTypes, MediaReso
 import { RecordItem, Statuses } from "@/data/types/Record";
 import { LocalStorageWithOPFS as Store } from "@/data/store/LocalStorageWithOPFS";
 import { DataFacade } from "@/data/facade/DataFacade";
-import { prefillMeta, getMetaSync } from "@/data/mediaStore";
+import { prefillMeta } from "@/data/mediaStore";
+import { storeCacheManager } from "@/data/store/StoreCacheManager";
 
 
 const CT_PDF = 'application/pdf';
@@ -26,37 +27,6 @@ function pickKind(mime: string | null): MediaKind {
   if (m.startsWith('video/')) return MediaKind.video;
   return MediaKind.download;
 }
-
-function parseDataUrlMime(s: string): string | null {
-  const m = /^data:([^;,]+)[;,]/i.exec(s);
-  return m ? m[1].toLowerCase() : null;
-}
-
-async function fetchBlob(url: string): Promise<Blob> {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`blob fetch failed: ${r.status}`);
-  return r.blob();
-}
-
-// --- tiny magic-number sniff ---
-async function sniffMime(blob: Blob): Promise<string | null> {
-  const head = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
-  const eq = (sig: number[], off = 0) => sig.every((b, i) => head[off + i] === b);
-  const ascii = (s: string, off = 0) => [...s].every((ch, i) => head[off + i] === ch.charCodeAt(0));
-  if (eq([0x25, 0x50, 0x44, 0x46, 0x2D])) return CT_PDF;                       // %PDF-
-  if (eq([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])) return 'image/png';    // PNG
-  if (eq([0xFF, 0xD8, 0xFF])) return 'image/jpeg';                            // JPEG
-  if (ascii('GIF87a') || ascii('GIF89a')) return 'image/gif';               // GIF
-  if (ascii('RIFF', 0) && ascii('WEBP', 8)) return 'image/webp';              // WEBP
-  if (eq([0x49, 0x49, 0x2A, 0x00]) || eq([0x4D, 0x4D, 0x00, 0x2A])) return 'image/tiff'; // TIFF
-  if (ascii('ftyp', 4)) {
-    const brand = String.fromCharCode(...head.slice(8, 12));
-    if (brand.startsWith('he')) return 'image/heic';
-    if (brand.startsWith('avif')) return 'image/avif';
-  }
-  return blob.type || null;
-}
-
 
 export class EmbeddedTransport implements Transport {
   mode = ModeTypes.embedded;
@@ -183,75 +153,27 @@ export class EmbeddedTransport implements Transport {
   }
 
   async mediaFor(imageId: string): Promise<MediaResource> {
-    assertNotEmbedded();
-
-
-    const cached = getMetaSync(imageId) || null;
+    const meta = storeCacheManager.getMetaRequired(imageId);
     const s = await this.imageUrl(imageId);
-
-
-    let base: MediaResource;
-
-
-    if (!s) {
-      base = {
-        id: imageId,
-        url: "",
-        kind: MediaKind.download,
-        filename: imageId,
-        size: 0,
-        contentType: "application/octet-stream",
-      };
-    } else if (s.startsWith("data:")) {
-      const mime = parseDataUrlMime(s) || "application/octet-stream";
-      base = {
-        id: imageId,
-        url: s,
-        kind: MediaKind.image,
-        filename: imageId,
-        size: 0,
-        contentType: mime,
-      };
-    } else if (s.startsWith("blob:")) {
-      const blob = await fetchBlob(s);
-      const mime = (await sniffMime(blob)) || blob.type || "application/octet-stream";
-      base = {
-        id: imageId,
-        url: s,
-        kind: MediaKind.image,
-        filename: imageId,
-        size: blob.size,
-        contentType: mime,
-      };
-    } else {
-      base = {
-        id: imageId,
-        url: s,
-        kind: MediaKind.download,
-        filename: imageId,
-        size: 0,
-        contentType: "application/octet-stream",
-      };
+    if (!s) throw new Error(`No data source for id=${imageId}`);
+    let url: string = s;
+    if (s.startsWith("blob:")) {
+      url = await storeCacheManager.acquireBlobUrl(imageId, async () => await fetch(s).then(r => r.blob()));
     }
-
-
-    const merged: MediaResource = {
-      ...base,
-      filename: cached?.filename || base.filename,
-      size: (cached?.size ?? 0) > 0 ? cached!.size : base.size,
-      contentType: cached?.contentType || base.contentType,
-      ...(cached && ('meta' in cached) ? { meta: (cached as any).meta } : {}),
+    return {
+      id: imageId,
+      url,
+      kind: ((): MediaKind => {
+        const ct = meta.contentType.toLowerCase();
+        if (ct === "application/pdf") return MediaKind.pdf;
+        if (ct.startsWith("image/")) return MediaKind.image;
+        if (ct.startsWith("video/")) return MediaKind.video;
+        return MediaKind.download;
+      })(),
+      filename: meta.filename,
+      size: meta.size,
+      contentType: meta.contentType,
+      ...(meta.meta ? { meta: meta.meta } : {}),
     };
-
-
-    prefillMeta(imageId, merged);
-    return merged;
   }
-
-
-
-
-
-
-
 }

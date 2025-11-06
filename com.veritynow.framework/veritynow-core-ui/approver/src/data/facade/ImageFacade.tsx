@@ -17,7 +17,7 @@ export default function ImageFacade({ id, cacheKey, meta, className, ...rest }: 
   const k = cacheKey ?? id;
 
   const [thumb, setThumbLocal] = React.useState<string | null>(() => (m ? getThumb(k) ?? null : null));
-  const revokeRef = React.useRef<string | null>(null);
+  
 
   React.useEffect(() => {
     if (!m) { setThumbLocal(null); return; }
@@ -29,9 +29,8 @@ export default function ImageFacade({ id, cacheKey, meta, className, ...rest }: 
 
       if (m?.kind === MediaKind.pdf) {
         const url = await PDF.thumbnail(m.url);
-        if (cancelled) { URL.revokeObjectURL(url); return; }
         setThumb(k, url);
-        revokeRef.current = url;
+        
         setThumbLocal(url);
         return;
       }
@@ -49,7 +48,6 @@ export default function ImageFacade({ id, cacheKey, meta, className, ...rest }: 
 
     return () => {
       cancelled = true;
-      if (revokeRef.current) {/* URL.revokeObjectURL(revokeRef.current); */revokeRef.current = null; }
     };
   }, [k, m?.id, m?.kind, m?.url]);
 
@@ -60,7 +58,7 @@ export default function ImageFacade({ id, cacheKey, meta, className, ...rest }: 
 
   if (m.kind === MediaKind.pdf)   return <img src={thumb!} alt={m.filename ?? "PDF"} className={className} {...rest} />;
   if (m.kind === MediaKind.image) return <img src={thumb ?? m.url} alt={m.filename ?? "Image"} className={className} {...rest} />;
-  if (m.kind === MediaKind.video) return <video src={m.url} className={className} controls {...rest} />;
+  if (m.kind === MediaKind.video) return <video src={m.url}  className={className} controls {...rest} />;
 
   return <a href={m.url} download className={`underline ${className ?? ""}`} {...rest}>{m.filename ?? "Download"}</a>;
 }

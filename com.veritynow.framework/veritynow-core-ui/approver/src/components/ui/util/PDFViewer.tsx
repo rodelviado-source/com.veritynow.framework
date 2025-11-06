@@ -2,20 +2,20 @@ import { MediaKind, MediaResource } from "@/data/transports/Transport";
 import React, {
   useEffect,
   useState,
-  
+
 } from "react";
 import PDF from "@/components/ui/util/PDF";
 import { Button, CircularProgress, Stack, Typography } from "@mui/material";
 
 
 
-export function PDFViewer( m:MediaResource ) {
+export function PDFViewer(m: MediaResource) {
   const [pages, setPages] = useState<string[]>([]);
   const [pageNumber, setPageNumber] = useState(0);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [prevUrl, setPrevUrl] = useState("");
-  
+
   useEffect(() => {
     // cleanup from prior run happens in returned function below
     if (!m?.url) {
@@ -65,23 +65,25 @@ export function PDFViewer( m:MediaResource ) {
     return () => {
       cancelled = true;
       controller.abort();
-      pages.forEach((p) => { if (p.startsWith("blob:")) URL.revokeObjectURL(p); });
+
+
+    
     };
   }, [m.kind, m.url]);// keep url/kind for safety, but version drives reloads
-      
-  if (loading && pages.length === 0) return <p>Loading, please wait…  <CircularProgress/>  </p>;
+
+  if (loading && pages.length === 0) return <p>Loading, please wait…  <CircularProgress />  </p>;
   if (err) return <p style={{ color: "red" }}>{err}</p>;
 
   if (m.kind === MediaKind.pdf) {
 
     const src = pages[pageNumber];
-    
+
     return src ? (
       <div>
-        
-        <Stack direction="row" style={{ justifyContent:"left", display: "flex", gap: 8, marginTop: 8 }}>
+
+        <Stack direction="row" style={{ justifyContent: "left", display: "flex", gap: 8, marginTop: 8 }}>
           <Button
-          variant="outlined"
+            variant="outlined"
             onClick={() => setPageNumber((n) => Math.max(0, n - 1))}
             disabled={pageNumber <= 0}
           >
@@ -94,22 +96,22 @@ export function PDFViewer( m:MediaResource ) {
           >
             Next
           </Button>
-           <Typography variant="h6"  justifyContent="center" sx={{ display: 'block' }}>
-                 {pages.length > 0 ? `${pageNumber + 1} / ${pages.length}` : ""}
-            </Typography>
-          
+          <Typography variant="h6" justifyContent="center" sx={{ display: 'block' }}>
+            {pages.length > 0 ? `${pageNumber + 1} / ${pages.length}` : ""}
+          </Typography>
+
         </Stack>
         <img key={src} src={src} alt={`Page ${pageNumber + 1}`} />
       </div>
 
     ) : (
 
-      <CircularProgress/>
+      <CircularProgress />
     );
   }
 
   // Non-PDF: render directly
-  return pages[0] ? <img key={pages[0]} src={pages[0]} alt="media" /> : <CircularProgress/>
+  return pages[0] ? <img key={pages[0]} src={pages[0]} alt="media" /> : <CircularProgress />
 };
 
 PDFViewer.displayName = "PDFViewer";
