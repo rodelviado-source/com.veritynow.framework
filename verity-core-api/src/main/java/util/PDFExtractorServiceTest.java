@@ -106,9 +106,9 @@ public class PDFExtractorServiceTest {
      * or Run as Java Application in your IDE
      */
     public static void main(String[] args) throws Exception {
-    	//generateMistraiTemplate();
-    	//generateFormKVPairs();
-    	//generateTemplate();
+    	generateMistraiTemplate();
+    	generateFormKVPairs();
+    	generateTemplate();
     	
     	generateFormKVPairsForFormParser();
     	

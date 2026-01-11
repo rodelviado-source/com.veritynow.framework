@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -20,7 +19,6 @@ public class CorsConfig {
 	private static final Logger LOGGER = LogManager.getLogger();
 	private final CorsProperties props;
 
-	@Autowired
 	public CorsConfig(CorsProperties props) {
 		this.props = props;
 	}

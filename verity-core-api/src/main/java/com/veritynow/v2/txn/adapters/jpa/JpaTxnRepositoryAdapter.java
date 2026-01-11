@@ -10,10 +10,12 @@ import java.util.Optional;
 
 public class JpaTxnRepositoryAdapter implements TxnRepository {
     private final JpaTxnEntityRepository repo;
+    @SuppressWarnings("unused")
     private final Clock clock;
     
     public JpaTxnRepositoryAdapter(JpaTxnEntityRepository repo) {
         this(repo, new SystemClock());
+    
     }
     
    

@@ -1,41 +1,17 @@
 package com.veritynow.v2.txn.adapters.springboot;
 
-import jakarta.persistence.EntityManager;
-
+import com.veritynow.v2.txn.adapters.jpa.*;
+import com.veritynow.v2.txn.core.*;
+import com.veritynow.v2.txn.spi.*;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.veritynow.v2.txn.api.TransactionService;
-import com.veritynow.v2.txn.core.NullSagaCoordinator;
-import com.veritynow.v2.txn.core.SystemClock;
-import com.veritynow.v2.txn.core.TransactionServiceImpl;
-import com.veritynow.v2.txn.core.UuidTxnIdGenerator;
-import com.veritynow.v2.txn.adapters.jpa.DbFencingTokenSequence;
-import com.veritynow.v2.txn.adapters.jpa.DbSubtreeLockService;
-import com.veritynow.v2.txn.adapters.jpa.FencingTokenProvider;
-import com.veritynow.v2.txn.adapters.jpa.JpaLockRepository;
-import com.veritynow.v2.txn.adapters.jpa.JpaTxnRepository;
-import com.veritynow.v2.txn.adapters.jpa.JpaTxnRepositoryAdapter;
-import com.veritynow.v2.txn.spi.Clock;
-import com.veritynow.v2.txn.spi.EventRecorder;
-import com.veritynow.v2.txn.spi.SagaCoordinator;
-import com.veritynow.v2.txn.spi.SubtreeLockService;
-import com.veritynow.v2.txn.spi.TxnIdGenerator;
-import com.veritynow.v2.txn.spi.TxnRepository;
-import com.veritynow.v2.txn.spi.VersionStore;
+import javax.sql.DataSource;
 
 @AutoConfiguration
-@ConditionalOnClass({AutoConfiguration.class})
-@EntityScan(basePackages = "com.veritynow.v2.txn.adapters.jpa")
-@EnableJpaRepositories(basePackages = "com.veritynow.v2.txn.adapters.jpa")
 public class TxnAutoConfiguration {
-
-    // ---- Core defaults ----
 
     @Bean
     @ConditionalOnMissingBean
@@ -55,52 +31,53 @@ public class TxnAutoConfiguration {
         return new UuidTxnIdGenerator();
     }
 
-    // ---- JPA-backed TxnRepository ----
+    @Bean
+    @ConditionalOnClass(JdbcTemplate.class)
+    @ConditionalOnMissingBean
+    public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
+    }
 
     @Bean
-    @ConditionalOnBean(JpaTxnRepository.class)
+    @ConditionalOnProperty(prefix = "veritynow.txn", name = "autoCreateFencingSequence", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnBean(JdbcTemplate.class)
+    public PostgresSequenceInitializer fencingSequenceInitializer(JdbcTemplate jdbc) {
+        return new PostgresSequenceInitializer(jdbc, "vn_fencing_token_seq");
+    }
+
+    @Bean
+    @ConditionalOnBean(JdbcTemplate.class)
+    @ConditionalOnMissingBean
+    public FencingTokenProvider fencingTokenProvider(JdbcTemplate jdbc) {
+        return new PostgresSequenceFencingTokenProvider(jdbc, "vn_fencing_token_seq");
+    }
+
+    @Bean
+    @ConditionalOnBean(JpaTxnEntityRepository.class)
     @ConditionalOnMissingBean(TxnRepository.class)
-    public TxnRepository txnRepository(JpaTxnRepository repo, Clock clock) {
-        return new JpaTxnRepositoryAdapter(repo, clock);
+    public TxnRepository txnRepository(JpaTxnEntityRepository repo) {
+        return new JpaTxnRepositoryAdapter(repo);
     }
 
-    // ---- DB fencing token sequence ----
-
     @Bean
-    @ConditionalOnClass(EntityManager.class)
-    @ConditionalOnBean(EntityManager.class)
-    @ConditionalOnMissingBean(FencingTokenProvider.class)
-    public FencingTokenProvider fencingTokenSequence(EntityManager em) {
-        return new DbFencingTokenSequence(em);
-    }
-
-    // ---- JPA-backed lock service ----
-
-    @Bean
-    @ConditionalOnBean(JpaLockRepository.class)
+    @ConditionalOnBean({JpaSubtreeLockRepository.class, FencingTokenProvider.class, Clock.class})
     @ConditionalOnMissingBean(SubtreeLockService.class)
-    public SubtreeLockService subtreeLockService(
-            JpaLockRepository repo,
-            Clock clock,
-            DbSubtreeLockService.FencingTokenSequence seq
-    ) {
-        return new DbSubtreeLockService(repo, clock, seq);
+    public SubtreeLockService subtreeLockService(JpaSubtreeLockRepository repo, FencingTokenProvider tokenProvider, Clock clock) {
+        return new DbSubtreeLockService(repo, tokenProvider, clock);
     }
 
-    // ---- TransactionService (only when mandatory deps exist) ----
-
     @Bean
-    @ConditionalOnBean({SubtreeLockService.class, TxnRepository.class, VersionStore.class, EventRecorder.class})
+    @ConditionalOnBean({SubtreeLockService.class, TxnRepository.class, VersionStore.class, EventRecorder.class, SagaCoordinator.class, Clock.class, TxnIdGenerator.class})
     @ConditionalOnMissingBean(TransactionService.class)
     public TransactionService transactionService(
             SubtreeLockService lockService,
-            TxnRepository txnRepo,
+            TxnRepository txnRepository,
             VersionStore versionStore,
-            EventRecorder events,
-            SagaCoordinator saga,
-            TxnIdGenerator ids,
-            Clock clock
+            EventRecorder eventRecorder,
+            SagaCoordinator sagaCoordinator,
+            Clock clock,
+            TxnIdGenerator txnIdGenerator
     ) {
-        return new TransactionServiceImpl(lockService, txnRepo, versionStore, events, saga, ids, clock);
+        return new TransactionServiceImpl(lockService, txnRepository, versionStore, eventRecorder, sagaCoordinator, clock, txnIdGenerator);
     }
 }

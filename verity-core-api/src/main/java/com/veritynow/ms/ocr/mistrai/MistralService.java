@@ -22,7 +22,7 @@ import com.veritynow.ms.pdf.PDFExtractorService;
 public class MistralService implements OcrService {
 
     private final MistralClient client;
-    private final MistralSchemaFromTemplate schemaBuilder;
+    
     private final FormTemplateLoader templateLoader;
     public MistralService(
             MistralClient client,
@@ -30,7 +30,6 @@ public class MistralService implements OcrService {
             MistralSchemaFromTemplate schemaBuilder
     ) {
         this.client = client;
-        this.schemaBuilder = schemaBuilder;
         this.templateLoader = templateLoader;
     }
 
@@ -65,7 +64,7 @@ public OcrResponse extract(MultipartFile file) {
         }
         
         // === AI PATH (image OR scanned PDF) ===
-        ObjectNode responseFormat = schemaBuilder.buildResponseFormat(template);
+        ObjectNode responseFormat = MistralSchemaFromTemplate.buildResponseFormat(template);
 
         JsonNode extracted =
                 client.extractWithSchema(

@@ -5,7 +5,6 @@ import org.threeten.bp.Instant;
 import com.veritynow.v2.store.core.StoreContext;
 import com.veritynow.v2.store.core.StoreUtils;
 
-import util.StringUtils;
 
 /**
  * Canonical, transport-agnostic event record.

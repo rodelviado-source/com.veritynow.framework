@@ -92,7 +92,8 @@ final class DefaultContextManager implements ContextManager {
         if (runnable == null) throw new IllegalArgumentException("runnable must not be null");
         ContextSnapshot captured = snapshot();
         return () -> {
-            try (ContextScope scope = scope(captured)) {
+            try (@SuppressWarnings("unused")
+            ContextScope scope = scope(captured)) {
                 runnable.run();
             }
         };
@@ -103,7 +104,8 @@ final class DefaultContextManager implements ContextManager {
         if (callable == null) throw new IllegalArgumentException("callable must not be null");
         ContextSnapshot captured = snapshot();
         return () -> {
-            try (ContextScope scope = scope(captured)) {
+            try (@SuppressWarnings("unused")
+            ContextScope scope = scope(captured)) {
                 return callable.call();
             }
         };
