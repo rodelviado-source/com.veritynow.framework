@@ -1,7 +1,5 @@
 package com.veritynow.core.api.bdo.personal.loans;
 
-import java.util.List;
-
 public class PageResponse<T> {
 	private java.util.List<T> items;
 	private int page;

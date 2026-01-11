@@ -1,0 +1,64 @@
+{
+  "type": "object",
+  "title": "StructuredData",
+  "properties": {
+    "Customer Designation": {
+      "type": "object",
+      "properties": {
+        "Account Owner": {
+          "type": "boolean",
+          "description": "Customer type"
+        },
+        "Business Owner / Officer / Signatory": {
+          "type": "boolean",
+          "description": "Customer Type"
+        }
+      },
+      "required": [
+        "Account Owner",
+        "Business Owner / Officer / Signatory"
+      ]
+    },
+    "Gender": {
+      "type": "object",
+      "description": "",
+      "properties": {
+        "Male": {
+          "type": "boolean"
+        },
+        "Female": {
+          "type": "boolean"
+        }
+      },
+      "required": []
+    },
+    "Civil Status": {
+      "type": "object",
+      "description": "Annulled was marked but Married was sent back as true",
+      "properties": {
+        "Single": {
+          "type": "boolean"
+        },
+        "Married": {
+          "type": "boolean"
+        },
+        "Legally Separated": {
+          "type": "boolean"
+        },
+        "Annulled": {
+          "type": "boolean"
+        },
+        "Divorced": {
+          "type": "boolean"
+        },
+        "Widow/er": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "required": [
+    "Gender",
+    "Civil Status"
+  ]
+}

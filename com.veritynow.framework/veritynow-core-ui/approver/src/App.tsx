@@ -1,15 +1,28 @@
-// import { RecordsTable } from "@/records/RecordsTable";
-import Login from "@/auth/Login";
-import { getAgent, clearAgent } from "@/auth/agent";
+
 import * as React from "react";
-import { Button } from "@/components/ui/button";
-import BDODemo from "./records/BDODemo";
+import Login from "@/features/auth/Login";
+import { getAgent, clearAgent } from "@/features/auth/agent";
+import { useVerityNowDataLayer } from "@/core/hooks/useVerityNowDataLayer";
+
+
+import { Button } from "@mui/material";
+
+import BDODemo from "@/features/demo/bdo/Demo";
+
 
 export default function App(){
+
+  const { ready, error, mode, setMode, DataFacade: DF } = useVerityNowDataLayer();
+  
+  if (error) return <pre style={{whiteSpace:"pre-wrap"}}>Data layer error: {String(error)}</pre>;
+  if (!ready) return <div>Initializing data layer…</div>;
+
+  
   const [agent, setAgent] = React.useState(() => getAgent());
   if (!agent) return <Login onDone={() => setAgent(getAgent())} />;
-
   const name = [agent.first, agent.middle, agent.last, agent.suffix].filter(Boolean).join(" ");
+  
+  
 
   return (
     <div className="min-h-screen p-6 max-w-6xl mx-auto space-y-6">
@@ -26,7 +39,8 @@ export default function App(){
         </div>
       </div>
 
-      <BDODemo></BDODemo>
+      <BDODemo/>
+
 
     {/* <RecordsTable/> */}
     </div>

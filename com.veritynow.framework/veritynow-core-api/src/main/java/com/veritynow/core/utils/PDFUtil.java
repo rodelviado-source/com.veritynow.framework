@@ -1,38 +1,23 @@
 package com.veritynow.core.utils;
 
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
-import com.aspose.pdf.AppearanceDictionary;
-import com.aspose.pdf.BackgroundArtifact;
 import com.aspose.pdf.CheckboxField;
 import com.aspose.pdf.ComboBoxField;
 import com.aspose.pdf.Document;
 import com.aspose.pdf.Field;
-import com.aspose.pdf.Form;
 import com.aspose.pdf.HtmlSaveOptions;
-import com.aspose.pdf.IDocument;
-import com.aspose.pdf.License;
 import com.aspose.pdf.Page;
 import com.aspose.pdf.PageCollection;
 import com.aspose.pdf.RadioButtonField;
 import com.aspose.pdf.RadioButtonOptionField;
-import com.aspose.pdf.Rectangle;
 import com.aspose.pdf.TextAbsorber;
 import com.aspose.pdf.TextBoxField;
-import com.aspose.pdf.facades.Facade;
-import com.aspose.pdf.facades.PdfFileInfo;
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -365,7 +350,7 @@ public class PDFUtil {
     	   System.out.println(" rodel" + a.getImage().getNameInCollection());
     	});
        
-       BackgroundArtifact bga = new BackgroundArtifact();
+      // BackgroundArtifact bga = new BackgroundArtifact();
        
            
         
@@ -411,6 +396,7 @@ public class PDFUtil {
           FieldMeta fm = new PDFUtil().new FieldMeta(field);
                      
           if (fm != null) {
+        	  
         	  
         	  ObjectMapper om = new ObjectMapper();
         	  ObjectWriter ow = om.writer().withDefaultPrettyPrinter();

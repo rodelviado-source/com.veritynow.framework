@@ -1,0 +1,2990 @@
+{
+  "id" : "0e777581-1d15-325a-b0f2-356faad7c758",
+  "name" : "BDOLoanForm",
+  "dpi" : 200.0,
+  "totalPages" : 7,
+  "fields" : {
+    "A1 Alternate Address Barangay" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 257.891,
+        "y" : 466.763,
+        "w" : 311.34503,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "barangay",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Alternate Address City" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 24.8727,
+        "y" : 435.017,
+        "w" : 171.60031,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "city",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Alternate Address Country" : {
+      "type" : "combobox",
+      "zone" : {
+        "page" : 1,
+        "x" : 385.53,
+        "y" : 435.168,
+        "w" : 138.80197,
+        "h" : 21.20401
+      },
+      "maxLength" : -1,
+      "subType" : "country",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Alternate Address Province" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 198.654,
+        "y" : 434.69,
+        "w" : 185.019,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "province",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Alternate Address Street" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 24.2182,
+        "y" : 466.763,
+        "w" : 230.83679,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "street",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Alternate Address Zip Code" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 525.272,
+        "y" : 434.69,
+        "w" : 43.96405,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "zipcode",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 CIF Number" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 81.2512,
+        "y" : 779.647,
+        "w" : 214.9458,
+        "h" : 20.843018
+      },
+      "maxLength" : 10,
+      "subType" : "number",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Cards::A1 Cards" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 1,
+        "x" : 336.109,
+        "y" : 687.517,
+        "w" : 10.371979,
+        "h" : 10.372986
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Citizenship Others" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 85.4175,
+        "y" : 183.089,
+        "w" : 198.7655,
+        "h" : 24.548996
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Citizenship::Filipino" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 29.0182,
+        "y" : 199.067,
+        "w" : 10.095501,
+        "h" : 10.095001
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Citizenship::Others" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 28.8,
+        "y" : 183.089,
+        "w" : 9.927902,
+        "h" : 9.927994
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Civil Status::Annulled" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 509.651,
+        "y" : 240.3,
+        "w" : 10.257019,
+        "h" : 10.257004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Civil Status::Divorced" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 421.942,
+        "y" : 223.21,
+        "w" : 10.257019,
+        "h" : 10.256989
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Civil Status::Legally Separated" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 421.942,
+        "y" : 239.853,
+        "w" : 10.257019,
+        "h" : 10.257004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Civil Status::Married" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 368.293,
+        "y" : 223.883,
+        "w" : 10.256989,
+        "h" : 10.257004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Civil Status::Single" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 368.07,
+        "y" : 239.853,
+        "w" : 10.256989,
+        "h" : 10.257004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Civil Status::Widow/er" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 509.651,
+        "y" : 224.327,
+        "w" : 10.257019,
+        "h" : 10.257004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Country of Birth" : {
+      "type" : "combobox",
+      "zone" : {
+        "page" : 1,
+        "x" : 22.9015,
+        "y" : 235.607,
+        "w" : 269.9955,
+        "h" : 21.20401
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Customer Designation::Account Owner" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 301.05,
+        "y" : 791.823,
+        "w" : 12.465027,
+        "h" : 12.465027
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Customer Designation::Business Owner / Officer / Signatory_" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 301.052,
+        "y" : 775.884,
+        "w" : 12.464996,
+        "h" : 12.465027
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Date of Birth Day" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 478.985,
+        "y" : 706.981,
+        "w" : 28.582,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "date_day",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Date of Birth Month" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 443.782,
+        "y" : 706.981,
+        "w" : 28.253998,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "date_month",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Date of Birth Year" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 514.472,
+        "y" : 706.981,
+        "w" : 57.38202,
+        "h" : 22.0
+      },
+      "maxLength" : 4,
+      "subType" : "date_year",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Deposits::A1 Deposits" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 1,
+        "x" : 285.054,
+        "y" : 687.907,
+        "w" : 9.984009,
+        "h" : 9.983032
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Existing Customer::No" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 187.418,
+        "y" : 687.415,
+        "w" : 10.039001,
+        "h" : 10.038025
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Existing Customer::Yes" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 156.873,
+        "y" : 687.351,
+        "w" : 9.8849945,
+        "h" : 9.883972
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 First Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 117.473,
+        "y" : 706.981,
+        "w" : 177.818,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Gender::Female" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 308.073,
+        "y" : 224.214,
+        "w" : 10.256989,
+        "h" : 10.256989
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Gender::Male" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 308.07,
+        "y" : 239.853,
+        "w" : 10.256989,
+        "h" : 10.257004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Gross Monthly Income" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 455.415,
+        "y" : 18.511,
+        "w" : 114.58499,
+        "h" : 21.9975
+      },
+      "maxLength" : -1,
+      "subType" : "number",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Home Address Barangay" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 258.545,
+        "y" : 546.617,
+        "w" : 311.34598,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "barangay",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Home Address City" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 24.5454,
+        "y" : 514.545,
+        "w" : 172.9096,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "city",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Home Address Country" : {
+      "type" : "combobox",
+      "zone" : {
+        "page" : 1,
+        "x" : 385.489,
+        "y" : 515.798,
+        "w" : 138.802,
+        "h" : 21.20404
+      },
+      "maxLength" : -1,
+      "subType" : "country",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Home Address Province" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 199.964,
+        "y" : 514.545,
+        "w" : 183.709,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "province",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Home Address Street" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 23.5636,
+        "y" : 547.642,
+        "w" : 232.2104,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "street",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Home Address Zip Code" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 525.927,
+        "y" : 514.545,
+        "w" : 44.291016,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "zipcode",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Home Landline Number" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 440.182,
+        "y" : 595.054,
+        "w" : 129.38098,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "landlinenumber",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Home Landline Number Area Code" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 402.218,
+        "y" : 594.726,
+        "w" : 35.127014,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "areacode",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Home Landline Number Country Code" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 364.909,
+        "y" : 594.726,
+        "w" : 35.45401,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "countrycode",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Insurance::A1 Insurance" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 1,
+        "x" : 517.745,
+        "y" : 687.412,
+        "w" : 10.478027,
+        "h" : 10.478027
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Last Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 23.6598,
+        "y" : 706.981,
+        "w" : 91.418205,
+        "h" : 22.0
+      },
+      "maxLength" : 10,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Loans::A1 Loans" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 1,
+        "x" : 378.327,
+        "y" : 688.072,
+        "w" : 9.817993,
+        "h" : 9.817993
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Middle Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 298.145,
+        "y" : 706.981,
+        "w" : 101.564026,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Name of Primary Employer or Business" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 304.364,
+        "y" : 66.7255,
+        "w" : 265.636,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Nature of Work" : {
+      "type" : "combobox",
+      "zone" : {
+        "page" : 1,
+        "x" : 23.0625,
+        "y" : 79.3876,
+        "w" : 269.2175,
+        "h" : 10.7099
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Nature of Work Code List" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 24.0213,
+        "y" : 65.7804,
+        "w" : 268.2587,
+        "h" : 13.607094
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Personal Email Address" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 210.764,
+        "y" : 594.399,
+        "w" : 138.54498,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "email",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Personal Mobile Number" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 66.7636,
+        "y" : 594.399,
+        "w" : 130.6914,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "mobilenumber",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Personal Mobile Number Country Code" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 23.8909,
+        "y" : 594.399,
+        "w" : 40.3637,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "countrycode",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Position or Job Title::Contractual / Part-Time" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 343.419,
+        "y" : 31.5525,
+        "w" : 10.2630005,
+        "h" : 10.2638
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Position or Job Title::Elected / Appointee" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 128.727,
+        "y" : 15.861,
+        "w" : 10.028,
+        "h" : 10.028
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Position or Job Title::Employee" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 236.291,
+        "y" : 15.9612,
+        "w" : 10.145996,
+        "h" : 10.146001
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Position or Job Title::Non-Officer / Employee" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 236.073,
+        "y" : 31.4521,
+        "w" : 10.363998,
+        "h" : 10.364199
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Position or Job Title::Owner / Director / Officer" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 1,
+        "x" : 128.946,
+        "y" : 31.3519,
+        "w" : 10.028,
+        "h" : 10.028101
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Same as Home Address::A1 Same as Home Address" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 1,
+        "x" : 465.897,
+        "y" : 496.566,
+        "w" : 9.712006,
+        "h" : 10.552002
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Source of Funds Code List" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 24.0213,
+        "y" : 114.726,
+        "w" : 172.4507,
+        "h" : 14.235001
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Source of Funds Country" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 210.546,
+        "y" : 114.944,
+        "w" : 179.01799,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "country",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Source of Funds Selection" : {
+      "type" : "combobox",
+      "zone" : {
+        "page" : 1,
+        "x" : 24.0225,
+        "y" : 127.905,
+        "w" : 172.4495,
+        "h" : 10.710007
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Source of Funds Used For" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 391.637,
+        "y" : 114.726,
+        "w" : 178.80002,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Suffix Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 402.218,
+        "y" : 706.981,
+        "w" : 28.582,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 TIN" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 304.146,
+        "y" : 179.089,
+        "w" : 266.945,
+        "h" : 22.0
+      },
+      "maxLength" : 12,
+      "subType" : "number",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Wealth Management::A1 Wealth Management" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 1,
+        "x" : 420.872,
+        "y" : 687.723,
+        "w" : 10.166992,
+        "h" : 10.166992
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business Barangay" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 258.218,
+        "y" : 338.799,
+        "w" : 311.01804,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "barangay",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business City" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 24.2182,
+        "y" : 306.727,
+        "w" : 172.2548,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "city",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business Country" : {
+      "type" : "combobox",
+      "zone" : {
+        "page" : 1,
+        "x" : 385.992,
+        "y" : 306.747,
+        "w" : 138.802,
+        "h" : 21.20398
+      },
+      "maxLength" : -1,
+      "subType" : "country",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business Email" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 24.2182,
+        "y" : 386.908,
+        "w" : 266.5088,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "email",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business Landline Number" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 378.327,
+        "y" : 386.908,
+        "w" : 144.436,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "landlinenumber",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business Landline Number Area Code" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 341.345,
+        "y" : 386.908,
+        "w" : 34.799988,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "areacode",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business Landline Number Country Code" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 304.036,
+        "y" : 386.908,
+        "w" : 34.799988,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "countrycode",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business Landline Number Local" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 525.6,
+        "y" : 386.581,
+        "w" : 42.327026,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business Province" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 199.636,
+        "y" : 306.399,
+        "w" : 184.037,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "province",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business Street" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 24.5454,
+        "y" : 338.799,
+        "w" : 231.81862,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "street",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A1 Work Business Zip Code" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 1,
+        "x" : 526.254,
+        "y" : 306.399,
+        "w" : 43.636963,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "zipcode",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Account Number" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 24.87,
+        "y" : 154.154,
+        "w" : 173.70001,
+        "h" : 21.524994
+      },
+      "maxLength" : 12,
+      "subType" : "number",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Approved By" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 401.633,
+        "y" : 57.8399,
+        "w" : 169.91498,
+        "h" : 24.157497
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Beneficial Ownership::No" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 535.026,
+        "y" : 683.049,
+        "w" : 11.018982,
+        "h" : 11.018982
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Beneficial Ownership::Yes" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 489.208,
+        "y" : 683.024,
+        "w" : 11.261993,
+        "h" : 11.262024
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Biometrics Face::A2 Biometrics Face" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 2,
+        "x" : 428.91,
+        "y" : 166.47,
+        "w" : 12.0,
+        "h" : 12.0
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Biometrics Finger::A2 Biometrics Finger" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 2,
+        "x" : 428.91,
+        "y" : 149.481,
+        "w" : 12.0,
+        "h" : 12.0
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Consent for Issuance of BDO Credit Card Signature" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 397.271,
+        "y" : 469.289,
+        "w" : 173.68903,
+        "h" : 40.777985
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Courtesy Call Remarks" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 24.87,
+        "y" : 9.16495,
+        "w" : 546.092,
+        "h" : 24.157547
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Customer Undertaking Signature" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 397.271,
+        "y" : 374.924,
+        "w" : 173.68903,
+        "h" : 40.777985
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Data Privacy Consent Signature" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 397.271,
+        "y" : 551.475,
+        "w" : 173.68903,
+        "h" : 40.778015
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Date Opened Day" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 240.66,
+        "y" : 153.578,
+        "w" : 22.5,
+        "h" : 22.785004
+      },
+      "maxLength" : 2,
+      "subType" : "date_day",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Date Opened Month" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 209.243,
+        "y" : 153.578,
+        "w" : 24.764008,
+        "h" : 22.785004
+      },
+      "maxLength" : 2,
+      "subType" : "date_month",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Date Opened Year" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 270.21,
+        "y" : 153.578,
+        "w" : 48.570007,
+        "h" : 22.785004
+      },
+      "maxLength" : 4,
+      "subType" : "date_year",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Date Signed Day" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 492.099,
+        "y" : 345.503,
+        "w" : 23.317993,
+        "h" : 21.99701
+      },
+      "maxLength" : 2,
+      "subType" : "date_day",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Date Signed Month" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 461.114,
+        "y" : 345.499,
+        "w" : 24.763977,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "date_month",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Date Signed Year" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 522.348,
+        "y" : 345.062,
+        "w" : 49.19995,
+        "h" : 22.0
+      },
+      "maxLength" : 4,
+      "subType" : "date_year",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Foreign Account Tax Compliance::No" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 535.244,
+        "y" : 737.484,
+        "w" : 11.783997,
+        "h" : 11.783997
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Foreign Account Tax Compliance::Yes" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 489.426,
+        "y" : 737.987,
+        "w" : 10.845001,
+        "h" : 10.843994
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 ID1 Number" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 123.615,
+        "y" : 104.572,
+        "w" : 166.86801,
+        "h" : 24.157997
+      },
+      "maxLength" : -1,
+      "subType" : "number",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 ID1 Type" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 24.87,
+        "y" : 104.572,
+        "w" : 93.787994,
+        "h" : 24.157997
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 ID2 Number" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 402.073,
+        "y" : 104.572,
+        "w" : 166.86798,
+        "h" : 24.157997
+      },
+      "maxLength" : -1,
+      "subType" : "number",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 ID2 Type" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 303.484,
+        "y" : 104.572,
+        "w" : 93.78699,
+        "h" : 24.157997
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Online Gaming::No" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 535.244,
+        "y" : 709.775,
+        "w" : 11.130005,
+        "h" : 11.128967
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Online Gaming::Yes" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 489.208,
+        "y" : 709.768,
+        "w" : 11.135986,
+        "h" : 11.135986
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Political Relations and Affiliation::No" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 535.463,
+        "y" : 763.994,
+        "w" : 11.2369995,
+        "h" : 11.2369995
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Political Relations and Affiliation::Yes" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 489.208,
+        "y" : 763.995,
+        "w" : 11.2369995,
+        "h" : 11.236023
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 RC::H" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 487.798,
+        "y" : 148.953,
+        "w" : 12.464996,
+        "h" : 12.464996
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 RC::N" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 487.351,
+        "y" : 165.791,
+        "w" : 12.464996,
+        "h" : 12.464996
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 RC::NLDS" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 534.3,
+        "y" : 166.238,
+        "w" : 12.465027,
+        "h" : 12.464996
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Referred By" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 24.87,
+        "y" : 55.4753,
+        "w" : 166.86801,
+        "h" : 24.157497
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Residency::Non Resident" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 346.445,
+        "y" : 149.138,
+        "w" : 15.809998,
+        "h" : 15.809998
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Residency::Resident" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 345.432,
+        "y" : 165.455,
+        "w" : 15.809998,
+        "h" : 15.809998
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Verified By" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 2,
+        "x" : 205.568,
+        "y" : 57.8399,
+        "w" : 182.09201,
+        "h" : 24.157497
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Walkin or Referred By::Referred By" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 71.8321,
+        "y" : 86.5627,
+        "w" : 12.464996,
+        "h" : 12.465004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A2 Walkin or Referred By::Walk-In" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 2,
+        "x" : 21.4175,
+        "y" : 86.0551,
+        "w" : 12.465,
+        "h" : 12.465004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 American Express Blue::A3 American Express Blue" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 396.655,
+        "y" : 263.031,
+        "w" : 9.839996,
+        "h" : 9.839996
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 American Express Cashback::A3 American Express Cashback" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 396.655,
+        "y" : 247.58,
+        "w" : 9.928009,
+        "h" : 9.927994
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 American Express Explorer::A3 American Express Explorer" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 472.364,
+        "y" : 264.204,
+        "w" : 9.975983,
+        "h" : 9.975983
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 American Express Platinum::A3 American Express Platinum" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 472.481,
+        "y" : 247.963,
+        "w" : 9.603027,
+        "h" : 9.603012
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Business Owner::Partner" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 338.706,
+        "y" : 519.832,
+        "w" : 10.188019,
+        "h" : 10.189026
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Business Owner::Sole proprietor" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 259.353,
+        "y" : 519.821,
+        "w" : 10.188995,
+        "h" : 10.187988
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Business Owner::Stockholder" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 390.906,
+        "y" : 519.832,
+        "w" : 10.187988,
+        "h" : 10.189026
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 CIF Number" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 80.2134,
+        "y" : 779.338,
+        "w" : 216.88058,
+        "h" : 21.524963
+      },
+      "maxLength" : 10,
+      "subType" : "number",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Cards::A3 Cards" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 345.6,
+        "y" : 679.885,
+        "w" : 9.822998,
+        "h" : 9.822998
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Date of Birth Day" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 480.52,
+        "y" : 706.535,
+        "w" : 26.321014,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "date_day",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Date of Birth Month" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 445.572,
+        "y" : 706.895,
+        "w" : 26.321014,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "date_month",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Date of Birth Year" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 517.095,
+        "y" : 706.63,
+        "w" : 52.42206,
+        "h" : 22.0
+      },
+      "maxLength" : 4,
+      "subType" : "date_year",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Deposits::A3 Deposits" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 294.891,
+        "y" : 680.212,
+        "w" : 9.496002,
+        "h" : 9.496033
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Diners Club International::A3 Diners Club International" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 285.6,
+        "y" : 199.011,
+        "w" : 9.714996,
+        "h" : 9.714996
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Diners Club Premiere::A3 Diners Club Premiere" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 285.6,
+        "y" : 183.189,
+        "w" : 10.04599,
+        "h" : 10.046005
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Employment Type for Employed::Bangko Sentral ng Pilipinas" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 216.218,
+        "y" : 536.092,
+        "w" : 9.507004,
+        "h" : 9.507019
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Employment Type for Employed::Government" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 150.327,
+        "y" : 536.412,
+        "w" : 9.404999,
+        "h" : 9.405029
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Employment Type for Employed::Non-Governmental Organization" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 329.019,
+        "y" : 535.781,
+        "w" : 9.599976,
+        "h" : 9.599976
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Employment Type for Employed::Overseas Filipino Worker" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 462.546,
+        "y" : 536.871,
+        "w" : 8.72702,
+        "h" : 8.728027
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Employment Type for Employed::Private" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 106.036,
+        "y" : 536.274,
+        "w" : 9.324997,
+        "h" : 9.325012
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Employment Type for Employed::Professional" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 105.6,
+        "y" : 519.957,
+        "w" : 9.278999,
+        "h" : 9.278015
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Existing Customer::No" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 191.346,
+        "y" : 680.651,
+        "w" : 10.475006,
+        "h" : 10.474976
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Existing Customer::Yes" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 157.527,
+        "y" : 680.869,
+        "w" : 10.257004,
+        "h" : 10.256958
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 First Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 118.363,
+        "y" : 706.535,
+        "w" : 177.76898,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Gross Monthy Income" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 406.583,
+        "y" : 466.763,
+        "w" : 162.61499,
+        "h" : 21.99701
+      },
+      "maxLength" : -1,
+      "subType" : "number",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Insurance::A3 Insurance" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 521.018,
+        "y" : 679.563,
+        "w" : 10.14502,
+        "h" : 10.14502
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 JCB Gold::A3 JCB Gold" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 285.819,
+        "y" : 247.234,
+        "w" : 9.27301,
+        "h" : 9.274002
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 JCB Lucky Cat::A3 JCB Lucky Cat" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 285.6,
+        "y" : 263.38,
+        "w" : 9.273987,
+        "h" : 9.27301
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 JCB Platinum::A3 JCB Platinum" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 285.819,
+        "y" : 231.594,
+        "w" : 9.421997,
+        "h" : 9.423004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Last Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 23.6725,
+        "y" : 706.535,
+        "w" : 92.1845,
+        "h" : 22.0
+      },
+      "maxLength" : 10,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Length of Stay at Current Home Months" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 82.395,
+        "y" : 586.358,
+        "w" : 46.890007,
+        "h" : 21.99701
+      },
+      "maxLength" : 2,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Length of Stay at Current Home Years" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 23.6725,
+        "y" : 586.352,
+        "w" : 47.1156,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Length of Stay with Current Employer Business Months" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 298.8,
+        "y" : 466.763,
+        "w" : 61.96402,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Length of Stay with Current Employer Business Years" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 220.582,
+        "y" : 466.763,
+        "w" : 61.963013,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Length of Stay with Previous Employer Business Months" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 102.436,
+        "y" : 467.09,
+        "w" : 61.963997,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Length of Stay with Previous Employer Business Years" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 23.8909,
+        "y" : 467.09,
+        "w" : 62.618202,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Loan Amount" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 70.2525,
+        "y" : 97.02,
+        "w" : 220.3045,
+        "h" : 21.998001
+      },
+      "maxLength" : -1,
+      "subType" : "number",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Loan Term::12 Months" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 303.284,
+        "y" : 97.0169,
+        "w" : 9.381989,
+        "h" : 9.3811035
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Loan Term::18 Months" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 368.291,
+        "y" : 112.945,
+        "w" : 9.382019,
+        "h" : 9.380997
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Loan Term::24 Months" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 368.291,
+        "y" : 97.0169,
+        "w" : 9.382019,
+        "h" : 9.3811035
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Loan Term::36 Months" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 442.194,
+        "y" : 112.726,
+        "w" : 9.381989,
+        "h" : 9.381004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Loan Term::6 Months" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 303.284,
+        "y" : 112.726,
+        "w" : 9.381989,
+        "h" : 9.381004
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Loans::A3 Loans" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 385.854,
+        "y" : 680.052,
+        "w" : 9.656006,
+        "h" : 9.656006
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Mastercard Bench::A3 Mastercard Bench" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 70.0365,
+        "y" : 232.071,
+        "w" : 9.599998,
+        "h" : 9.600006
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Mastercard Gold::A3 Mastercard Gold" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 70.0365,
+        "y" : 215.38,
+        "w" : 9.491501,
+        "h" : 9.490997
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Mastercard Installment Card::A3 Mastercard Installment Card" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 70.2546,
+        "y" : 167.926,
+        "w" : 9.818199,
+        "h" : 9.818008
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Mastercard Platinum::A3 Mastercard Platinum" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 70.0365,
+        "y" : 183.635,
+        "w" : 10.036301,
+        "h" : 10.036011
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Mastercard ShopMore::A3 Mastercard ShopMore" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 70.0365,
+        "y" : 264.517,
+        "w" : 9.445,
+        "h" : 9.445007
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Mastercard Standard::A3 Mastercard Standard" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 70.0365,
+        "y" : 248.886,
+        "w" : 9.585098,
+        "h" : 9.585007
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Mastercard Titanium::A3 Mastercard Titanium" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 70.0365,
+        "y" : 199.001,
+        "w" : 9.724403,
+        "h" : 9.724991
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Middle Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 298.638,
+        "y" : 706.535,
+        "w" : 101.289,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Other Bank1 Credit Card Last 6 Digits" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 309.927,
+        "y" : 410.145,
+        "w" : 124.79999,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Other Bank1 Credit Card Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 180.654,
+        "y" : 410.145,
+        "w" : 127.09099,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Other Bank1 Credit Card Year Issued" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 437.236,
+        "y" : 410.145,
+        "w" : 125.78201,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Other Bank2 Credit Card Last 6 Digits" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 309.927,
+        "y" : 378.399,
+        "w" : 125.12698,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Other Bank2 Credit Card Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 180.654,
+        "y" : 378.399,
+        "w" : 127.09099,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Other Bank2 Credit Card Year Issued" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 437.891,
+        "y" : 378.399,
+        "w" : 125.127014,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Ownership of Current Home::Living with Relatives" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 268.364,
+        "y" : 583.996,
+        "w" : 9.60199,
+        "h" : 9.603027
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Ownership of Current Home::Mortgaged" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 379.855,
+        "y" : 600.441,
+        "w" : 9.522003,
+        "h" : 9.520996
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Ownership of Current Home::Owned" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 175.2,
+        "y" : 600.373,
+        "w" : 9.372009,
+        "h" : 9.371033
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Ownership of Current Home::Rented" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 268.364,
+        "y" : 600.684,
+        "w" : 9.277985,
+        "h" : 9.277954
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Ownership of Current Home::Used for Free" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 175.418,
+        "y" : 584.612,
+        "w" : 9.205994,
+        "h" : 9.205017
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Products Interested In::BDO Credit Card" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 41.2364,
+        "y" : 312.304,
+        "w" : 10.3125,
+        "h" : 10.313019
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Products Interested In::BDO Personal Loan" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 130.255,
+        "y" : 312.571,
+        "w" : 9.827988,
+        "h" : 9.826996
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Appliance Furniture Electronics::A3 Purpose Appliance Furniture Electronics" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 78.7637,
+        "y" : 32.4128,
+        "w" : 9.839996,
+        "h" : 9.839901
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Debt Consolidation::A3 Purpose Debt Consolidation" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 214.909,
+        "y" : 48.4703,
+        "w" : 9.928009,
+        "h" : 9.927902
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Education Tuition Fee::A3 Purpose Education Tuition Fee" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 214.909,
+        "y" : 32.0599,
+        "w" : 10.193008,
+        "h" : 10.192802
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Home Improvement::A3 Purpose Home Improvement" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 78.7637,
+        "y" : 48.4931,
+        "w" : 9.905098,
+        "h" : 9.905102
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Medical Expense::A3 Purpose Medical Expense" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 78.7637,
+        "y" : 16.1744,
+        "w" : 9.7146,
+        "h" : 9.7146
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Others Description" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 496.324,
+        "y" : 18.7851,
+        "w" : 65.673004,
+        "h" : 21.999998
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Others::A3 Purpose Others" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 495.273,
+        "y" : 48.9017,
+        "w" : 9.714996,
+        "h" : 9.7146
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Purchase of Auto Accessories::A3 Purpose Purchase of Auto Accessories" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 317.887,
+        "y" : 32.0864,
+        "w" : 10.145996,
+        "h" : 10.146099
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Purchase of Luxury Items::A3 Purpose Purchase of Luxury Items" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 317.891,
+        "y" : 48.2521,
+        "w" : 10.145996,
+        "h" : 10.146099
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Secured Home Auto Product Purchase::A3 Purpose Secured Home Auto Product Purchase" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 317.673,
+        "y" : 15.5248,
+        "w" : 10.582001,
+        "h" : 10.5824
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Purpose Travel::A3 Purpose Travel" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 214.909,
+        "y" : 15.7948,
+        "w" : 10.313004,
+        "h" : 10.312401
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Suffix Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 3,
+        "x" : 401.978,
+        "y" : 706.535,
+        "w" : 28.906006,
+        "h" : 22.0
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 UnionPay Diamond::A3 UnionPay Diamond" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 180.873,
+        "y" : 183.139,
+        "w" : 10.095001,
+        "h" : 10.095993
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 UnionPay Gold::A3 UnionPay Gold" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 181.091,
+        "y" : 199.011,
+        "w" : 9.714996,
+        "h" : 9.714996
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Virtual Card for Online Transaction::No" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 430.255,
+        "y" : 192.466,
+        "w" : 10.151001,
+        "h" : 10.151001
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Virtual Card for Online Transaction::Yes" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 3,
+        "x" : 391.637,
+        "y" : 192.362,
+        "w" : 10.253998,
+        "h" : 10.255005
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Visa Classic::A3 Visa Classic" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 181.091,
+        "y" : 263.487,
+        "w" : 9.166,
+        "h" : 9.166016
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Visa Gold::A3 Visa Gold" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 181.091,
+        "y" : 247.234,
+        "w" : 9.274002,
+        "h" : 9.274002
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Visa Platinum::A3 Visa Platinum" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 181.309,
+        "y" : 231.414,
+        "w" : 9.602997,
+        "h" : 9.602997
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A3 Wealth Management::A3 Wealth Management" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 3,
+        "x" : 427.091,
+        "y" : 679.557,
+        "w" : 10.149994,
+        "h" : 10.151001
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 BDO ADAACA Settement Account::A4 BDO ADAACA Settement Account" : {
+      "type" : "checkbox",
+      "zone" : {
+        "page" : 4,
+        "x" : 312.219,
+        "y" : 626.036,
+        "w" : 8.751007,
+        "h" : 8.752014
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 BDO Savings or Checking Account Number" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 4,
+        "x" : 34.579,
+        "y" : 614.352,
+        "w" : 250.36299,
+        "h" : 22.0
+      },
+      "maxLength" : 12,
+      "subType" : "number",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Date Signed Day" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 4,
+        "x" : 488.292,
+        "y" : 22.1586,
+        "w" : 25.116028,
+        "h" : 22.0
+      },
+      "maxLength" : 2,
+      "subType" : "date_day",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Date Signed Month" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 4,
+        "x" : 455.365,
+        "y" : 21.7572,
+        "w" : 26.321014,
+        "h" : 21.999998
+      },
+      "maxLength" : 2,
+      "subType" : "date_month",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Date Signed Year" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 4,
+        "x" : 519.212,
+        "y" : 21.7572,
+        "w" : 52.421997,
+        "h" : 21.999998
+      },
+      "maxLength" : 4,
+      "subType" : "date_year",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Deliver BDO Credit Card To::Home Address" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 4,
+        "x" : 35.6727,
+        "y" : 750.208,
+        "w" : 10.5186,
+        "h" : 10.518005
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Deliver BDO Credit Card To::Work / Business Address" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 4,
+        "x" : 35.6727,
+        "y" : 736.006,
+        "w" : 10.320801,
+        "h" : 10.320007
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Deliver My Reports Statements and Notices To::Personal Email Address" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 4,
+        "x" : 380.618,
+        "y" : 750.716,
+        "w" : 11.647003,
+        "h" : 11.646973
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Deliver My Reports Statements and Notices To::Work / Business Email Address" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 4,
+        "x" : 380.618,
+        "y" : 735.362,
+        "w" : 11.291992,
+        "h" : 11.291992
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Director or Officer or Stockholder of BDO and Affiliates::No" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 4,
+        "x" : 535.855,
+        "y" : 444.58,
+        "w" : 9.164001,
+        "h" : 9.164001
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Director or Officer or Stockholder of BDO and Affiliates::Yes" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 4,
+        "x" : 489.164,
+        "y" : 444.673,
+        "w" : 9.070984,
+        "h" : 9.070984
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Primary Signatory" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 4,
+        "x" : 34.1323,
+        "y" : 514.193,
+        "w" : 120.284706,
+        "h" : 24.005005
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Secondary Signatory" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 4,
+        "x" : 165.441,
+        "y" : 513.792,
+        "w" : 120.687,
+        "h" : 24.406006
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Signature" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 4,
+        "x" : 304.758,
+        "y" : 18.2025,
+        "w" : 139.462,
+        "h" : 33.165
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Spouse or Relative of Director Officer Stockholder of BDO and Affiliates::No" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 4,
+        "x" : 535.637,
+        "y" : 428.325,
+        "w" : 9.054993,
+        "h" : 9.054993
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A4 Spouse or Relative of Director Officer Stockholder of BDO and Affiliates::Yes" : {
+      "type" : "radio",
+      "zone" : {
+        "page" : 4,
+        "x" : 488.946,
+        "y" : 427.883,
+        "w" : 9.496979,
+        "h" : 9.497009
+      },
+      "maxLength" : -1,
+      "subType" : "choice",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A5 Branch Code" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 5,
+        "x" : 252.018,
+        "y" : 14.4549,
+        "w" : 103.42499,
+        "h" : 24.157501
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A5 Branch Name" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 5,
+        "x" : 364.173,
+        "y" : 14.4549,
+        "w" : 103.42499,
+        "h" : 24.157501
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A5 IC" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 5,
+        "x" : 137.327,
+        "y" : 14.4549,
+        "w" : 103.425,
+        "h" : 24.157501
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A5 Referror Code" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 5,
+        "x" : 476.327,
+        "y" : 14.4549,
+        "w" : 103.42502,
+        "h" : 24.157501
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    },
+    "A5 SC" : {
+      "type" : "text",
+      "zone" : {
+        "page" : 5,
+        "x" : 25.68,
+        "y" : 14.4549,
+        "w" : 103.424995,
+        "h" : 24.157501
+      },
+      "maxLength" : -1,
+      "subType" : "text",
+      "required" : false,
+      "readOnly" : false
+    }
+  }
+}

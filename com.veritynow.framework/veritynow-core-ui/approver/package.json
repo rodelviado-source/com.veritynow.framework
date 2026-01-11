@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --port 5173",
     "lint": "eslint src --ext .ts,.tsx",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "check": "tsc --noEmit"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -56,4 +57,6 @@
     "vite": "^7.1.0",
     "vite-plugin-eslint": "^1.8.1"
   }
+  
+  
 }

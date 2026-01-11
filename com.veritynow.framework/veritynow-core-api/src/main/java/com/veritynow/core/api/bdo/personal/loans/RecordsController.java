@@ -4,6 +4,8 @@ import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.veritynow.config.RecordEntity;
+
 import java.time.Instant;
 
 @RestController
@@ -56,10 +58,10 @@ public class RecordsController {
 		r.setClientLastName(req.clientLastName);
 		r.setClientSuffix(req.clientSuffix);
 
-		r.setTitle(req.title);
+	
 		r.setPriority(req.priority);
 		r.setStatus(req.status);
-		r.setDescription(req.description);
+		r.setRequirements(req.requirements);
 		r.setCreatedAt(req.createdAt != null ? req.createdAt : Instant.now());
 
 		return ResponseEntity.ok(repo.save(r));
@@ -76,14 +78,13 @@ public class RecordsController {
 	@PutMapping("/{id}")
 	public ResponseEntity<RecordEntity> updateById(@PathVariable Long id, @RequestBody UpdateRecordRequest req) {
 		return repo.findById(id).map(r -> {
-			if (req.getTitle() != null)
-				r.setTitle(req.getTitle());
+
 			if (req.getPriority() != null)
 				r.setPriority(req.getPriority());
 			if (req.getStatus() != null)
 				r.setStatus(req.getStatus());
-			if (req.getDescription() != null)
-				r.setDescription(req.getDescription());
+			if (req.getRequirements() != null)
+				r.setRequirements(req.getRequirements());
 
 			// names
 			if (req.getAgentFirstName() != null)
@@ -112,14 +113,13 @@ public class RecordsController {
 	public ResponseEntity<RecordEntity> updateByKey(@RequestParam String agentId, @RequestParam String clientId,
 			@RequestBody UpdateRecordRequest req) {
 		return repo.findByAgentIdAndClientId(agentId, clientId).map(r -> {
-			if (req.getTitle() != null)
-				r.setTitle(req.getTitle());
+
 			if (req.getPriority() != null)
 				r.setPriority(req.getPriority());
 			if (req.getStatus() != null)
 				r.setStatus(req.getStatus());
-			if (req.getDescription() != null)
-				r.setDescription(req.getDescription());
+			if (req.getRequirements() != null)
+				r.setRequirements(req.getRequirements());
 			if (req.getAgentFirstName() != null)
 				r.setAgentFirstName(req.getAgentFirstName());
 			if (req.getAgentMiddleName() != null)

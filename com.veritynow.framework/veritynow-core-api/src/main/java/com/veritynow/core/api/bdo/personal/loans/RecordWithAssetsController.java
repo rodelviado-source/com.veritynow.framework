@@ -5,6 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.veritynow.config.RecordEntity;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,10 +55,9 @@ public class RecordWithAssetsController {
     r.setClientLastName(req.clientLastName);
     r.setClientSuffix(req.clientSuffix);
 
-    r.setTitle(req.title);
     r.setPriority(req.priority);
     r.setStatus(req.status);
-    r.setDescription(req.description);
+    r.setRequirements(req.requirements);
     r.setCreatedAt(req.createdAt != null ? req.createdAt : Instant.now());
 
     r = recordRepository.save(r);

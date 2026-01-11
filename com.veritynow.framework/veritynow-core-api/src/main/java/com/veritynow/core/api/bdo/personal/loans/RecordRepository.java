@@ -4,6 +4,8 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
+import com.veritynow.config.RecordEntity;
+
 import java.util.Optional;
 
 public interface RecordRepository extends JpaRepository<RecordEntity, Long> {

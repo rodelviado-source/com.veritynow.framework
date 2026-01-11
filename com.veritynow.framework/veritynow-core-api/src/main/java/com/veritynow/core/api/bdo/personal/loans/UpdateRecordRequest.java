@@ -2,10 +2,9 @@ package com.veritynow.core.api.bdo.personal.loans;
 
 public class UpdateRecordRequest {
 	// key fields are immutable for update-by-id; use /by-key to replace keys
-	private String title;
 	private Integer priority;
 	private String status;
-	private String description;
+	private String requirements;
 
 	private String agentFirstName;
 	private String agentMiddleName;
@@ -17,16 +16,18 @@ public class UpdateRecordRequest {
 	private String clientLastName;
 	private String clientSuffix;
 
-	public String getTitle() {
-		return title;
-	}
-
-	public void setTitle(String title) {
-		this.title = title;
-	}
+	
 
 	public Integer getPriority() {
 		return priority;
+	}
+
+	public String getRequirements() {
+		return requirements;
+	}
+
+	public void setRequirements(String requirements) {
+		this.requirements = requirements;
 	}
 
 	public void setPriority(Integer priority) {
@@ -39,14 +40,6 @@ public class UpdateRecordRequest {
 
 	public void setStatus(String status) {
 		this.status = status;
-	}
-
-	public String getDescription() {
-		return description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
 	}
 
 	public String getAgentFirstName() {
@@ -112,6 +105,8 @@ public class UpdateRecordRequest {
 	public void setClientSuffix(String clientSuffix) {
 		this.clientSuffix = clientSuffix;
 	}
+
+	
 
 	// getters/setters...
 }
