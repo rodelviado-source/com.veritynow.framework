@@ -3,4 +3,5 @@
 /.classpath
 /.project
 /.settings/
-/hs_err_pid9852.log
+/*.log
+/.vscode/
