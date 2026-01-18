@@ -1,6 +1,7 @@
 package com.veritynow.v2.txn.impl;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.veritynow.context.Context;
@@ -23,7 +24,7 @@ public class ContextAwareTransactionManager implements TransactionAware {
     }
 
     @Override
-    public ContextScope begin() {
+    public Optional<ContextScope> begin() {
         if (!Context.isActive()) {
             ContextSnapshot cs = ContextSnapshot.builder()
                     .correlationId(UUID.randomUUID().toString())
@@ -40,7 +41,7 @@ public class ContextAwareTransactionManager implements TransactionAware {
         Objects.requireNonNull(snap.transactionIdOrNull(), "transactionId");
 
         txnService.begin(snap.transactionIdOrNull());
-        return scope;
+        return Optional.of(scope);
     }
 
     @Override
