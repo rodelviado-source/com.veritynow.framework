@@ -1,9 +1,11 @@
 package com.veritynow.v2.store;
 
+import java.util.Optional;
+
 import com.veritynow.context.ContextScope;
 
 public interface TransactionAware {
-	public void commit();
-	public void rollback();
-	public ContextScope begin();
+    void commit();
+    void rollback();
+    Optional<ContextScope> begin();
 }

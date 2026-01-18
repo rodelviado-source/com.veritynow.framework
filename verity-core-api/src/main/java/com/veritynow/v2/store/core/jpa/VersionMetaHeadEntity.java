@@ -2,7 +2,6 @@ package com.veritynow.v2.store.core.jpa;
 
 import java.time.Instant;
 
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -18,16 +17,19 @@ import jakarta.persistence.Table;
 public class VersionMetaHeadEntity {
 
     @Id
-    @Column(name = "inode_id")
-    private Long inodeId;
+    @Column(name = "id")
+    private Long id;
+    
+    @Column(name = "fence_token", columnDefinition = "BIGINT", nullable = true )
+    Long fenceToken; 
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.EAGER, optional = false)
     @MapsId
     @JoinColumn(name = "inode_id")
     private InodeEntity inode;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "head_version_id", nullable = false)
+    @JoinColumn(name = "head_id", nullable = false)
     private VersionMetaEntity headVersion;
 
     @Column(name = "updated_at", nullable = false)
@@ -41,12 +43,13 @@ public class VersionMetaHeadEntity {
         this.updatedAt = Instant.now();
     }
 
-    public Long getInodeId() { return inodeId; }
+    public Long getId() { return id; }
     public InodeEntity getInode() { return inode; }
     public VersionMetaEntity getHeadVersion() { return headVersion; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public Long getFenceToken() {return fenceToken;	}
 
-    public void setHead(VersionMetaEntity head) {
+	public void setHead(VersionMetaEntity head) {
         this.headVersion = head;
         this.updatedAt = Instant.now();
     }

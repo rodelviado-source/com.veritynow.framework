@@ -19,18 +19,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.veritynow.context.Context;
-import com.veritynow.context.ContextSnapshot;
 import com.veritynow.v2.store.ImmutableBackingStore;
 import com.veritynow.v2.store.StoreOperation;
 import com.veritynow.v2.store.VersionStore;
 import com.veritynow.v2.store.core.AbstractStore;
 import com.veritynow.v2.store.core.PK;
+import com.veritynow.v2.store.core.PathEvent;
 import com.veritynow.v2.store.core.StoreContext;
+import com.veritynow.v2.store.core.StoreResult;
 import com.veritynow.v2.store.core.jpa.PathUtils;
 import com.veritynow.v2.store.meta.BlobMeta;
 import com.veritynow.v2.store.meta.VersionMeta;
-import com.veritynow.v2.txn.core.PathEvent;
 
 import util.FSUtil;
 import util.JSON;
@@ -53,7 +52,7 @@ import util.JSON;
  */
 public class VersionFSStore
         extends AbstractStore<PK, BlobMeta>
-        implements VersionStore<PK, BlobMeta, VersionMeta> {
+        implements VersionStore<PK, BlobMeta, VersionMeta, StoreResult> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VersionFSStore.class);
 
@@ -78,22 +77,41 @@ public class VersionFSStore
         }
 
         LOGGER.info(
-                "Filesystem-backed Versioning Store started. IndexDir={}, ImmutableStore={}",
+                "\n\tFilesystem-backed Versioning Store started.\n\tIndexDir={}\n\tImmutableStore={}",
                 this.pathIndexDirectory,
                 backingStore.getClass().getName()
         );
     }
 
-    // ---------------------------------------------------------------------
-    // Immutable store passthrough
-    // ---------------------------------------------------------------------
+    
+   
+	private Optional<StoreResult> moveHeads(VersionMeta... vms) throws IOException {
+    	
+    	for (VersionMeta vm : vms) {
+    		byte[] bytes = JSON.MAPPER.writeValueAsBytes(vm);
+    		
+    		String vmHash = getHashingService().hash(new ByteArrayInputStream(bytes), false);
 
-    @Override
-    public Optional<InputStream> getByHash(String hash) {
+            String ufn = uniqVersionFilename(vm.operation(), vm.timestamp());
+            Path nodeDir = nodeIndexDir(vm.path());
+
+            writeToFile(nodeDir.resolve(ufn), vmHash);
+            writeToFile(nodeDir.resolve(HEAD), ufn);
+    	}
+		
+    	StoreResult sr = new StoreResult(true, vms.length + " heads moved"); 
+		return Optional.of(sr);
+	}
+
+
+	@Override
+    public Optional<InputStream> getContent(PK key) {
+    	Objects.requireNonNull(key, "key");
+    	Objects.requireNonNull(key.hash(), "hash");
         try {
-            return backingStore.retrieve(hash);
+            return backingStore.retrieve(key.hash());
         } catch (IOException e) {
-            LOGGER.error("Unable to retrieve hash={}", hash, e);
+            LOGGER.error("Unable to retrieve hash={}", key.hash(), e);
             return Optional.empty();
         }
     }
@@ -428,15 +446,10 @@ public class VersionFSStore
                 storedPayload,
                 createPathEvent(nodePath, op)
         );
-
+        
         // 3) Persist VersionMeta JSON blob and index it
-        String vmHash = persistVersionMeta(vm);
-
-        String ufn = uniqVersionFilename(vm.operation(), vm.timestamp());
-        Path nodeDir = nodeIndexDir(nodePath);
-
-        writeToFile(nodeDir.resolve(ufn), vmHash);
-        writeToFile(nodeDir.resolve(HEAD), ufn);
+       persistVersionMeta(vm);
+       moveHeads(vm);
 
         return Optional.of(storedPayload);
     }
@@ -487,8 +500,7 @@ public class VersionFSStore
     // ---------------------------------------------------------------------
 
     private PathEvent createPathEvent(String nodePath, String op) {
-        ContextSnapshot snap = Context.snapshot(); 
-        StoreContext sc = new StoreContext(snap, op);
+        StoreContext sc = StoreContext.create(op);
         return new PathEvent(nodePath , sc);
     }
 

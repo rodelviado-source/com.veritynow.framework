@@ -2,7 +2,6 @@ package com.veritynow.v2.store.core.jpa;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -12,60 +11,114 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.veritynow.context.Context;
-import com.veritynow.context.ContextSnapshot;
+import com.veritynow.context.ContextScope;
+import com.veritynow.v2.lock.LockHandle;
+import com.veritynow.v2.lock.LockingService;
 import com.veritynow.v2.store.ImmutableBackingStore;
+import com.veritynow.v2.store.LockingAware;
 import com.veritynow.v2.store.StoreOperation;
+import com.veritynow.v2.store.TransactionAware;
 import com.veritynow.v2.store.VersionStore;
 import com.veritynow.v2.store.core.AbstractStore;
 import com.veritynow.v2.store.core.PK;
+import com.veritynow.v2.store.core.PathEvent;
 import com.veritynow.v2.store.core.StoreContext;
+import com.veritynow.v2.store.core.StoreResult;
 import com.veritynow.v2.store.meta.BlobMeta;
 import com.veritynow.v2.store.meta.VersionMeta;
-import com.veritynow.v2.txn.core.PathEvent;
+import com.veritynow.v2.txn.impl.ContextAwareTransactionManager;
+
+import util.DBUtil;
 
 
-public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta> {
+public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta, StoreResult>, TransactionAware, LockingAware {
     
     private static final Logger LOGGER = LogManager.getLogger();
     
     private final ImmutableBackingStore<String, BlobMeta> backingStore;
+    private final ContextAwareTransactionManager txnManager;
+    LockingService lockingService;
     
-    private final InodeRepository inodeRepo;
-    private final DirEntryRepository dirRepo;
-    private final VersionMetaRepository verRepo;
-    private final VersionMetaHeadRepository headRepo;
+    private final JPAPublisher jpaPublisher;
+    private final InodeManager inodeManager;
 
     public VersionJPAStore(
             ImmutableBackingStore<String, BlobMeta> backingStore,
+            JdbcTemplate jdbc,
             InodeRepository inodeRepo,
             DirEntryRepository dirRepo,
             VersionMetaRepository verRepo,
-            VersionMetaHeadRepository headRepo
+            VersionMetaHeadRepository headRepo,
+            ContextAwareTransactionManager txnManager,
+            LockingService lockingService
     ) {
         this.backingStore = backingStore;
-        this.inodeRepo = inodeRepo;
-        this.dirRepo = dirRepo;
-        this.verRepo = verRepo;
-        this.headRepo = headRepo;
-
-        ensureRootInode();
+        this.txnManager = txnManager;
+        this.lockingService = lockingService;
+        this.jpaPublisher  = new JPAPublisher(jdbc, lockingService);
+        this.inodeManager = new InodeManager(jdbc, inodeRepo, dirRepo, headRepo, verRepo);
+        
+        inodeManager.ensureRootInode();
+        
+        DBUtil.diagnoseVnInode(jdbc);
+        DBUtil.ensureProjectionReady(jdbc);
         
         LOGGER.info("\n\tJPA Inode-backed Versioning Store started\n\t" + 
     			"Using " + backingStore.getClass().getName() + " for Immutable Storage");
     }
-
-    // -----------------------------
-    // Required by VersionStore
-    // -----------------------------
+    
+ 
+    //convenience if transaction support is avialable
+    @Override
+	public Optional<ContextScope> begin() {
+    	if (txnManager != null)
+    		return Optional.of(txnManager.begin());
+    	return Optional.empty();
+	}
 
     @Override
-    public Optional<InputStream> getByHash(String hash) {
+	public void commit() {
+    	if (txnManager != null)
+    		txnManager.commit();
+	}
+
+	@Override
+	public void rollback() {
+		if (txnManager != null)
+			txnManager.rollback();
+	}
+
+	@Override
+	public Optional<LockHandle> acquire(List<String> paths) {
+		if (lockingService != null)
+			return Optional.of(lockingService.acquire(paths));
+		return Optional.empty();
+	}
+
+	@Override
+	public Optional<LockHandle> acquireLock(String... paths) {
+		return acquire(List.of(paths));
+	}
+
+
+	@Override
+	public void release(LockHandle handle) {
+		if (lockingService != null) 
+			lockingService.release(handle);
+	}
+
+
+	@Override
+    public Optional<InputStream> getContent(PK key) {
+    	Objects.requireNonNull(key, "key");
+    	Objects.requireNonNull(key.hash(), "hash");
         try {
-            return backingStore.retrieve(hash);
+            return backingStore.retrieve(key.hash());
         } catch (IOException e) {
+        	 LOGGER.error("Unable to retrieve hash={}", key.hash(), e);
             return Optional.empty();
         }
     }
@@ -124,7 +177,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public Optional<InputStream> read(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
@@ -188,8 +241,6 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     }
 
     
-    
-    
     @Transactional
     @Override
     public Optional<BlobMeta> restore(PK key) throws IOException {
@@ -221,11 +272,11 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     public Optional<VersionMeta> getLatestVersion(String nodePath) throws IOException {
         Objects.requireNonNull(nodePath, "nodePath");
         nodePath = PathUtils.normalizePath(nodePath);
-        Optional<Long> inodeIdOpt = InodeUtils.resolveInodeId(nodePath, inodeRepo, dirRepo);
+        Optional<Long> inodeIdOpt = inodeManager.resolveInodeId(nodePath);
         if (inodeIdOpt.isEmpty()) return Optional.empty();
         
         Long inodeId = inodeIdOpt.get();
-        return getLatestVersion(inodeId);
+        return getLatestVersionById(inodeId);
     }
 
     @Override
@@ -235,30 +286,25 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
 
         nodePath = PathUtils.normalizePath(nodePath);
 
-        Optional<Long> inodeIdOpt = InodeUtils.resolveInodeId(nodePath, inodeRepo, dirRepo);
+        Optional<Long> inodeIdOpt = inodeManager.resolveInodeId(nodePath);
         if (inodeIdOpt.isEmpty()) return List.of();
 
         Long inodeId = inodeIdOpt.get();
-        Optional<VersionMetaHeadEntity> headOpt = headRepo.findByInodeId(inodeId);
-
+        Optional<VersionMetaHeadEntity> headOpt = inodeManager.getHeadById(inodeId);
+        List<VersionMeta> out = new ArrayList<>();
         boolean isContainer = headOpt.isEmpty(); // same as FS: !HEAD exists :contentReference[oaicite:10]{index=10}
         if (isContainer) {
             // container semantics: latest under each direct child leaf :contentReference[oaicite:11]{index=11}
-            List<DirEntryEntity> children = dirRepo.findAllByParent_Id(inodeId);
-            List<VersionMeta> out = new ArrayList<>();
+            List<DirEntryEntity> children = inodeManager.findAllByParentId(inodeId);
             for (DirEntryEntity child : children) {
                 Long childId = child.getChild().getId();
-                Optional<VersionMeta> vmOpt = getLatestVersion(childId);
+                Optional<VersionMeta> vmOpt = getLatestVersionById(childId);
                 if (vmOpt.isPresent()) out.add(vmOpt.get());
             }
-            return out;
         }
-
-        // leaf semantics: return this node's latest meta
-        VersionMeta vm = toVersionMeta(headOpt.get().getHeadVersion());
-        if (vm == null) return List.of();
-        return List.of(vm);
-    }
+        
+        return out;
+     }
 
     @Override
     @Transactional(readOnly = true)
@@ -267,13 +313,13 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
 
         nodePath = PathUtils.normalizePath(nodePath);
 
-        Optional<Long> inodeIdOpt = InodeUtils.resolveInodeId(nodePath, inodeRepo, dirRepo);
+        Optional<Long> inodeIdOpt = inodeManager.resolveInodeId(nodePath);
         if (inodeIdOpt.isEmpty()) return List.of();
 
         Long inodeId = inodeIdOpt.get();
         String np = PathUtils.trimEndingSlash(nodePath);
 
-        List<DirEntryEntity> children = dirRepo.findAllByParent_Id(inodeId);
+        List<DirEntryEntity> children = inodeManager.findAllByParentId(inodeId);
         return children.stream()
                 .map(de -> np + "/" + de.getName())
                 .collect(Collectors.toList());
@@ -286,14 +332,14 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
 
         nodePath = PathUtils.normalizePath(nodePath);
 
-        Optional<Long> inodeIdOpt = InodeUtils.resolveInodeId(nodePath, inodeRepo, dirRepo);
+        Optional<Long> inodeIdOpt = inodeManager.resolveInodeId(nodePath);
         if (inodeIdOpt.isEmpty()) return List.of();
 
         Long inodeId = inodeIdOpt.get();
-        Optional<VersionMetaHeadEntity> head = headRepo.findByInodeId(inodeId);
+        Optional<VersionMetaHeadEntity> head = inodeManager.getHeadById(inodeId);
         if (head.isEmpty()) return List.of(); 
 
-        List<VersionMetaEntity> l = verRepo.findAllByInode_IdOrderByTimestampDescIdDesc(inodeId);
+        List<VersionMetaEntity> l = inodeManager.findAllByInodeIdOrderByTimestampDescIdDesc(inodeId);
         
         
         return  l.stream().map((vme) -> {
@@ -302,10 +348,6 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         
     
     }
-
-    // -----------------------------
-    // Internal parity helpers (mirror FS methods)
-    // -----------------------------
 
     private Optional<BlobMeta> createNewVersion(
             PK key,
@@ -333,22 +375,13 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         
         nodePath = nodePath + "/" + id;
         
-        
         // Save payload in immutable store, store is authority for attr/hash (same as FS) :contentReference[oaicite:13]{index=13}
         BlobMeta blobMeta = backingStore.save(meta, content).orElseThrow();
 
-        ContextSnapshot snap = Context.snapshot();
-        StoreContext sc = new StoreContext(snap, operation.name());
+        persistAndPublish(nodePath, blobMeta, operation);
         
-        PathEvent pe = new PathEvent(nodePath,  sc);
-        
-        VersionMetaEntity vme = createVersionMetaEntity(blobMeta, pe);
-        
-        persistVersionAndMoveHead(vme);
         return Optional.of(blobMeta);
     }
-    
-   
 
     private Optional<BlobMeta> appendVersion(
             InputStream content,
@@ -360,15 +393,9 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
 
     	Objects.requireNonNull(current);
     	Objects.requireNonNull(pkey);
-    	
     	Objects.requireNonNull(operation);
-    	
         String nodePath = PathUtils.normalizePath(pkey.path());
-        
-       
-       BlobMeta blobMeta = current.blobMeta();
-
-       
+        BlobMeta blobMeta = current.blobMeta();
 
         switch (operation) {
             case Updated:
@@ -383,60 +410,40 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
                 throw new IOException("Invalid Store Operation " + operation.name());
         }
 
-        ContextSnapshot snap = Context.snapshot();
-        StoreContext sc = new StoreContext(snap, operation.name());
+        persistAndPublish(nodePath, blobMeta, operation);
         
-        PathEvent pe = new PathEvent(nodePath,  sc);
-        
-        VersionMetaEntity versionMeta = createVersionMetaEntity(blobMeta, pe);
-
-        persistVersionAndMoveHead(versionMeta);
         return Optional.of(blobMeta);
     }
 
- 
-    @Transactional
-    private void persistVersionAndMoveHead(VersionMetaEntity vm) throws IOException {
-        InodeEntity inode = vm.getInode();
+    private void persistAndPublish(String nodePath, BlobMeta blobMeta,  StoreOperation operation) throws IOException {
+    	StoreContext sc = StoreContext.create(operation.name());
+        PathEvent pe = new PathEvent(nodePath,  sc);
         
         // 1) Persist binding as a row
-        VersionMetaEntity saved = verRepo.save(vm);
- 
-        // Move HEAD (lock row if exists)
-        Optional<VersionMetaHeadEntity> headLocked = headRepo.findByInodeIdForUpdate(inode.getId());
-        
-        if (headLocked.isPresent()) {
-        	 VersionMetaHeadEntity headNode = headLocked.get();
-            headNode.setHead(saved);
-            headRepo.save(headLocked.get());
+        VersionMetaEntity vme = createVersionMetaEntity(blobMeta, pe);
+        VersionMetaEntity saved = inodeManager.saveVersionMetaEntity(vme);
+
+        //publish
+        if (StoreContext.AUTO_COMMITTED.equals(sc.transactionResult())) {
+        	if (jpaPublisher.isLockingCapable()) {
+        		jpaPublisher.acquireLockAndPublish(saved);
+        	} else {
+        		//degrade to a non-locking store
+        		jpaPublisher.publish(saved);
+        	}
         } else {
-            headRepo.save(new VersionMetaHeadEntity(inode, saved));
+        	//transaction layer handles the commit
         }
     }
+ 
 
-    private Optional<VersionMeta> getLatestVersion(Long inodeId) {
-    	Optional<VersionMetaHeadEntity> head = headRepo.findByInodeId(inodeId);
+    private Optional<VersionMeta> getLatestVersionById(Long id) {
+    	Optional<VersionMetaHeadEntity> head = inodeManager.getHeadById(id);
         if (head.isPresent()) {
             return Optional.of(toVersionMeta(head.get().getHeadVersion()));
         }
         return Optional.empty();
     }
-    // -----------------------------
-    // inode path resolution / creation (no full-path column)
-    // -----------------------------
-
-    private void ensureRootInode() {
-        // If you use schema generation, IDENTITY won't let you force ID=1 without extra steps.
-        // This method creates a root row if missing; ROOT_INODE_ID usage is logical, not strictly required.
-        // Safer approach: keep a single root row and look it up (we do).
-        if (inodeRepo.count() == 0) {
-            inodeRepo.save(new InodeEntity(Instant.now()));
-        }
-    }
-  
-    // -----------------------------
-    // String helpers (mirror FS)
-    // -----------------------------
 
     
     private static boolean isDeleted(VersionMeta m ) {
@@ -447,7 +454,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     //Though its a mirror of each other we can't expose DB related fields and its not immutable
     private  VersionMeta toVersionMeta(VersionMetaEntity vme) {
     	
-     String path = InodeUtils.resolvePathFromInode(vme.getInode().getId(), inodeRepo, dirRepo)
+     String path = inodeManager.resolvePathFromInode(vme.getInode().getId())
     	        .orElseThrow(() -> new IllegalStateException("Orphan inode " + vme.getInode().getId()));
     	
     	return new VersionMeta(
@@ -461,8 +468,11 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     			vme.getOperation(),
     			vme.getPrincipal(),
     			vme.getCorrelationId(),
+    			vme.getWorkflowId(),
+    			vme.getContextName(),
     			vme.getTransactionId(),
-    			vme.getContextName()
+    			vme.getTransactionResult()
+    			
     			) ;
     }
     
@@ -471,7 +481,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     		PathEvent pe
   ) {
     
-    InodeEntity inode = InodeUtils.resolveOrCreateInode(pe.path(), inodeRepo, dirRepo);	
+    InodeEntity inode = inodeManager.resolveOrCreateInode(pe.path());	
    	return new VersionMetaEntity(
    			inode,
    			pe.path(),
@@ -479,8 +489,10 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
    			pe.operation(),
    			pe.principal(),
    			pe.correlationId(),
-   			pe.transactionId(),
+   			pe.workflowId(),
    			pe.contextName(),
+   			pe.transactionId(),
+   			pe.transactionResult(),
    			
    			bm.hash(),
    			bm.name(),

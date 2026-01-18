@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -31,12 +33,14 @@ import util.HttpUtils;
 @RequestMapping("/api/**")
 public class APIController {
 
+	private static final Logger LOGGER = LogManager.getLogger();
+	
 	private final String namespace;
 	private final APIService apiService;
 
 	public APIController(APIService apiService, @Value("${verity.api.namespace:/vn}") String namespace) {
 		this.apiService = apiService;
-		this.namespace = PathUtils.normalizeNamespace(namespace);
+		this.namespace = NamespaceUtils.normalizeNamespace(namespace);
 	}
 
 	@PutMapping(params = "create")
@@ -48,13 +52,17 @@ public class APIController {
 		try (InputStream inputStream = request.getInputStream()) {
 			String name = "blob";
 
-			String nameCD = HttpUtils.extractFilenameFromHeaderContentDisposition(request);
-			if (nameCD != null && !nameCD.isBlank()) {
-				name = nameCD;
+			try {
+				 Optional<String> nameCDOpt = HttpUtils.extractFilenameFromHeaderContentDisposition(request);
+				if (nameCDOpt.isPresent()) {
+					name = nameCDOpt.get();
+				}
+			} catch (Exception e) {
+				LOGGER.warn("Unable to extract filename in Header ContentDisposition", e);
 			}
 
 			// Here, request URI is the *collection* path, e.g. "/api/agents/A/clients"
-			String parentPath = PathUtils.applyNamespace(request, namespace);
+			String parentPath = NamespaceUtils.applyNamespace(request, namespace);
 			String lastSegment = UUID.randomUUID().toString();
 			parentPath = parentPath +"/" +lastSegment;
 			
@@ -62,7 +70,7 @@ public class APIController {
 			
 			if (opt.isPresent()) {
 				VersionMeta vm = opt.get();
-				return ResponseEntity.status(HttpStatus.CREATED).body(PathUtils.toClientVersionMeta(vm, namespace));
+				return ResponseEntity.status(HttpStatus.CREATED).body(NamespaceUtils.toClientVersionMeta(vm, namespace));
 			}
 					
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -82,21 +90,24 @@ public class APIController {
 			String name = "blob";
 
 			
-			String nameCD = HttpUtils.extractFilenameFromHeaderContentDisposition(request);
-			
-			if (nameCD != null && !nameCD.isBlank()) {
-				name = nameCD;
+			try {
+				 Optional<String> nameCDOpt = HttpUtils.extractFilenameFromHeaderContentDisposition(request);
+				if (nameCDOpt.isPresent()) {
+					name = nameCDOpt.get();
+				}
+			} catch (Exception e) {
+				LOGGER.warn("Unable to extract filename in Header ContentDisposition", e);
 			}
 
 			// Here, request URI is the *collection* path, e.g. "/api/agents/A/clients/{id}"
-			String parentPath = PathUtils.applyNamespace(request, namespace);
+			String parentPath = NamespaceUtils.applyNamespace(request, namespace);
 			
 			 Optional<VersionMeta> opt = apiService.createExactPath(parentPath, inputStream, contentType, name);
 			
 			if (opt.isPresent()) {
 				VersionMeta vm = opt.get();
 			
-				vm = PathUtils.toClientVersionMeta(vm, namespace);
+				vm = NamespaceUtils.toClientVersionMeta(vm, namespace);
 				return ResponseEntity.status(HttpStatus.CREATED).body(vm);
 			}
 					
@@ -118,20 +129,24 @@ public class APIController {
 		try (InputStream inputStream = request.getInputStream()) {
 			String name = "blob";
 
-			String nameCD = HttpUtils.extractFilenameFromHeaderContentDisposition(request);
-			if (nameCD != null && !nameCD.isBlank()) {
-				name = nameCD;
+			try {
+				 Optional<String> nameCDOpt = HttpUtils.extractFilenameFromHeaderContentDisposition(request);
+				if (nameCDOpt.isPresent()) {
+					name = nameCDOpt.get();
+				}
+			} catch (Exception e) {
+				LOGGER.warn("Unable to extract filename in Header ContentDisposition", e);
 			}
 
 			// Here, request URI is the *identity* path, e.g.
 			// "/api/agents/A/clients/{clientId}"
-			String identityPath = PathUtils.applyNamespace(request, namespace);
+			String identityPath = NamespaceUtils.applyNamespace(request, namespace);
 
 			 Optional<VersionMeta> opt = apiService.update(identityPath, inputStream, contentType, name);
 			
 			if (opt.isPresent()) {
 				VersionMeta vm = opt.get();
-				return ResponseEntity.ok(PathUtils.toClientVersionMeta(vm, namespace));
+				return ResponseEntity.ok(NamespaceUtils.toClientVersionMeta(vm, namespace));
 			}
 					
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -147,7 +162,7 @@ public class APIController {
 	@GetMapping (produces = { MediaType.APPLICATION_OCTET_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE})
 	public void get(HttpServletRequest request, HttpServletResponse response) {
 
-		String path = PathUtils.applyNamespace(request, namespace);
+		String path = NamespaceUtils.applyNamespace(request, namespace);
 		Optional<InputStream> opt = apiService.get(path);
 		if (opt.isEmpty()) {
 			response.setStatus(HttpStatus.NOT_FOUND.value());
@@ -172,7 +187,7 @@ public class APIController {
 	public ResponseEntity<BlobMeta> delete(HttpServletRequest request, @RequestHeader HttpHeaders headers,
 			@RequestParam(name = "reason", required = false) String reason) {
 
-		String path = PathUtils.applyNamespace(request, namespace);
+		String path = NamespaceUtils.applyNamespace(request, namespace);
 
 		Optional<BlobMeta> opt = apiService.delete(path, reason);
 		if (opt.isPresent())
@@ -186,11 +201,11 @@ public class APIController {
 	public ResponseEntity<VersionMeta> undelete(HttpServletRequest request, @RequestHeader HttpHeaders headers
 			) {
 
-		String path = PathUtils.applyNamespace(request, namespace);
+		String path = NamespaceUtils.applyNamespace(request, namespace);
 		 Optional<VersionMeta> opt = apiService.undelete(path);
 		if (opt.isPresent()) {
 			VersionMeta vm = opt.get();
-			return ResponseEntity.ok(PathUtils.toClientVersionMeta(vm, namespace));
+			return ResponseEntity.ok(NamespaceUtils.toClientVersionMeta(vm, namespace));
 		}
 		return ResponseEntity.badRequest().build();
 	}
@@ -200,12 +215,12 @@ public class APIController {
 			 @RequestParam(value = "restore", required = true) String hash)
 	 {
 		System.out.println(hash);
-		String path = PathUtils.applyNamespace(request, namespace);
+		String path = NamespaceUtils.applyNamespace(request, namespace);
 
 		 Optional<VersionMeta> opt = apiService.restore(path, hash);
 		if (opt.isPresent()) {
 			VersionMeta vm = opt.get();
-			return ResponseEntity.ok(PathUtils.toClientVersionMeta(vm, namespace));
+			return ResponseEntity.ok(NamespaceUtils.toClientVersionMeta(vm, namespace));
 		}
 		return ResponseEntity.badRequest().build();
 
@@ -213,9 +228,9 @@ public class APIController {
 
 	@GetMapping(params = "list")
 	public ResponseEntity<List<VersionMeta>> list(HttpServletRequest request, @RequestHeader HttpHeaders headers) {
-		String path = PathUtils.applyNamespace(request, namespace);
+		String path = NamespaceUtils.applyNamespace(request, namespace);
 		 List<VersionMeta> metas = apiService.list(path);
-		List<VersionMeta> clientMetas = metas.stream().map((vm) -> {return PathUtils.toClientVersionMeta(vm, namespace);}).toList();
+		List<VersionMeta> clientMetas = metas.stream().map((vm) -> {return NamespaceUtils.toClientVersionMeta(vm, namespace);}).toList();
 		return ResponseEntity.ok(clientMetas);
 
 	}

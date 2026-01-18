@@ -9,18 +9,24 @@ import java.util.concurrent.Executor;
  * Application code should use only this API (and never read headers/MDC directly).
  */
 public interface ContextManager {
+	
+	/** returns true if a context is active false otherwise. */
+	boolean isActive();
 
     /** Always returns a non-null correlation id. Generates one if absent. */
     String getCorrelationId();
 
     /** Optional business/workflow identifier (never auto-generated). */
-    Optional<String> getTransactionId();
+    Optional<String> getWorkflowId();
 
     /** Optional principal (user/service). */
     Optional<String> getPrincipal();
     
     /** Optional contextName (transaction/service). */
     Optional<String> getContextName();
+    
+    /** Optional transactionId (transaction/service). */
+    Optional<String> getTransactionId();
 
     /** Returns an immutable snapshot of the current context (ensuring correlationId exists). */
     ContextSnapshot snapshot();

@@ -17,28 +17,28 @@ import jakarta.persistence.UniqueConstraint;
 @Entity
 @Table(
     name = "vn_dir_entry",
-    uniqueConstraints = @UniqueConstraint(name = "uq_dir_parent_name", columnNames = {"parent_inode_id", "name"}),
+    uniqueConstraints = @UniqueConstraint(name = "uq_dir_parent_name", columnNames = {"parent_id", "name"}),
     indexes = {
-        @Index(name = "ix_dir_parent", columnList = "parent_inode_id"),
-        @Index(name = "ix_dir_child", columnList = "child_inode_id")
+        @Index(name = "ix_dir_parent", columnList = "parent_id"),
+        @Index(name = "ix_dir_child", columnList = "child_id")
     }
 )
 public class DirEntryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "dir_entry_id")
+    @Column(name = "id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "parent_inode_id", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "parent_id", nullable = false)
     private InodeEntity parent;
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "child_inode_id", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "child_id", nullable = false)
     private InodeEntity child;
 
     @Column(name = "created_at", nullable = false, updatable = false)

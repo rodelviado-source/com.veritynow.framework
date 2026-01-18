@@ -18,6 +18,8 @@ public interface   Store<KEY, META> {
 	public record  KV<META>(META meta, InputStream inputStream)  {}
 	
 	Optional<META> create(KEY key, META meta, InputStream in) throws IOException;
+	Optional<META> create(KEY key, META blob, InputStream in, String id) throws IOException;
+	
 	Optional<InputStream> read(KEY key) throws IOException;
 	Optional<META> update(KEY key, InputStream is) throws IOException;
 	Optional<META> delete(KEY key) throws IOException;
@@ -25,6 +27,7 @@ public interface   Store<KEY, META> {
 	Optional<META> restore(KEY key)throws IOException;
 	
 	List<META> bulkCreate(Map<KEY, KV<META>> kais) throws IOException;
+	List<META> bulkCreate(Map<KEY, KV<META>> kais, List<String> ids) throws IOException;
 	List<InputStream> bulkRead(List<KEY> keys) throws IOException;
 	List<META> bulkUpdate(Map<KEY, InputStream> mis)  throws IOException;
 	List<META> bulkDelete(List<KEY> keys) throws IOException;

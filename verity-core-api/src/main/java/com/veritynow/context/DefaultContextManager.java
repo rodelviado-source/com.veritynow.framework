@@ -19,14 +19,23 @@ final class DefaultContextManager implements ContextManager {
         this.mdcBridge = mdcBridge;
     }
 
+    
+    
     @Override
+	public boolean isActive() {
+    	return storage.currentOrNull() != null;
+	}
+
+
+
+	@Override
     public String getCorrelationId() {
         return ensure().correlationId();
     }
 
     @Override
-    public Optional<String> getTransactionId() {
-        return Optional.ofNullable(ensure().transactionIdOrNull());
+    public Optional<String> getWorkflowId() {
+        return Optional.ofNullable(ensure().workflowIdOrNull());
     }
 
     @Override
@@ -39,6 +48,11 @@ final class DefaultContextManager implements ContextManager {
     @Override
 	public Optional<String> getContextName() {
     	return Optional.ofNullable(ensure().contextNameOrNull());
+	}
+    
+    @Override
+	public Optional<String> getTransactionId() {
+    	return Optional.ofNullable(ensure().transactionIdOrNull());
 	}
 
 	@Override
@@ -92,7 +106,7 @@ final class DefaultContextManager implements ContextManager {
         if (runnable == null) throw new IllegalArgumentException("runnable must not be null");
         ContextSnapshot captured = snapshot();
         return () -> {
-            try (@SuppressWarnings("unused")
+            try (
             ContextScope scope = scope(captured)) {
                 runnable.run();
             }
@@ -104,7 +118,7 @@ final class DefaultContextManager implements ContextManager {
         if (callable == null) throw new IllegalArgumentException("callable must not be null");
         ContextSnapshot captured = snapshot();
         return () -> {
-            try (@SuppressWarnings("unused")
+            try (
             ContextScope scope = scope(captured)) {
                 return callable.call();
             }

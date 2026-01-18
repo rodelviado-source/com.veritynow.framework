@@ -1,6 +1,5 @@
 package com.veritynow.v2.store.core;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -29,7 +28,7 @@ import com.veritynow.v2.store.HashingService;
 public class DefaultHashingService implements HashingService {
 
 	public static int BUFFER_SIZE = 1024;
-	private static final ByteArrayOutputStream BOS = new ByteArrayOutputStream();
+	
 	private static final Logger LOGGER = LogManager.getLogger();
 	
 	private final ThreadLocal<MessageDigest> digest;
@@ -63,8 +62,8 @@ public class DefaultHashingService implements HashingService {
 		if (this.digest == null) {
 			throw new NoSuchAlgorithmException(algo);
 		}
-		
 		LOGGER.info("\n\tDefault hashing service using {} algorithm started ", algo);
+		
 	}
 
 	@Override
@@ -103,7 +102,7 @@ public class DefaultHashingService implements HashingService {
 
 		
 		try (OutputStream fos = (cacheContent ? Files.newOutputStream(tempPath.get(), StandardOpenOption.WRITE)
-				: BOS)) {
+				: OutputStream.nullOutputStream())) {
 			
 			size.set(0L);
 			byte[] bytes = content.readNBytes(bufferSize.get());

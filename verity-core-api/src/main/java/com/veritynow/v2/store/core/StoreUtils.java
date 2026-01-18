@@ -12,4 +12,8 @@ public class StoreUtils {
 		if (StringUtils.isEmpty(s)) throw new IllegalArgumentException(argName + " must not be blank");
 		return s;
 	}
+	
+	public static void enforceRequired(String s, String argName) {
+		if (StringUtils.isEmpty(s)) throw new IllegalArgumentException(argName + " must not be blank");
+	}
 }

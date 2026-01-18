@@ -1,37 +1,74 @@
 package com.veritynow.v2.store.core;
 
-import com.veritynow.context.ContextSnapshot;
-import com.veritynow.v2.txn.core.PathEvent;
+import java.util.UUID;
 
-public record StoreContext(String principal, String correlationId, String transactionId, String operation,
-		String contextName
+import com.veritynow.context.Context;
+import com.veritynow.context.ContextSnapshot;
+
+import util.StringUtils;
+
+public record StoreContext(
+		String principal, String correlationId, String workflowId, String operation,
+		String contextName, String transactionId, String transactionResult
 
 ) {
 
+	public final static String AUTO_COMMITTED = "AUTO COMMITTED";
+	public static final String IN_FLIGHT = "IN_FLIGHT";
+	
+	public final static String ANONYMOUS = "anonymous";
+		
 	public StoreContext {
 		
-	StoreUtils.setOrDefault(principal, "anonymous");
-	StoreUtils.setRequired(correlationId, "correlationId");
-	StoreUtils.setOrDefault(transactionId, correlationId);
-	StoreUtils.setRequired(operation, "operation");
-	StoreUtils.setOrDefault(contextName, operation);
-		
+	StoreUtils.enforceRequired(principal, "principal");
+	StoreUtils.enforceRequired(correlationId, "correlationId");
+	StoreUtils.enforceRequired(workflowId, "workflowId");
+	StoreUtils.enforceRequired(operation, "operation");
+	StoreUtils.enforceRequired(contextName, "contextName");
+	StoreUtils.enforceRequired(transactionResult, "transactionResult");
+	
+	if (StringUtils.isEmpty(transactionId)) {
+	    if (!AUTO_COMMITTED.equals(transactionResult)) {
+	        throw new IllegalArgumentException("transactionId missing but transactionResult=" + transactionResult);
+	    }
+	} else {
+	    if (AUTO_COMMITTED.equals(transactionResult)) {
+	        throw new IllegalArgumentException("transactionId present but transactionResult=AUTO_COMMITTED");
+	    }
+	}
+	
+	
 	}
 
 	public StoreContext(ContextSnapshot snap, String operation) {
-		this(StoreUtils.setOrDefault(snap.principalOrNull(), "anonymous"),
+		this(   StoreUtils.setOrDefault(snap.principalOrNull(), ANONYMOUS),
 				StoreUtils.setRequired(snap.correlationId(), "correlationId"),
-				StoreUtils.setOrDefault(snap.transactionIdOrNull(), snap.correlationId()),
+				StoreUtils.setOrDefault(snap.workflowIdOrNull(), snap.correlationId()),
 				StoreUtils.setRequired(operation, "operation"),
-				StoreUtils.setOrDefault(snap.contextNameOrNull(), operation));
+				StoreUtils.setOrDefault(snap.contextNameOrNull(), operation),
+				snap.transactionIdOrNull(),
+				snap.transactionIdOrNull() == null ? AUTO_COMMITTED : IN_FLIGHT
+				);
+	}
+	
+	public StoreContext(ContextSnapshot snap, String operation, String transactionResult) {
+		this(   StoreUtils.setOrDefault(snap.principalOrNull(), ANONYMOUS),
+				StoreUtils.setRequired(snap.correlationId(), "correlationId"),
+				StoreUtils.setOrDefault(snap.workflowIdOrNull(), snap.correlationId()),
+				StoreUtils.setRequired(operation, "operation"),
+				StoreUtils.setOrDefault(snap.contextNameOrNull(), operation),
+				snap.transactionIdOrNull(),
+				snap.transactionIdOrNull() == null ? AUTO_COMMITTED : transactionResult == null ? IN_FLIGHT : transactionResult 
+				);
+	}
+	
+	public static StoreContext create(String operation) {
+		if (Context.isActive()) {
+			return new StoreContext(Context.snapshot(),operation); 
+		}
+		String cid = UUID.randomUUID().toString();
+		return new StoreContext(ANONYMOUS, cid,cid,operation, operation,null, AUTO_COMMITTED);
 	}
 
-	public StoreContext(PathEvent pe) {
-		this(StoreUtils.setOrDefault(pe.principal(), "anonymous"),
-				StoreUtils.setRequired(pe.correlationId(), "correlationId"),
-				StoreUtils.setOrDefault(pe.transactionId(), pe.correlationId()),
-				StoreUtils.setRequired(pe.operation(), "operation"),
-				StoreUtils.setOrDefault(pe.contextName(), pe.operation()));
-	}
-
+	
 }

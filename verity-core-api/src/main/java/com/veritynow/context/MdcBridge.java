@@ -25,12 +25,16 @@ final class MdcBridge {
         if (cid == null || cid.trim().isEmpty()) return Optional.empty();
 
         String txn = mdc.get(cfg.mdcTransactionKey).orElse(null);
+        String wf = mdc.get(cfg.mdcWorkflowKey).orElse(null);
+        String cn = mdc.get(cfg.mdcContextNameKey).orElse(null);
         String principal = mdc.get(cfg.mdcPrincipalKey).orElse(null);
 
         return Optional.of(ContextSnapshot.builder()
                 .correlationId(cid)
-                .transactionId(txn)
+                .workflowId(wf)
                 .principal(principal)
+                .transactionId(txn)
+                .contextName(cn)
                 .propagated(true)
                 .build());
     }
@@ -47,6 +51,14 @@ final class MdcBridge {
         String principal = snap.principalOrNull();
         if (principal != null) mdc.put(cfg.mdcPrincipalKey, principal);
         else mdc.remove(cfg.mdcPrincipalKey);
+        
+        String wf = snap.workflowIdOrNull();
+        if (wf != null) mdc.put(cfg.mdcWorkflowKey, wf);
+        else mdc.remove(cfg.mdcWorkflowKey);
+        
+        String cn = snap.contextNameOrNull();
+        if (cn != null) mdc.put(cfg.mdcContextNameKey, cn);
+        else mdc.remove(cfg.mdcContextNameKey);
     }
 
     void clear() {
@@ -54,5 +66,8 @@ final class MdcBridge {
         mdc.remove(cfg.mdcCorrelationKey);
         mdc.remove(cfg.mdcTransactionKey);
         mdc.remove(cfg.mdcPrincipalKey);
+        mdc.remove(cfg.mdcContextNameKey);
+        mdc.remove(cfg.mdcWorkflowKey);
+        
     }
 }

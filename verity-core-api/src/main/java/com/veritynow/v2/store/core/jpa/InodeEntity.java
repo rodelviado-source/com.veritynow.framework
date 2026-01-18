@@ -15,7 +15,7 @@ public class InodeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "inode_id")
+    @Column(name = "id")
     private Long id;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -29,4 +29,5 @@ public class InodeEntity {
 
     public Long getId() { return id; }
     public Instant getCreatedAt() { return createdAt; }
+    
 }

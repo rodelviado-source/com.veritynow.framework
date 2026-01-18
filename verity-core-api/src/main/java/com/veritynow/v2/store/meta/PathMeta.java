@@ -10,8 +10,8 @@ public record PathMeta(
 ) {
 	
 	public  PathMeta {
-		if (getType(children, versions).equals(type)) 
-			  throw new IllegalArgumentException("Type is inconsistent with the path state");
+		if (!getType(children, versions).equals(type)) 
+			  throw new IllegalArgumentException("Type is inconsistent with the path state " + type);
 	}
 	
 	public PathMeta(String path,   List<String> children, List<VersionMeta> versions) {

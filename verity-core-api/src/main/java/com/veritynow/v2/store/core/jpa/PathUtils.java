@@ -5,10 +5,20 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class PathUtils {
-	public static String normalizePath(String p) {
-        if (p == null) return null;
-        // matches FS normalizePath: ensure leading '/' :contentReference[oaicite:18]{index=18}
-        return p.startsWith("/") ? p : ("/" + p);
+	
+	public static String normalizePath(String path) {
+        if (path == null) throw new IllegalArgumentException("path");
+        String p = path.trim();
+        if (p.isEmpty()) return "/";
+        // Replace backslashes
+        p = p.replace('\\', '/');
+        // Ensure leading slash
+        if (!p.startsWith("/")) p = "/" + p;
+        // Collapse multiple slashes
+        p = p.replaceAll("/+", "/");
+        // Remove trailing slash unless root
+        if (p.length() > 1 && p.endsWith("/")) p = p.substring(0, p.length() - 1);
+        return p.isEmpty() ? "/" : p;
     }
 
     public static String trimLeadingSlash(String p) {

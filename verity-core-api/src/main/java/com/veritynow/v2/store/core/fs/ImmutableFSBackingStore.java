@@ -121,7 +121,14 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 				}
 			;
 		}
+	}
+	
+	
 
+	@Override
+	public Optional<BlobMeta> create(String key, BlobMeta blob, InputStream in, String id) throws IOException {
+		//ignore given ID
+		return create(key, blob, in);
 	}
 
 	@Override

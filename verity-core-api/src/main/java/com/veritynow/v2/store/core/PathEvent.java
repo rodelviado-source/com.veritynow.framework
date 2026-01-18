@@ -1,9 +1,7 @@
-package com.veritynow.v2.txn.core;
+package com.veritynow.v2.store.core;
 
+import org.apache.tika.utils.StringUtils;
 import org.threeten.bp.Instant;
-
-import com.veritynow.v2.store.core.StoreContext;
-import com.veritynow.v2.store.core.StoreUtils;
 
 
 /**
@@ -21,7 +19,7 @@ public record PathEvent(
 		// When (epoch millis)
 		long timestamp,
 
-		// How Operation (domain-level verb; not necessarily an HTTP verb)
+		// How Operation (store-level verb, "updated/created/updated/deleted/restored/")
 		String operation,
 
 		// Who (required, but can be anonymous)
@@ -30,21 +28,30 @@ public record PathEvent(
 		// Correlation (required)
 		String correlationId,
 
-		// TransactionId
-		String transactionId,
+		//used to scope a workflow
+		String workflowId,
 
 		// Context
-		String contextName
+		String contextName,
+		
+		// TransactionId use for (commit/rollback)
+		String transactionId,
+				
+		//result of the transaction
+		String transactionResult
 
 ) {
 	public PathEvent {
 		
-		StoreUtils.setRequired(path, "path");
-		StoreUtils.setRequired(operation, "operation");
-		StoreUtils.setOrDefault(principal, "anonymous");
-		StoreUtils.setOrDefault(transactionId, correlationId);
-		StoreUtils.setOrDefault(contextName, operation);
+		StoreUtils.enforceRequired(path, "path");
+		StoreUtils.enforceRequired(operation, "operation");
+		StoreUtils.enforceRequired(principal, "principal");
+		StoreUtils.enforceRequired(workflowId, "workflowId");
+		StoreUtils.enforceRequired(contextName, "contextName");
 		
+		if (!StringUtils.isEmpty(transactionId) && !"AUTO COMMITTED".equals(transactionResult)) {
+			throw new IllegalArgumentException("transactionId and transactionResult is out of sync " + transactionId + ":" + transactionResult );
+		}
 	}
 	
 	
@@ -54,7 +61,7 @@ public record PathEvent(
 			Instant.now().toEpochMilli(),
 			//Store context already validated upon creation
 			sc.operation(), sc.principal(), sc.correlationId(), 
-			sc.transactionId(), sc.contextName());
+			sc.workflowId(), sc.contextName(), sc.transactionId(), sc.transactionResult() );
 	}
 
 

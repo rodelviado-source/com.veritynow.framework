@@ -104,6 +104,26 @@ public abstract class AbstractStore<KEY, META> implements Store<KEY, META> {
 		
 		return out;
 	}
+	
+	@Override
+	public List<META> bulkCreate(Map<KEY, KV<META>> mis, List<String> ids) throws IOException {
+		List<META> out = new ArrayList<META>();
+		mis.forEach((m, kv) -> {
+			Optional<META> opt;
+			int idx = 0;
+			try {
+				opt = create(m, kv.meta(), kv.inputStream(), ids.get(idx++));
+				if (opt.isPresent()) {
+					out.add(opt.get());
+				}
+			} catch (IOException e) {
+				//
+			}
+			
+		});
+		
+		return out;
+	}
 
 	@Override
 	public List<InputStream> bulkRead(List<KEY> keys) throws IOException {

@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.veritynow.v2.store.core.PathEvent;
 import com.veritynow.v2.store.meta.PathMeta;
 import com.veritynow.v2.store.meta.VersionMeta;
-import com.veritynow.v2.txn.core.PathEvent;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -31,7 +31,7 @@ public class ConsoleController {
 
 	public ConsoleController(ConsoleService consoleService, @Value("${verity.api.namespace:/vn}") String namespace) {
 		this.consoleService = consoleService;
-		this.namespace = PathUtils.normalizeNamespace(namespace);
+		this.namespace = NamespaceUtils.normalizeNamespace(namespace);
 	}
 
 	/**
@@ -45,7 +45,7 @@ public class ConsoleController {
 		
 		try {
 		
-		String merklePath = PathUtils.applyNamespace(req, namespace);
+		String merklePath = NamespaceUtils.applyNamespace(req, namespace);
 
 		Optional<PathMeta> opt = consoleService.getPathMeta(merklePath);
 		if (opt.isEmpty())
@@ -54,18 +54,18 @@ public class ConsoleController {
 		// Strip namespace for EVERYTHING returned to the client
 		
 		PathMeta m = opt.get();
-		String fixedPath = PathUtils.removeNamespace(m.path(), namespace);
+		String fixedPath = NamespaceUtils.removeNamespace(m.path(), namespace);
 		List<String> fixedChildren = m.children();
 		
 		if (fixedChildren != null) {
-			fixedChildren = m.children().stream().map((s) -> PathUtils.lastSegment(s)).toList();
+			fixedChildren = m.children().stream().map((s) -> NamespaceUtils.lastSegment(s)).toList();
 		}
 		
 		List<VersionMeta> fixedVersions = m.versions().stream().
 				map((v) -> 
 				{
-					 String vmPath = PathUtils.removeNamespace(v.path(), namespace);
-					 return new VersionMeta(v.blobMeta(), new PathEvent(vmPath, v.timestamp(),  v.operation(), v.principal(), v.correlationId(), v.transactionId(), v.contextName()));
+					 String vmPath = NamespaceUtils.removeNamespace(v.path(), namespace);
+					 return new VersionMeta(v.blobMeta(), new PathEvent(vmPath, v.timestamp(),  v.operation(), v.principal(), v.correlationId(), v.workflowId(), v.contextName(), v.transactionId(), v.transactionResult()));
 				     
 				}
 		).toList();
@@ -84,7 +84,7 @@ public class ConsoleController {
 	@GetMapping(value = "/api/**", params = "versions=true", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<List<VersionMeta>> versions(HttpServletRequest req) {
 		
-		String merklePath = PathUtils.applyNamespace(req, namespace);
+		String merklePath = NamespaceUtils.applyNamespace(req, namespace);
 
 		Optional<List<VersionMeta>> opt = consoleService.listAllVersions(merklePath);
 		

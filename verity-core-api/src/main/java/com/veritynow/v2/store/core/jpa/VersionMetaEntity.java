@@ -15,17 +15,17 @@ import jakarta.persistence.Table;
 @Table(
     name = "vn_node_version",
     indexes = {
-        @Index(name = "ix_ver_inode_timestamp", columnList = "inode_id, timestamp DESC, version_id DESC"),
+        @Index(name = "ix_ver_inode_timestamp", columnList = "inode_id, timestamp DESC, id DESC"),
     }
 )
 public class VersionMetaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "version_id")
+    @Column(name = "id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "inode_id", nullable = false)
     private InodeEntity inode;
 
@@ -46,11 +46,15 @@ public class VersionMetaEntity {
     String correlationId;
     
     // Transaction (required)
-    String transactionId;
+    String workflowId;
     
     //String  (optional)
     String contextName;
-
+    
+    String transactionId;
+    
+    String transactionResult;
+    
     /** the Blob **/
     //content hash
     String hash;
@@ -67,7 +71,7 @@ public class VersionMetaEntity {
     protected VersionMetaEntity() { }
 
 	public VersionMetaEntity(InodeEntity inode,  String path, long timestamp, String operation,
-			String principal, String correlationId, String transactionId, String contextName, 
+			String principal, String correlationId, String workflowId, String contextName, String transactionId, String transactionResult,
 			String hash, String name, String mimeType, long size) {
 		super();
 		//DB generated
@@ -78,9 +82,10 @@ public class VersionMetaEntity {
 		this.operation = operation;
 		this.principal = principal;
 		this.correlationId = correlationId;
-		this.transactionId = transactionId;
+		this.workflowId = workflowId;
 		this.contextName = contextName;
-		
+		this.transactionId = transactionId;
+		this.transactionResult = transactionResult;
 		this.hash = hash;
 		this.name = name;
 		this.mimeType = mimeType;
@@ -94,8 +99,10 @@ public class VersionMetaEntity {
 	public String getOperation() {	return operation;}
 	public String getPrincipal() {	return principal;}
 	public String getCorrelationId() {return correlationId;	}
-	public String getTransactionId() {return transactionId;}
+	public String getWorkflowId() {return workflowId;}
 	public String getContextName() {return contextName;	}
+	public String getTransactionId() {return transactionId;	}
+	public String getTransactionResult() {return transactionResult; }
 
 	public String getHash() {return hash;}
 	public String getName() {return name;}

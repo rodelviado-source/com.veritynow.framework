@@ -35,6 +35,10 @@ public final class Context {
     // Convenience getters
     // ----------------------------
 
+    public static boolean isActive() {
+    	return get().isActive();
+    }
+    
     /** Always returns a non-null correlation id (generates if absent). */
     public static String correlationId() {
         return get().getCorrelationId();
@@ -42,7 +46,7 @@ public final class Context {
 
     /** Returns transaction id or null if not present (never auto-generated). */
     public static String transactionIdOrNull() {
-        return get().getTransactionId().orElse(null);
+        return get().getWorkflowId().orElse(null);
     }
 
     /** Returns principal or null if not present. */

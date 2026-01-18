@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.veritynow.v2.store.StoreOperation;
 import com.veritynow.v2.store.VersionStore;
 import com.veritynow.v2.store.core.PK;
+import com.veritynow.v2.store.core.StoreResult;
 import com.veritynow.v2.store.meta.BlobMeta;
 import com.veritynow.v2.store.meta.VersionMeta;
 
@@ -21,10 +22,10 @@ import util.JSON;
 @Service
 public class APIService {
 
-	private final VersionStore<PK, BlobMeta, VersionMeta> versionStore;
+	private final VersionStore<PK, BlobMeta, VersionMeta, StoreResult> versionStore;
 	private static final Logger LOGGER = LogManager.getLogger();
 	
-	public APIService(VersionStore<PK, BlobMeta, VersionMeta> versionStore) {
+	public APIService(VersionStore<PK, BlobMeta, VersionMeta, StoreResult> versionStore) {
 		this.versionStore = versionStore;
 		LOGGER.info("\n\tAPI Service using " + versionStore.getClass().getName());
 	}

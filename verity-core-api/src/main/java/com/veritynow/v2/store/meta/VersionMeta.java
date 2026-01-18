@@ -1,6 +1,6 @@
 package com.veritynow.v2.store.meta;
 
-import com.veritynow.v2.txn.core.PathEvent;
+import com.veritynow.v2.store.core.PathEvent;
 
 public record VersionMeta(
 		String hash,
@@ -24,15 +24,19 @@ public record VersionMeta(
         String correlationId,
         
         // Transaction (required)
-        String transactionId,
+        String workflowId,
         
         //Context Name
-        String contextName
+        String contextName,
+        
+        String transactionId,
+        
+        String transactionResult
 ) {
 	
 	    public VersionMeta(BlobMeta bm, PathEvent pe) {
 	    	this(bm.hash(), bm.name(), bm.mimeType(), bm.size(),
-	    			pe.path(), pe.timestamp(),pe.operation(),pe.principal(),pe.correlationId(), pe.transactionId(), pe.contextName());	
+	    			pe.path(), pe.timestamp(),pe.operation(),pe.principal(),pe.correlationId(), pe.workflowId(), pe.contextName(), pe.transactionId(), pe.transactionResult());	
 	    }
 	
 	    public BlobMeta blobMeta() {
@@ -40,6 +44,6 @@ public record VersionMeta(
 	    }
 	    
 	    public PathEvent pathEvent() {
-	    	return new PathEvent(path, timestamp, operation,  principal, correlationId, transactionId, contextName) ;
+	    	return new PathEvent(path, timestamp, operation,  principal, correlationId, workflowId, contextName, transactionId, transactionResult) ;
 	    }
 }
