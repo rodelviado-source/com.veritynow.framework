@@ -10,17 +10,6 @@ public class DBUtil {
 private static final Logger LOGGER = LogManager.getLogger();
     
     
-    private final static AtomicBoolean projectionReady = new AtomicBoolean(false);
-
-    private static final String ENSURE_SCOPE_ROOT =
-        """
-        INSERT INTO vn_scope_index(inode_id, path_text, scope_key)
-        SELECT min(id), '/', vn_path_to_scope_key('/')
-        FROM vn_inode
-        WHERE EXISTS (SELECT 1 FROM vn_inode)
-        ON CONFLICT (inode_id) DO NOTHING
-        """;
-    
     public static void ensureProjectionReady(JdbcTemplate jdbc) {
         // 1) Ensure vn_root exists and has exactly one row
         Long rootInodeId = jdbc.queryForObject(

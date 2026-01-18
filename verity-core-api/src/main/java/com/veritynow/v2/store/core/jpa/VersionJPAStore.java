@@ -64,7 +64,9 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         inodeManager.ensureRootInode();
         
         DBUtil.diagnoseVnInode(jdbc);
-        DBUtil.ensureProjectionReady(jdbc);
+        if (jpaPublisher.isLockingCapable()) {
+        	DBUtil.ensureProjectionReady(jdbc);
+        }	
         
         LOGGER.info("\n\tJPA Inode-backed Versioning Store started\n\t" + 
     			"Using " + backingStore.getClass().getName() + " for Immutable Storage");
@@ -75,7 +77,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     @Override
 	public Optional<ContextScope> begin() {
     	if (txnManager != null)
-    		return Optional.of(txnManager.begin());
+    		return txnManager.begin();
     	return Optional.empty();
 	}
 
