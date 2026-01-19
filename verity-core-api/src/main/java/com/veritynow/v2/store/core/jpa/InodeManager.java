@@ -2,7 +2,6 @@ package com.veritynow.v2.store.core.jpa;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -54,25 +53,16 @@ public class InodeManager {
 	}
 	
 	public InodeEntity rootInode() {
-		  Long rootId = jdbc.queryForObject(
-		      "select inode_id from vn_root where singleton = TRUE",
-		      Long.class
-		  );
-		  if (rootId == null) throw new IllegalStateException("vn_root missing singleton row");
-		  return inodeRepo.findById(rootId).orElseThrow(() -> new IllegalStateException("Root inode missing id=" + rootId));
-		}
-	
+	  Long rootId = inodeRepo.findIdByScopeKey(PathKeyCodec.ROOT_LABEL)
+	      .orElseThrow(() -> new IllegalStateException("Root inode missing for scope_key=" + PathKeyCodec.ROOT_LABEL));
+	  return inodeRepo.findById(rootId)
+	      .orElseThrow(() -> new IllegalStateException("Root inode missing id=" + rootId));
+	}
 
 	public Optional<Long> resolveInodeId(String nodePath) {
-        List<String> segs = PathUtils.splitSegments(nodePath);
-        InodeEntity cur = rootInode();
-
-        for (String seg : segs) {
-            Optional<DirEntryEntity> e = dirRepo.findByParent_IdAndName(cur.getId(), seg);
-            if (e.isEmpty()) return Optional.empty();
-            cur = e.get().getChild();
-        }
-        return Optional.of(cur.getId());
+		Objects.requireNonNull(nodePath, "nodePath");
+		String scopeKey = scopeKeyForPath(nodePath);
+		return inodeRepo.findIdByScopeKey(scopeKey);
     }
 
 	/**
@@ -83,10 +73,8 @@ public class InodeManager {
 	 */
 	public Optional<String> resolveScopeKey(String nodePath) {
 		Objects.requireNonNull(nodePath, "nodePath");
-		String normalized = PathUtils.normalizePath(nodePath);
-		Optional<Long> inodeId = resolveInodeId(normalized);
-		if (inodeId.isEmpty()) return Optional.empty();
-		return inodeRepo.findById(inodeId.get()).map(InodeEntity::getScopeKey);
+		String scopeKey = scopeKeyForPath(nodePath);
+		return inodeRepo.findIdByScopeKey(scopeKey).isPresent() ? Optional.of(scopeKey) : Optional.empty();
 	}
     
 	public Optional<String> resolvePathFromInode(Long inodeId) {
@@ -132,10 +120,8 @@ public class InodeManager {
                 cur = e.get().getChild();
                 continue;
             }
-            String childScopeKey = PathKeyCodec.appendSegLabel(
-                    cur.getScopeKey(),
-                    PathKeyCodec.xxh3Encode(seg)
-            );
+            String childScopeKey = PathKeyCodec.appendSegLabel(cur.getScopeKey(), PathKeyCodec.label(seg));
+            
             InodeEntity child = inodeRepo.save(new InodeEntity(Instant.now(), childScopeKey));
 			DirEntryEntity entry = dirRepo.save(new DirEntryEntity(cur, seg, child));
 			
@@ -154,32 +140,16 @@ public class InodeManager {
     }
 
     public void ensureRootInode() {
-  	  // If locking support is installed, it owns root via vn_root.
-  	  // If vn_root is absent (locking not installed), fallback to the legacy "one inode exists" behavior.
-  	  try {
-  	    Integer hasRoot = jdbc.queryForObject(
-  	        "select count(*) from vn_root where singleton = TRUE",
-  	        Integer.class
-  	    );
-  	    if (hasRoot != null && hasRoot > 0) return;
+        // Store-owned bootstrap: root inode is the unique inode with scope_key = PathKeyCodec.ROOT_LABEL.
+        // Also ensure the store-level invariant index exists (equality lookup by scope_key).
+        jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_vn_inode_scope_key ON vn_inode(scope_key)");
 
-  	    // Create inode via JPA (keeps entity lifecycle consistent)
-	    // Root scope key is the empty ltree (matches vn_path_to_scope_key('/') behavior).
-	    InodeEntity root = inodeRepo.save(new InodeEntity(Instant.now(), PathKeyCodec.ROOT_LABEL));
-  	    inodeRepo.flush();
+        if (inodeRepo.findIdByScopeKey(PathKeyCodec.ROOT_LABEL).isPresent()) {
+            return;
+        }
 
-  	    // Register as root pointer (idempotent)
-  	    jdbc.update(
-  	        "insert into vn_root(singleton, inode_id) values (TRUE, ?) on conflict (singleton) do nothing",
-  	        root.getId()
-  	    );
-  	  } catch (Exception e) {
-  	    // vn_root table not present: locking support not installed.
-  	    if (inodeRepo.count() == 0) {
-	      inodeRepo.save(new InodeEntity(Instant.now(), ""));
-  	      inodeRepo.flush();
-  	    }
-  	  }
-  	}
+        inodeRepo.save(new InodeEntity(Instant.now(), PathKeyCodec.ROOT_LABEL));
+        inodeRepo.flush();
+    }
 
 }

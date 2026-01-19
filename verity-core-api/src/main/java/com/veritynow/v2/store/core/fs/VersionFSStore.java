@@ -26,7 +26,6 @@ import com.veritynow.v2.store.core.AbstractStore;
 import com.veritynow.v2.store.core.PK;
 import com.veritynow.v2.store.core.PathEvent;
 import com.veritynow.v2.store.core.StoreContext;
-import com.veritynow.v2.store.core.StoreResult;
 import com.veritynow.v2.store.core.jpa.PathUtils;
 import com.veritynow.v2.store.meta.BlobMeta;
 import com.veritynow.v2.store.meta.VersionMeta;
@@ -52,7 +51,7 @@ import util.JSON;
  */
 public class VersionFSStore
         extends AbstractStore<PK, BlobMeta>
-        implements VersionStore<PK, BlobMeta, VersionMeta, StoreResult> {
+        implements VersionStore<PK, BlobMeta, VersionMeta> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(VersionFSStore.class);
 
@@ -85,7 +84,7 @@ public class VersionFSStore
 
     
    
-	private Optional<StoreResult> moveHeads(VersionMeta... vms) throws IOException {
+	private void moveHeads(VersionMeta... vms) throws IOException {
     	
     	for (VersionMeta vm : vms) {
     		byte[] bytes = JSON.MAPPER.writeValueAsBytes(vm);
@@ -98,9 +97,7 @@ public class VersionFSStore
             writeToFile(nodeDir.resolve(ufn), vmHash);
             writeToFile(nodeDir.resolve(HEAD), ufn);
     	}
-		
-    	StoreResult sr = new StoreResult(true, vms.length + " heads moved"); 
-		return Optional.of(sr);
+    	
 	}
 
 

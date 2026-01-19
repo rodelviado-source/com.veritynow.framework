@@ -5,7 +5,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
-public interface  VersionStore<PK, BLOBMETA, VERSIONMETA, RESULT> extends Store<PK, BLOBMETA> {
+public interface  VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBMETA> {
 	
 	//Path may contain many versions of a blob, get the latest
 	Optional<VERSIONMETA> getLatestVersion(String path) throws IOException;

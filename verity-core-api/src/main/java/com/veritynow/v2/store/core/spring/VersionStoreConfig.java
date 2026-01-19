@@ -20,15 +20,8 @@ import com.veritynow.v2.store.ImmutableBackingStore;
 import com.veritynow.v2.store.VersionStore;
 import com.veritynow.v2.store.core.DefaultHashingService;
 import com.veritynow.v2.store.core.PK;
-import com.veritynow.v2.store.core.StoreResult;
 import com.veritynow.v2.store.core.fs.ImmutableFSBackingStore;
-import com.veritynow.v2.store.core.fs.VersionFSStore;
-import com.veritynow.v2.store.core.jpa.DirEntryRepository;
-import com.veritynow.v2.store.core.jpa.InodePathSegmentRepository;
-import com.veritynow.v2.store.core.jpa.InodeRepository;
 import com.veritynow.v2.store.core.jpa.VersionJPAStore;
-import com.veritynow.v2.store.core.jpa.VersionMetaHeadRepository;
-import com.veritynow.v2.store.core.jpa.VersionMetaRepository;
 import com.veritynow.v2.store.meta.BlobMeta;
 import com.veritynow.v2.store.meta.VersionMeta;
 import com.veritynow.v2.txn.PublishCoordinator;
@@ -85,19 +78,19 @@ public class VersionStoreConfig {
         return new ImmutableFSBackingStore(root, hs);
     }
     
-    @Bean
-    public VersionStore<PK, BlobMeta, VersionMeta, StoreResult> versionFSStore(
-            @Value("${verity.version.index.fs-root:./data}") String rootDir,
-            ImmutableBackingStore<String, BlobMeta> backingStore
-            
-    ) {
-        Path root = Path.of(rootDir).toAbsolutePath().normalize();
-        return new VersionFSStore(root, backingStore);
-    }
+//    @Bean
+//    public VersionStore<PK, BlobMeta, VersionMeta> versionFSStore(
+//            @Value("${verity.version.index.fs-root:./data}") String rootDir,
+//            ImmutableBackingStore<String, BlobMeta> backingStore
+//            
+//    ) {
+//        Path root = Path.of(rootDir).toAbsolutePath().normalize();
+//        return new VersionFSStore(root, backingStore);
+//    }
     
     @Bean
     @Primary
-    public VersionStore<PK, BlobMeta, VersionMeta, StoreResult> versionJPAStore(
+    public VersionStore<PK, BlobMeta, VersionMeta> versionJPAStore(
     		ImmutableBackingStore<String, BlobMeta> backingStore,
     		JdbcTemplate jdbc,
 			com.veritynow.v2.store.core.jpa.InodeManager inodeManager,

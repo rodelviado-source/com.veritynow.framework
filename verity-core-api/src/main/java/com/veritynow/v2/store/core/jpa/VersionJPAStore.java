@@ -26,7 +26,6 @@ import com.veritynow.v2.store.core.AbstractStore;
 import com.veritynow.v2.store.core.PK;
 import com.veritynow.v2.store.core.PathEvent;
 import com.veritynow.v2.store.core.StoreContext;
-import com.veritynow.v2.store.core.StoreResult;
 import com.veritynow.v2.store.meta.BlobMeta;
 import com.veritynow.v2.store.meta.VersionMeta;
 import com.veritynow.v2.txn.impl.ContextAwareTransactionManager;
@@ -34,7 +33,7 @@ import com.veritynow.v2.txn.impl.ContextAwareTransactionManager;
 import util.DBUtil;
 
 
-public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta, StoreResult>, TransactionAware, LockingAware {
+public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta>, TransactionAware, LockingAware {
     
     private static final Logger LOGGER = LogManager.getLogger();
     
@@ -60,7 +59,6 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         
 		inodeManager.ensureRootInode();
         
-        DBUtil.diagnoseVnInode(jdbc);
         if (jpaPublisher.isLockingCapable()) {
         	DBUtil.ensureProjectionReady(jdbc);
         }	

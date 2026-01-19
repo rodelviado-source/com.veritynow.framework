@@ -14,7 +14,7 @@ public final class PathKeyCodec {
     private static final int HEX_LEN = 16;
     private static final LongHashFunction HASH = LongHashFunction.xx3();
     
-    public static final String ROOT_LABEL = xxh3Encode("/");
+    public static final String ROOT_LABEL = label("/");
 
     private PathKeyCodec() {}
 
@@ -29,8 +29,7 @@ public final class PathKeyCodec {
 
         StringBuilder sb = new StringBuilder(ROOT_LABEL);
         for (String seg : segs) {
-            String hex = xxh3Encode(seg);
-            sb.append('.').append('h').append(hex);
+            sb.append('.').append(label(seg));
         }
         return sb.toString();
     }
@@ -64,4 +63,6 @@ public final class PathKeyCodec {
         if (parentScopeKey == null || parentScopeKey.isBlank()) return segLabel;
         return parentScopeKey + "." + segLabel;
     }
+    
+    public static String label(String seg) { return "h" + xxh3Encode(seg); }
 }

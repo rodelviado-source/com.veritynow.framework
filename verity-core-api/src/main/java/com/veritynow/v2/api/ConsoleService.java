@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import com.veritynow.v2.store.VersionStore;
 import com.veritynow.v2.store.core.PK;
-import com.veritynow.v2.store.core.StoreResult;
 import com.veritynow.v2.store.meta.BlobMeta;
 import com.veritynow.v2.store.meta.PathMeta;
 import com.veritynow.v2.store.meta.VersionMeta;
@@ -22,10 +21,10 @@ import jakarta.transaction.Transactional;
 @Service
 public class ConsoleService {
 
-	private final VersionStore<PK, BlobMeta, VersionMeta, StoreResult> versionStore;
+	private final VersionStore<PK, BlobMeta, VersionMeta> versionStore;
 	private static final Logger LOGGER = LogManager.getLogger();
 	
-	public ConsoleService(VersionStore<PK, BlobMeta, VersionMeta, StoreResult> versionStore) {
+	public ConsoleService(VersionStore<PK, BlobMeta, VersionMeta> versionStore) {
 		this.versionStore = versionStore;
 		LOGGER.info("\n\tConsole Service using " + versionStore.getClass().getName());
 	}

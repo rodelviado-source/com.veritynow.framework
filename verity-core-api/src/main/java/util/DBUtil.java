@@ -4,74 +4,38 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.veritynow.v2.store.core.jpa.PathKeyCodec;
+
 public class DBUtil {
 private static final Logger LOGGER = LogManager.getLogger();
-    
-    
+
     public static void ensureProjectionReady(JdbcTemplate jdbc) {
-        // 1) Ensure vn_root exists and has exactly one row
-        Long rootInodeId = jdbc.queryForObject(
-            "select inode_id from vn_root where singleton = TRUE",
-            Long.class
-        );
-
-        if (rootInodeId == null) {
-            throw new IllegalStateException(
-                "vn_root missing singleton row; locking support not initialized correctly"
-            );
-        }
-
-        // 2) Ensure vn_scope_index has the root projection row
-        Integer scopeCount = jdbc.queryForObject(
-            """
-            select count(*)
-            from vn_scope_index
-            where inode_id = ?
-            """,
+        // Root is store-owned and identified by scope_key = PathKeyCodec.ROOT_LABEL.
+        Integer cnt = jdbc.queryForObject(
+            "select count(*) from vn_inode where scope_key = cast(? as ltree)",
             Integer.class,
-            rootInodeId
+            PathKeyCodec.ROOT_LABEL
         );
 
-        if (scopeCount == null || scopeCount == 0) {
+        if (cnt == null || cnt == 0) {
             throw new IllegalStateException(
-                "vn_scope_index missing root inode projection for inode_id=" + rootInodeId
+                "Root inode missing for scope_key=" + PathKeyCodec.ROOT_LABEL
             );
         }
-    }
 
+        String rootScopeKey = jdbc.queryForObject(
+            "select scope_key::text from vn_inode where scope_key = cast(? as ltree)",
+            String.class,
+            PathKeyCodec.ROOT_LABEL
+        );
 
+        if (rootScopeKey == null) {
+            throw new IllegalStateException(
+                "vn_inode.scope_key is NULL for root scope_key=" + PathKeyCodec.ROOT_LABEL
+            );
+        }
+            
 	
-	public static void diagnoseVnInode(JdbcTemplate jdbc) {
-	    
-
-	    LOGGER.info("=== DIAGNOSE vn_inode BEGIN ===");
-
-	    // 1) What object is vn_inode (table / view / schema)?
-	    try {
-	        jdbc.query("""
-	            select
-	              c.oid::regclass as regclass,
-	              n.nspname as schema,
-	              c.relname,
-	              c.relkind
-	            from pg_class c
-	            join pg_namespace n on n.oid = c.relnamespace
-	            where c.oid = 'vn_inode'::regclass
-	            """,
-	            rs -> {
-	            	LOGGER.info(
-	                    "vn_inode object: regclass={}, schema={}, relname={}, relkind={}",
-	                    rs.getString("regclass"),
-	                    rs.getString("schema"),
-	                    rs.getString("relname"),
-	                    rs.getString("relkind")
-	                );
-	            }
-	        );
-	    } catch (Exception e) {
-	    	LOGGER.error("vn_inode object lookup failed", e);
-	    }
-
 	    // 2) List columns of vn_inode
 	    try {
 	        jdbc.query("""
