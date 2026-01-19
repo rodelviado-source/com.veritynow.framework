@@ -60,9 +60,8 @@ public class VersionStoreConfig {
 	}
 	
 	@Bean
-	LockingService lockingService(JdbcTemplate jdbc
-            )  {
-		return new PgLockingService(jdbc);
+	LockingService lockingService(JdbcTemplate jdbc, com.veritynow.v2.store.core.jpa.InodeManager inodeManager)  {
+		return new PgLockingService(jdbc, inodeManager);
 	}
 	
 	
@@ -101,21 +100,12 @@ public class VersionStoreConfig {
     public VersionStore<PK, BlobMeta, VersionMeta, StoreResult> versionJPAStore(
     		ImmutableBackingStore<String, BlobMeta> backingStore,
     		JdbcTemplate jdbc,
-            InodeRepository inodeRepo,
-            DirEntryRepository dirRepo,
-            InodePathSegmentRepository pathSegRepo,
-            VersionMetaRepository verRepo,
-            VersionMetaHeadRepository headRepo,
+			com.veritynow.v2.store.core.jpa.InodeManager inodeManager,
             ContextAwareTransactionManager txnManager,
             LockingService lockingService
             
     ) {
-        return new VersionJPAStore(backingStore, jdbc,
-                inodeRepo,
-                dirRepo,
-                pathSegRepo,
-                verRepo,
-                headRepo, txnManager, lockingService);
+		return new VersionJPAStore(backingStore, jdbc, inodeManager, txnManager, lockingService);
     }
     
     @Bean

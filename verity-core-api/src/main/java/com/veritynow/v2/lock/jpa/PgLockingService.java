@@ -17,24 +17,26 @@ import com.veritynow.context.Context;
 import com.veritynow.context.ContextSnapshot;
 import com.veritynow.v2.lock.LockHandle;
 import com.veritynow.v2.lock.LockingService;
+import com.veritynow.v2.store.core.jpa.InodeManager;
 import com.veritynow.v2.store.core.jpa.PathUtils;
 
 /**
  * Postgres locking kernel: exclusive subtree locking using ltree scope keys.
  *
  * Alignment rules:
- * - No Java codec (PathKeyCodec removed).
- * - ltree scope keys are derived in Postgres via vn_path_to_scope_key(text).
- * - Store remains agnostic; callers pass normalized absolute paths for scopes.
+ * - Locking does not compute segment hashes or ltree codecs.
+ * - Store provides precomputed ltree scope keys (per-inode) for requested paths.
  */
 @Service
 public class PgLockingService implements LockingService {
 
     private final JdbcTemplate jdbc;
+    private final InodeManager inodeManager;
     
 
-    public PgLockingService(JdbcTemplate jdbc) {
+    public PgLockingService(JdbcTemplate jdbc, InodeManager inodeManager) {
         this.jdbc = Objects.requireNonNull(jdbc, "JDBC required");
+        this.inodeManager = Objects.requireNonNull(inodeManager, "inodeManager required");
     }
 
     @Override
@@ -65,8 +67,15 @@ public class PgLockingService implements LockingService {
 
         List<String> minimalScopes = minimizeScopes(normalized);
 
-        // 1) Conflict check (derive candidate scope keys inside Postgres)
-        if (existsConflicts(ownerId, minimalScopes)) {
+        // Resolve ltree scope keys using store-owned codec logic. The inode may not exist yet
+        // (e.g., callers lock an intent path before creation), so we must not require resolution
+        // through the inode/direntry graph here.
+        List<String> scopeKeys = minimalScopes.stream()
+                .map(inodeManager::scopeKeyForPath)
+                .toList();
+
+        // 1) Conflict check
+        if (existsConflicts(ownerId, scopeKeys)) {
             throw new IllegalStateException("Lock conflict");
         }
 
@@ -77,8 +86,8 @@ public class PgLockingService implements LockingService {
         UUID lockGroupId = UUID.randomUUID();
         insertLockGroup(lockGroupId, ownerId, fenceToken);
 
-        // 4) Insert lock rows with Postgres-derived scope keys
-        insertPathLocks(lockGroupId, ownerId, minimalScopes);
+        // 4) Insert lock rows (scope keys already derived by store)
+        insertPathLocks(lockGroupId, ownerId, scopeKeys);
 
         // 5) For transparency/debugging, capture derived scope keys as text
         //List<String> scopeKeys = resolveScopeKeys(minimalScopes);
@@ -106,12 +115,12 @@ public class PgLockingService implements LockingService {
         );
     }
 
-    private boolean existsConflicts(String ownerId, List<String> scopes) {
+    private boolean existsConflicts(String ownerId, List<String> scopeKeys) {
         Integer v = jdbc.query(con -> {
             PreparedStatement ps = con.prepareStatement(
                 // Compute candidate ltree[] once, then use for overlap predicates.
                 "WITH keys AS (" +
-                "  SELECT array_agg(vn_path_to_scope_key(p)) AS ks " +
+                "  SELECT array_agg(p::ltree) AS ks " +
                 "  FROM unnest(?::text[]) AS p" +
                 ") " +
                 "SELECT CASE WHEN EXISTS (" +
@@ -129,7 +138,7 @@ public class PgLockingService implements LockingService {
                 ") THEN 1 ELSE 0 END"
             );
 
-            Array arr = con.createArrayOf("text", scopes.toArray(String[]::new));
+            Array arr = con.createArrayOf("text", scopeKeys.toArray(String[]::new));
             ps.setArray(1, arr);
             ps.setString(2, ownerId);
             return ps;
@@ -152,12 +161,12 @@ public class PgLockingService implements LockingService {
         );
     }
 
-    private void insertPathLocks(UUID lockGroupId, String ownerId, List<String> scopes) {
-        // Insert one lock row per scope. scope_key is derived in Postgres.
+    private void insertPathLocks(UUID lockGroupId, String ownerId, List<String> scopeKeys) {
+        // Insert one lock row per scope. scope_key is already derived by the store.
         jdbc.batchUpdate(
             "INSERT INTO vn_path_lock(lock_group_id, owner_id, scope_key, active, acquired_at) " +
-            "VALUES (?, ?, vn_path_to_scope_key(?), true, now())",
-            scopes,
+            "VALUES (?, ?, ?::ltree, true, now())",
+            scopeKeys,
             200,
             (ps, scope) -> {
                 ps.setObject(1, lockGroupId);

@@ -24,6 +24,8 @@ import org.hibernate.dialect.PostgreSQLDialect;
 public final class DBPostgresLockingSupport extends AbstractAuxiliaryDatabaseObject {
 	private static final long serialVersionUID = 1L;
 	private static final Logger LOGGER = LogManager.getLogger();
+	private static final String QUOTED_ROOT_LABEL = "'" + PathKeyCodec.ROOT_LABEL + "'";
+	
 
 	// --------- Root pointer + deterministic root seeding (no id=1 assumption) ----------
 	private static final String CREATE_VN_ROOT = 
@@ -35,10 +37,11 @@ public final class DBPostgresLockingSupport extends AbstractAuxiliaryDatabaseObj
 	""";
 
 	private static final String ENSURE_ROOT = 
-	"""
-	WITH ins_inode AS (
-	  INSERT INTO vn_inode (created_at)
-	  SELECT NOW()
+	
+	"WITH ins_inode AS ( " +
+	  " INSERT INTO vn_inode (created_at, scope_key) " +
+	  " SELECT NOW(), " +  QUOTED_ROOT_LABEL   + 
+	  """  
 	  WHERE NOT EXISTS (SELECT 1 FROM vn_root WHERE singleton = TRUE)
 	  RETURNING id
 	)
@@ -49,9 +52,10 @@ public final class DBPostgresLockingSupport extends AbstractAuxiliaryDatabaseObj
 
 	// Seed vn_scope_index with the actual root inode id -> '/'
 	private static final String ENSURE_SCOPE_ROOT_FROM_VN_ROOT = 
+	
+	"INSERT INTO vn_scope_index(inode_id, path_text, scope_key) " +
+	"SELECT r.inode_id, '/',"  + QUOTED_ROOT_LABEL +
 	"""
-	INSERT INTO vn_scope_index(inode_id, path_text, scope_key)
-	SELECT r.inode_id, '/', vn_path_to_scope_key('/')
 	FROM vn_root r
 	WHERE r.singleton = TRUE
 	ON CONFLICT (inode_id) DO NOTHING

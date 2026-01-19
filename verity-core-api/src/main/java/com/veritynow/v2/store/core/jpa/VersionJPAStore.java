@@ -43,26 +43,22 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     LockingService lockingService;
     
     private final JPAPublisher jpaPublisher;
-    private final InodeManager inodeManager;
+	private final InodeManager inodeManager;
 
     public VersionJPAStore(
             ImmutableBackingStore<String, BlobMeta> backingStore,
-            JdbcTemplate jdbc,
-            InodeRepository inodeRepo,
-            DirEntryRepository dirRepo,
-            InodePathSegmentRepository pathSegRepo,
-            VersionMetaRepository verRepo,
-            VersionMetaHeadRepository headRepo,
+			JdbcTemplate jdbc,
+			InodeManager inodeManager,
             ContextAwareTransactionManager txnManager,
             LockingService lockingService
     ) {
         this.backingStore = backingStore;
         this.txnManager = txnManager;
-        this.lockingService = lockingService;
-        this.jpaPublisher  = new JPAPublisher(jdbc, lockingService);
-        this.inodeManager = new InodeManager(jdbc, inodeRepo, dirRepo, pathSegRepo, headRepo, verRepo);
+		this.lockingService = lockingService;
+		this.jpaPublisher  = new JPAPublisher(jdbc, lockingService);
+		this.inodeManager = Objects.requireNonNull(inodeManager, "inodeManager required");
         
-        inodeManager.ensureRootInode();
+		inodeManager.ensureRootInode();
         
         DBUtil.diagnoseVnInode(jdbc);
         if (jpaPublisher.isLockingCapable()) {

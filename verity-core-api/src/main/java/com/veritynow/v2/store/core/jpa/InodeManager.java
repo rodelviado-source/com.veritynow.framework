@@ -8,15 +8,17 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
 
+@Service
 public class InodeManager {
 	
-	private JdbcTemplate jdbc;
-	private InodeRepository inodeRepo;
-	private DirEntryRepository dirRepo;
-	private InodePathSegmentRepository pathSegRepo;
-	private VersionMetaHeadRepository headRepo;
-	private VersionMetaRepository verRepo;
+	private final JdbcTemplate jdbc;
+	private final InodeRepository inodeRepo;
+	private final DirEntryRepository dirRepo;
+	private final InodePathSegmentRepository pathSegRepo;
+	private final VersionMetaHeadRepository headRepo;
+	private final VersionMetaRepository verRepo;
 
 	public InodeManager(JdbcTemplate jdbc, InodeRepository inodeRepo, DirEntryRepository dirRepo, InodePathSegmentRepository pathSegRepo, VersionMetaHeadRepository headRepo, VersionMetaRepository verRepo) {
 		Objects.requireNonNull(jdbc, "JDBC required");
@@ -72,6 +74,20 @@ public class InodeManager {
         }
         return Optional.of(cur.getId());
     }
+
+	/**
+	 * Resolve a normalized absolute path to its inode's precomputed scope_key.
+	 *
+	 * Store-only helper intended for consumers (e.g., locking) that must not
+	 * re-implement hashing/ltree codecs.
+	 */
+	public Optional<String> resolveScopeKey(String nodePath) {
+		Objects.requireNonNull(nodePath, "nodePath");
+		String normalized = PathUtils.normalizePath(nodePath);
+		Optional<Long> inodeId = resolveInodeId(normalized);
+		if (inodeId.isEmpty()) return Optional.empty();
+		return inodeRepo.findById(inodeId.get()).map(InodeEntity::getScopeKey);
+	}
     
 	public Optional<String> resolvePathFromInode(Long inodeId) {
         Objects.requireNonNull(inodeId, "inodeId");
@@ -97,6 +113,10 @@ public class InodeManager {
 		return Optional.of("/" + String.join("/", names));
     }
 
+	public String scopeKeyForPath(String path) {
+	    return PathKeyCodec.toLtreeKey(path);
+	}
+	
 
     // -----------------------------
     // inode path resolution / creation (no full-path column)
@@ -114,7 +134,7 @@ public class InodeManager {
             }
             String childScopeKey = PathKeyCodec.appendSegLabel(
                     cur.getScopeKey(),
-                    PathKeyCodec.segLabelMd5_16(seg)
+                    PathKeyCodec.xxh3Encode(seg)
             );
             InodeEntity child = inodeRepo.save(new InodeEntity(Instant.now(), childScopeKey));
 			DirEntryEntity entry = dirRepo.save(new DirEntryEntity(cur, seg, child));
@@ -145,7 +165,7 @@ public class InodeManager {
 
   	    // Create inode via JPA (keeps entity lifecycle consistent)
 	    // Root scope key is the empty ltree (matches vn_path_to_scope_key('/') behavior).
-	    InodeEntity root = inodeRepo.save(new InodeEntity(Instant.now(), ""));
+	    InodeEntity root = inodeRepo.save(new InodeEntity(Instant.now(), PathKeyCodec.ROOT_LABEL));
   	    inodeRepo.flush();
 
   	    // Register as root pointer (idempotent)
