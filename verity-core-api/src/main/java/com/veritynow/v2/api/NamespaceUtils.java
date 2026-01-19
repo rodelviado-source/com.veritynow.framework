@@ -2,7 +2,7 @@ package com.veritynow.v2.api;
 
 import java.net.URI;
 
-import com.veritynow.v2.store.meta.VersionMeta;
+import com.veritynow.core.store.meta.VersionMeta;
 
 import jakarta.servlet.http.HttpServletRequest;
 

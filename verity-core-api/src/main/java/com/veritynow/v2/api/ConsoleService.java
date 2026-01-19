@@ -9,11 +9,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
-import com.veritynow.v2.store.VersionStore;
-import com.veritynow.v2.store.core.PK;
-import com.veritynow.v2.store.meta.BlobMeta;
-import com.veritynow.v2.store.meta.PathMeta;
-import com.veritynow.v2.store.meta.VersionMeta;
+import com.veritynow.core.store.VersionStore;
+import com.veritynow.core.store.base.PK;
+import com.veritynow.core.store.meta.BlobMeta;
+import com.veritynow.core.store.meta.PathMeta;
+import com.veritynow.core.store.meta.VersionMeta;
 
 import jakarta.transaction.Transactional;
 

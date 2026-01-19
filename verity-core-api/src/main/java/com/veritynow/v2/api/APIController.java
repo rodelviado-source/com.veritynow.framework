@@ -21,8 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.veritynow.v2.store.meta.BlobMeta;
-import com.veritynow.v2.store.meta.VersionMeta;
+import com.veritynow.core.store.meta.BlobMeta;
+import com.veritynow.core.store.meta.VersionMeta;
 
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;

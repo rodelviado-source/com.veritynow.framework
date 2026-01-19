@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.veritynow.v2.store.core.PathEvent;
-import com.veritynow.v2.store.meta.PathMeta;
-import com.veritynow.v2.store.meta.VersionMeta;
+import com.veritynow.core.store.base.PathEvent;
+import com.veritynow.core.store.meta.PathMeta;
+import com.veritynow.core.store.meta.VersionMeta;
 
 import jakarta.servlet.http.HttpServletRequest;
 

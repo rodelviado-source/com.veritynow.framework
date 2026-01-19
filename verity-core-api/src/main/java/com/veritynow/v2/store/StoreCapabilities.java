@@ -1,5 +1,0 @@
-package com.veritynow.v2.store;
-public enum StoreCapabilities {
-		CREATE, READ, UPDATE, DELETE, UNDELETE, RESTORE,
-		BULK_CREATE, BULK_READ, BULK_UPDATE, BULK_DELETE, BULK_UNDELETE ,BULK_RESTORE
-	}

@@ -4,7 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.veritynow.v2.store.core.jpa.PathKeyCodec;
+import com.veritynow.core.store.jpa.PathKeyCodec;
 
 public class DBUtil {
 private static final Logger LOGGER = LogManager.getLogger();
