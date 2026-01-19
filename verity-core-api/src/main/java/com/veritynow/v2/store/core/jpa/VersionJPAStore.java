@@ -50,6 +50,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
             JdbcTemplate jdbc,
             InodeRepository inodeRepo,
             DirEntryRepository dirRepo,
+            InodePathSegmentRepository pathSegRepo,
             VersionMetaRepository verRepo,
             VersionMetaHeadRepository headRepo,
             ContextAwareTransactionManager txnManager,
@@ -59,7 +60,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         this.txnManager = txnManager;
         this.lockingService = lockingService;
         this.jpaPublisher  = new JPAPublisher(jdbc, lockingService);
-        this.inodeManager = new InodeManager(jdbc, inodeRepo, dirRepo, headRepo, verRepo);
+        this.inodeManager = new InodeManager(jdbc, inodeRepo, dirRepo, pathSegRepo, headRepo, verRepo);
         
         inodeManager.ensureRootInode();
         

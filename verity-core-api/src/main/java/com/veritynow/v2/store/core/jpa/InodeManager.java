@@ -14,19 +14,22 @@ public class InodeManager {
 	private JdbcTemplate jdbc;
 	private InodeRepository inodeRepo;
 	private DirEntryRepository dirRepo;
+	private InodePathSegmentRepository pathSegRepo;
 	private VersionMetaHeadRepository headRepo;
 	private VersionMetaRepository verRepo;
 
-	public InodeManager(JdbcTemplate jdbc, InodeRepository inodeRepo, DirEntryRepository dirRepo, VersionMetaHeadRepository headRepo, VersionMetaRepository verRepo) {
+	public InodeManager(JdbcTemplate jdbc, InodeRepository inodeRepo, DirEntryRepository dirRepo, InodePathSegmentRepository pathSegRepo, VersionMetaHeadRepository headRepo, VersionMetaRepository verRepo) {
 		Objects.requireNonNull(jdbc, "JDBC required");
 		Objects.requireNonNull(inodeRepo, InodeEntity.class.getName() + " Repository required");
 		Objects.requireNonNull(dirRepo,   DirEntryEntity.class.getName() + " Repository required");
+		Objects.requireNonNull(pathSegRepo,   InodePathSegmentEntity.class.getName() + " Repository required");
 		Objects.requireNonNull(headRepo,  VersionMetaHeadEntity.class.getName() + " Repository required");
 		Objects.requireNonNull(verRepo,   VersionMetaEntity.class.getName() + " Repository required");
 		
 		this.jdbc = jdbc;
 		this.inodeRepo = inodeRepo;
 		this.dirRepo = dirRepo;
+		this.pathSegRepo = pathSegRepo;
 		this.headRepo = headRepo;
 		this.verRepo = verRepo;
 	}
@@ -73,40 +76,25 @@ public class InodeManager {
 	public Optional<String> resolvePathFromInode(Long inodeId) {
         Objects.requireNonNull(inodeId, "inodeId");
 
-        Optional<InodeEntity> curOpt = inodeRepo.findById(inodeId);
-        if (curOpt.isEmpty()) return Optional.empty();
-
-        InodeEntity cur = curOpt.get();
-        InodeEntity root = rootInode();
-
-        // Root path
-        if (cur.getId().equals(root.getId())) {
-            return Optional.of("/");
-        }
-
-        List<String> segments = new ArrayList<>();
-
-        while (!cur.getId().equals(root.getId())) {
-            Optional<DirEntryEntity> entryOpt =
-            		dirRepo.findByChild_Id(cur.getId());
-
-            if (entryOpt.isEmpty()) {
-                // Orphan inode: violates tree invariant
-                return Optional.empty();
-            }
-
-            DirEntryEntity entry = entryOpt.get();
-            segments.add(entry.getName());
-            cur = entry.getParent();
-
-            if (cur == null) {
-                // Defensive: corrupted graph
-                return Optional.empty();
-            }
-        }
-
-        Collections.reverse(segments);
-        return Optional.of("/" + String.join("/", segments));
+		Optional<InodeEntity> inodeOpt = inodeRepo.findById(inodeId);
+		if (inodeOpt.isEmpty()) return Optional.empty();
+		
+		InodeEntity inode = inodeOpt.get();
+		InodeEntity root = rootInode();
+		
+		if (inode.getId().equals(root.getId())) return Optional.of("/");
+		
+		List<InodePathSegmentEntity> segs = pathSegRepo.findAllByInode_IdOrderByOrdAsc(inode.getId());
+		if (segs.isEmpty()) {
+			// No backfill/repair in Phase-1: projection must exist for this inode.
+			return Optional.empty();
+		}
+		
+		List<String> names = new ArrayList<>(segs.size());
+		for (InodePathSegmentEntity s : segs) {
+			names.add(s.getDirEntry().getName());
+		}
+		return Optional.of("/" + String.join("/", names));
     }
 
 
@@ -124,8 +112,22 @@ public class InodeManager {
                 cur = e.get().getChild();
                 continue;
             }
-            InodeEntity child = inodeRepo.save(new InodeEntity(Instant.now()));
-            dirRepo.save(new DirEntryEntity(cur, seg, child));
+            String childScopeKey = PathKeyCodec.appendSegLabel(
+                    cur.getScopeKey(),
+                    PathKeyCodec.segLabelMd5_16(seg)
+            );
+            InodeEntity child = inodeRepo.save(new InodeEntity(Instant.now(), childScopeKey));
+			DirEntryEntity entry = dirRepo.save(new DirEntryEntity(cur, seg, child));
+			
+			// Store-owned projection (Phase-1): inode -> ordered direntry chain
+			List<InodePathSegmentEntity> parentSegs = pathSegRepo.findAllByInode_IdOrderByOrdAsc(cur.getId());
+			List<InodePathSegmentEntity> childSegs = new ArrayList<>(parentSegs.size() + 1);
+			for (InodePathSegmentEntity ps : parentSegs) {
+				childSegs.add(new InodePathSegmentEntity(child, ps.getOrd(), ps.getDirEntry()));
+			}
+			childSegs.add(new InodePathSegmentEntity(child, parentSegs.size(), entry));
+			pathSegRepo.saveAll(childSegs);
+			
             cur = child;
         }
         return cur;
@@ -142,7 +144,8 @@ public class InodeManager {
   	    if (hasRoot != null && hasRoot > 0) return;
 
   	    // Create inode via JPA (keeps entity lifecycle consistent)
-  	    InodeEntity root = inodeRepo.save(new InodeEntity(Instant.now()));
+	    // Root scope key is the empty ltree (matches vn_path_to_scope_key('/') behavior).
+	    InodeEntity root = inodeRepo.save(new InodeEntity(Instant.now(), ""));
   	    inodeRepo.flush();
 
   	    // Register as root pointer (idempotent)
@@ -153,7 +156,7 @@ public class InodeManager {
   	  } catch (Exception e) {
   	    // vn_root table not present: locking support not installed.
   	    if (inodeRepo.count() == 0) {
-  	      inodeRepo.save(new InodeEntity(Instant.now()));
+	      inodeRepo.save(new InodeEntity(Instant.now(), ""));
   	      inodeRepo.flush();
   	    }
   	  }

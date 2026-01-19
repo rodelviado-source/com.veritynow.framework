@@ -24,6 +24,7 @@ import com.veritynow.v2.store.core.StoreResult;
 import com.veritynow.v2.store.core.fs.ImmutableFSBackingStore;
 import com.veritynow.v2.store.core.fs.VersionFSStore;
 import com.veritynow.v2.store.core.jpa.DirEntryRepository;
+import com.veritynow.v2.store.core.jpa.InodePathSegmentRepository;
 import com.veritynow.v2.store.core.jpa.InodeRepository;
 import com.veritynow.v2.store.core.jpa.VersionJPAStore;
 import com.veritynow.v2.store.core.jpa.VersionMetaHeadRepository;
@@ -102,6 +103,7 @@ public class VersionStoreConfig {
     		JdbcTemplate jdbc,
             InodeRepository inodeRepo,
             DirEntryRepository dirRepo,
+            InodePathSegmentRepository pathSegRepo,
             VersionMetaRepository verRepo,
             VersionMetaHeadRepository headRepo,
             ContextAwareTransactionManager txnManager,
@@ -111,6 +113,7 @@ public class VersionStoreConfig {
         return new VersionJPAStore(backingStore, jdbc,
                 inodeRepo,
                 dirRepo,
+                pathSegRepo,
                 verRepo,
                 headRepo, txnManager, lockingService);
     }
