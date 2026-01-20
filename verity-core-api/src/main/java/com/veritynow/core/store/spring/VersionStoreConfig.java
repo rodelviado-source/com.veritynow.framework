@@ -21,8 +21,13 @@ import com.veritynow.core.store.VersionStore;
 import com.veritynow.core.store.base.DefaultHashingService;
 import com.veritynow.core.store.base.PK;
 import com.veritynow.core.store.fs.ImmutableFSBackingStore;
+import com.veritynow.core.store.jpa.DirEntryRepository;
 import com.veritynow.core.store.jpa.InodeManager;
+import com.veritynow.core.store.jpa.InodePathSegmentRepository;
+import com.veritynow.core.store.jpa.InodeRepository;
 import com.veritynow.core.store.jpa.VersionJPAStore;
+import com.veritynow.core.store.jpa.VersionMetaHeadRepository;
+import com.veritynow.core.store.jpa.VersionMetaRepository;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.txn.PublishCoordinator;
@@ -54,8 +59,11 @@ public class VersionStoreConfig {
 	}
 	
 	@Bean
-	LockingService lockingService(JdbcTemplate jdbc)  {
-		return new PgLockingService(jdbc);
+	LockingService lockingService(
+			JdbcTemplate jdbc,
+			@Value("${verity.lock.ttl-ms:-1}") long lockTtlMs
+	)  {
+		return new PgLockingService(jdbc, lockTtlMs);
 	}
 	
 	
@@ -88,6 +96,12 @@ public class VersionStoreConfig {
 //        Path root = Path.of(rootDir).toAbsolutePath().normalize();
 //        return new VersionFSStore(root, backingStore);
 //    }
+    
+    
+    @Bean
+    public InodeManager inodeManger(JdbcTemplate jdbc, InodeRepository inodeRepo, DirEntryRepository dirRepo, InodePathSegmentRepository pathSegRepo, VersionMetaHeadRepository headRepo, VersionMetaRepository verRepo) {
+    	return new InodeManager(jdbc, inodeRepo, dirRepo, pathSegRepo, headRepo, verRepo);
+    }
     
     @Bean
     @Primary

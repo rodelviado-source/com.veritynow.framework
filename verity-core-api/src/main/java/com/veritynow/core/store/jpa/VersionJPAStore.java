@@ -41,7 +41,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     private final ContextAwareTransactionManager txnManager;
     LockingService lockingService;
     
-    private final JdbcPublisher jpaPublisher;
+    private final JdbcPublisher publisher;
 	private final InodeManager inodeManager;
 
     public VersionJPAStore(
@@ -54,12 +54,12 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         this.backingStore = backingStore;
         this.txnManager = txnManager;
 		this.lockingService = lockingService;
-		this.jpaPublisher  = new JdbcPublisher(jdbc, lockingService);
-		this.inodeManager = Objects.requireNonNull(inodeManager, "inodeManager required");
+		this.publisher  = new JdbcPublisher(jdbc, lockingService);
+		this.inodeManager = Objects.requireNonNull(inodeManager, "InodeManager required");
         
 		inodeManager.ensureRootInode();
         
-        if (jpaPublisher.isLockingCapable()) {
+        if (publisher.isLockingCapable()) {
         	DBUtil.ensureProjectionReady(jdbc);
         }	
         
@@ -422,11 +422,11 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
 
         //publish
         if (StoreContext.AUTO_COMMITTED.equals(sc.transactionResult())) {
-        	if (jpaPublisher.isLockingCapable()) {
-        		jpaPublisher.acquireLockAndPublish(saved);
+        	if (publisher.isLockingCapable()) {
+        		publisher.acquireLockAndPublish(saved);
         	} else {
         		//degrade to a non-locking store
-        		jpaPublisher.publish(saved);
+        		publisher.publish(saved);
         	}
         } else {
         	//transaction layer handles the commit

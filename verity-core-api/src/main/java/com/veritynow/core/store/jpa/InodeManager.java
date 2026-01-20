@@ -7,9 +7,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
 
-@Service
+
 public class InodeManager {
 	
 	private final JdbcTemplate jdbc;

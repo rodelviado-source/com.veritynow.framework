@@ -41,6 +41,7 @@ public final class DBPostgresLockingSupport extends AbstractAuxiliaryDatabaseObj
 		fence_token   BIGINT  NULL,
 		active        BOOLEAN NOT NULL DEFAULT TRUE,
 		acquired_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+		expires_at    TIMESTAMPTZ,
 		released_at   TIMESTAMPTZ
 	)	
 	""";
@@ -80,6 +81,9 @@ public final class DBPostgresLockingSupport extends AbstractAuxiliaryDatabaseObj
 	    "CREATE INDEX IF NOT EXISTS ix_vn_lock_group_owner_active " +
 	    "ON vn_lock_group(owner_id, active)",
 
+	    "CREATE INDEX IF NOT EXISTS ix_vn_lock_group_active_expires " +
+	    "ON vn_lock_group(active, expires_at)",
+
 	    "CREATE INDEX IF NOT EXISTS ix_vn_path_lock_scope_key_gist " +
 	    "ON vn_path_lock USING GIST(scope_key)",
 
@@ -100,6 +104,7 @@ public final class DBPostgresLockingSupport extends AbstractAuxiliaryDatabaseObj
 	    "DROP INDEX IF EXISTS ix_vn_path_lock_group",
 	    "DROP INDEX IF EXISTS ix_vn_path_lock_owner_active",
 	    "DROP INDEX IF EXISTS ix_vn_path_lock_scope_key_gist",
+	    "DROP INDEX IF EXISTS ix_vn_lock_group_active_expires",
 	    "DROP INDEX IF EXISTS ix_vn_lock_group_owner_active",
 
 	    // Locking tables (dependents first)

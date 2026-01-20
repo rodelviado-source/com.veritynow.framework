@@ -6,9 +6,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,14 +33,50 @@ import com.veritynow.core.store.jpa.PathUtils;
  * - Locking does not compute segment hashes or ltree codecs.
  * - Store provides precomputed ltree scope keys (per-inode) for requested paths.
  */
-@Service
 public class PgLockingService implements LockingService {
 
     private final JdbcTemplate jdbc;
+
+    /**
+     * Lease TTL in milliseconds. When negative, leases are disabled and locks behave as before (no expiry).
+     */
+    private final long ttlMs;
+
+    /**
+     * Renewal interval in milliseconds (only used when ttlMs > 0).
+     */
+    private final long renewEveryMs;
+
+    private final ScheduledExecutorService renewScheduler;
+    private final ConcurrentMap<UUID, ScheduledFuture<?>> renewTasks = new ConcurrentHashMap<>();
     
 
-    public PgLockingService(JdbcTemplate jdbc) {
+    public PgLockingService(JdbcTemplate jdbc, long ttlMs) {
         this.jdbc = Objects.requireNonNull(jdbc, "JDBC required");
+        this.ttlMs = ttlMs;
+
+        if (ttlMs > 0) {
+            // Renew at ~1/3 TTL; clamp to a reasonable minimum to avoid a tight loop.
+            this.renewEveryMs = Math.max(250L, ttlMs / 3L);
+            this.renewScheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread t = new Thread(r, "verity-lock-lease-renewer");
+                    t.setDaemon(true);
+                    return t;
+                }
+            });
+        } else {
+            this.renewEveryMs = -1L;
+            this.renewScheduler = null;
+        }
+    }
+
+    /**
+     * Backwards-compatible constructor: TTL disabled (pre-TTL behavior).
+     */
+    public PgLockingService(JdbcTemplate jdbc) {
+        this(jdbc, -1L);
     }
 
     @Override
@@ -90,13 +132,17 @@ public class PgLockingService implements LockingService {
         // 5) For transparency/debugging, capture derived scope keys as text
         //List<String> scopeKeys = resolveScopeKeys(minimalScopes);
 
-        return new LockHandle(ownerId, lockGroupId, fenceToken);
+        LockHandle handle = new LockHandle(ownerId, lockGroupId, fenceToken);
+        startLeaseRenewal(handle);
+        return handle;
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void release(LockHandle handle) {
         if (handle == null) return;
+
+        stopLeaseRenewal(handle.lockGroupId());
 
         jdbc.update(
             "UPDATE vn_path_lock " +
@@ -128,6 +174,7 @@ public class PgLockingService implements LockingService {
                 "  CROSS JOIN keys " +
                 "  WHERE pl.active = true " +
                 "    AND lg.active = true " +
+                "    AND (lg.expires_at IS NULL OR lg.expires_at > now()) " +
                 "    AND pl.owner_id <> ? " +
                 "    AND ( " +
                 "      pl.scope_key @> ANY (keys.ks) " +
@@ -152,11 +199,71 @@ public class PgLockingService implements LockingService {
     }
 
     private void insertLockGroup(UUID lockGroupId, String ownerId, long fenceToken) {
-        jdbc.update(
-            "INSERT INTO vn_lock_group(lock_group_id, owner_id, fence_token, active, acquired_at) " +
-            "VALUES (?, ?, ?, true, now())",
-            lockGroupId, ownerId, fenceToken
+        if (ttlMs > 0) {
+            jdbc.update(
+                "INSERT INTO vn_lock_group(lock_group_id, owner_id, fence_token, active, acquired_at, expires_at) " +
+                "VALUES (?, ?, ?, true, now(), now() + (? * interval '1 millisecond'))",
+                lockGroupId, ownerId, fenceToken, ttlMs
+            );
+        } else {
+            // TTL disabled: expires_at stays NULL, meaning infinite lease.
+            jdbc.update(
+                "INSERT INTO vn_lock_group(lock_group_id, owner_id, fence_token, active, acquired_at, expires_at) " +
+                "VALUES (?, ?, ?, true, now(), NULL)",
+                lockGroupId, ownerId, fenceToken
+            );
+        }
+    }
+
+    private void startLeaseRenewal(LockHandle handle) {
+        if (handle == null) return;
+        if (ttlMs <= 0) return;
+        if (renewScheduler == null) return;
+
+        // Avoid duplicate tasks for the same lock group.
+        renewTasks.computeIfAbsent(handle.lockGroupId(), lgid -> {
+            Runnable r = () -> {
+                try {
+                    boolean ok = renewLease(handle);
+                    if (!ok) {
+                        stopLeaseRenewal(lgid);
+                    }
+                } catch (Throwable t) {
+                    // Renewal failures should not crash the process. If renewal is unstable,
+                    // allow the lease to expire and let fencing prevent stale publishes.
+                    stopLeaseRenewal(lgid);
+                }
+            };
+
+            // Initial delay: renewEveryMs; fixed rate keeps leases stable under moderate jitter.
+            return renewScheduler.scheduleAtFixedRate(r, renewEveryMs, renewEveryMs, TimeUnit.MILLISECONDS);
+        });
+    }
+
+    private void stopLeaseRenewal(UUID lockGroupId) {
+        if (lockGroupId == null) return;
+        ScheduledFuture<?> f = renewTasks.remove(lockGroupId);
+        if (f != null) {
+            f.cancel(false);
+        }
+    }
+
+    private boolean renewLease(LockHandle handle) {
+        // Extend only if we still own the lock and it hasn't expired.
+        int rows = jdbc.update(
+            "UPDATE vn_lock_group " +
+            "SET expires_at = now() + (? * interval '1 millisecond') " +
+            "WHERE lock_group_id = ? " +
+            "  AND active = true " +
+            "  AND owner_id = ? " +
+            "  AND fence_token = ? " +
+            "  AND (expires_at IS NULL OR expires_at > now())",
+            ttlMs,
+            handle.lockGroupId(),
+            handle.ownerId(),
+            handle.fenceToken()
         );
+        return rows == 1;
     }
 
     private void insertPathLocks(UUID lockGroupId, String ownerId, List<String> scopeKeys) {
