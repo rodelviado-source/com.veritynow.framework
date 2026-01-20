@@ -69,7 +69,7 @@ public class PgLockingService implements LockingService {
         // (e.g., callers lock an intent path before creation), so we must not require resolution
         // through the inode/direntry graph here.
         List<String> scopeKeys = minimalScopes.stream()
-                .map(PathKeyCodec::toLtreeKey)
+                .map(PathKeyCodec::toLTree)
                 .toList();
 
         // 1) Conflict check

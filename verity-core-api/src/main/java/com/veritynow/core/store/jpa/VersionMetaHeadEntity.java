@@ -29,7 +29,7 @@ public class VersionMetaHeadEntity {
     private InodeEntity inode;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "head_id", nullable = false)
+    @JoinColumn(name = "version_id", nullable = false)
     private VersionMetaEntity headVersion;
 
     @Column(name = "updated_at", nullable = false)

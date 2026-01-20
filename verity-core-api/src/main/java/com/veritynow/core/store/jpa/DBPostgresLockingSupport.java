@@ -95,8 +95,6 @@ public final class DBPostgresLockingSupport extends AbstractAuxiliaryDatabaseObj
 
 	private static final String[] DROP_STRINGS =  {
 
-	    // Root pointer
-
 	    // Locking indexes
 	    "DROP INDEX IF EXISTS ix_vn_txn_epoch_status",
 	    "DROP INDEX IF EXISTS ix_vn_path_lock_group",
@@ -133,7 +131,8 @@ public final class DBPostgresLockingSupport extends AbstractAuxiliaryDatabaseObj
 
 	@Override
 	public boolean beforeTablesOnCreation() {
-		// Must run after store entity tables exist, because we reference vn_inode/vn_dir_entry.
+		// Must run after store entity tables exist, 
+		//because we reference vn_inode/vn_dir_entry.
 		return false;
 	}
 }

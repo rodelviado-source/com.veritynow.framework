@@ -14,7 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import com.veritynow.core.lock.LockHandle;
 import com.veritynow.core.lock.LockingService;
 
-public final class JPAPublisher {
+public final class JdbcPublisher {
   private static final Logger LOGGER = LogManager.getLogger();
 
   /**
@@ -32,22 +32,22 @@ public final class JPAPublisher {
   );
 
   private static final String MOVE_HEAD_FENCED = """
-    INSERT INTO vn_node_head (inode_id, head_id, fence_token, updated_at)
+    INSERT INTO vn_node_head (inode_id, version_id, fence_token, updated_at)
     VALUES (?, ?, ?, NOW())
     ON CONFLICT (inode_id)
     DO UPDATE
-      SET head_id     = EXCLUDED.head_id,
+      SET version_id     = EXCLUDED.version_id,
           fence_token = EXCLUDED.fence_token,
           updated_at  = NOW()
     WHERE COALESCE(vn_node_head.fence_token, -1) < EXCLUDED.fence_token
     """;
   
   private static final String MOVE_HEAD = """
-	INSERT INTO vn_node_head (inode_id, head_id, fence_token, updated_at)
+	INSERT INTO vn_node_head (inode_id, version_id, fence_token, updated_at)
 	VALUES (?, ?, NULL, NOW())
 	ON CONFLICT (inode_id)
 	DO UPDATE
-	  SET head_id = EXCLUDED.head_id, fence_token = NULL,  updated_at  = NOW()
+	  SET version_id = EXCLUDED.version_id, fence_token = NULL,  updated_at  = NOW()
 	WHERE
 		-- Degraded mode: only update if the existing row is also unfenced
 		(vn_node_head.fence_token IS NULL)  
@@ -56,7 +56,7 @@ public final class JPAPublisher {
   private final JdbcTemplate jdbc;
   LockingService lockingService;
 
-  public JPAPublisher(JdbcTemplate jdbc, LockingService lockingService) {
+  public JdbcPublisher(JdbcTemplate jdbc, LockingService lockingService) {
     this.jdbc = Objects.requireNonNull(jdbc);
     this.lockingService = lockingService;
   }
@@ -72,23 +72,24 @@ public final class JPAPublisher {
     final long inodeId = saved.getInode().getId();
     final long versionId = saved.getId();
 
-    LOGGER.trace("JPAPublish BEFORE moveHead inodeId={} versionId={} fenceToken={}", inodeId, versionId, fenceToken);
+    LOGGER.trace("Publish BEFORE moveHead inodeId={} versionId={} fenceToken={}", inodeId, versionId, fenceToken);
 
     int rows = 0;
     try {
       rows = jdbc.update(MOVE_HEAD_FENCED, inodeId, versionId, fenceToken);
     } catch (DataAccessException dae) {
-      // Only classify known transient concurrency errors as retryable.
-      String sqlState = findSqlState(dae);
-      if (sqlState != null && RETRYABLE_SQLSTATES.contains(sqlState)) {
-        String msg = "Transient DB conflict (SQLSTATE " + sqlState + ") moving HEAD: inodeId=" + inodeId
-            + " versionId=" + versionId + " fenceToken=" + fenceToken;
-        LOGGER.warn(msg, dae);
-        throw new IllegalStateException(msg, dae);
-      }
-
-      // Deployment/schema/real bugs: propagate unchanged.
-      throw dae;
+	      // Only classify known transient concurrency errors as retryable.
+	      String sqlState = findSqlState(dae);
+	      if (sqlState != null && RETRYABLE_SQLSTATES.contains(sqlState)) {
+	         String msg = String.format(
+	        		 "Transient DB conflict (SQLSTATE %s) moving HEAD: inodeId=%d versionId=%d fenceToken=%d", 
+	        		 sqlState,inodeId,versionId, fenceToken);
+	        LOGGER.warn(msg, dae);
+	        throw new IllegalStateException(msg, dae);
+	      }
+	
+	      // Deployment/schema/real bugs: propagate unchanged.
+	      throw dae;
     }
 
     // Fence predicate rejected the update => stale writer => retryable.
@@ -101,7 +102,7 @@ public final class JPAPublisher {
       
       
     }
-    LOGGER.trace("JPAPublish AFTER moveHead inodeId={} versionId={} fenceToken={} rows={}", inodeId, versionId, fenceToken, rows);
+    LOGGER.trace("Publish AFTER moveHead inodeId={} versionId={} fenceToken={} rows={}", inodeId, versionId, fenceToken, rows);
     return rows;
   }
   

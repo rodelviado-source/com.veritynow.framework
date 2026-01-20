@@ -14,7 +14,7 @@ import com.veritynow.core.txn.TransactionFinalizer;
  * - vn_node_version: version_id, inode_id, timestamp, path, operation, principal,
  *   correlation_id, workflow_id, context_name, transaction_id, transaction_result,
  *   hash, name, mime_type, size
- * - vn_node_head: inode_id, head_version_id, updated_at, fence_token
+ * - vn_node_head: inode_id, version_id, updated_at, fence_token
  */
 public class JdbcTransactionFinalizer implements TransactionFinalizer {
 
@@ -69,11 +69,11 @@ public class JdbcTransactionFinalizer implements TransactionFinalizer {
               RETURNING inode_id, version_id
             ),
             published AS (
-              INSERT INTO vn_node_head(inode_id, head_version_id, updated_at, fence_token)
+              INSERT INTO vn_node_head(inode_id, version_id, updated_at, fence_token)
               SELECT c.inode_id, c.version_id, now(), ?
               FROM cloned c
               ON CONFLICT (inode_id) DO UPDATE
-              SET head_version_id = EXCLUDED.head_version_id,
+              SET version_id = EXCLUDED.version_id,
                   updated_at      = EXCLUDED.updated_at,
                   fence_token     = EXCLUDED.fence_token
               WHERE vn_node_head.fence_token < EXCLUDED.fence_token

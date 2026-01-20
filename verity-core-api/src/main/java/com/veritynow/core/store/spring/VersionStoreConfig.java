@@ -21,6 +21,7 @@ import com.veritynow.core.store.VersionStore;
 import com.veritynow.core.store.base.DefaultHashingService;
 import com.veritynow.core.store.base.PK;
 import com.veritynow.core.store.fs.ImmutableFSBackingStore;
+import com.veritynow.core.store.jpa.InodeManager;
 import com.veritynow.core.store.jpa.VersionJPAStore;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
@@ -93,7 +94,7 @@ public class VersionStoreConfig {
     public VersionStore<PK, BlobMeta, VersionMeta> versionJPAStore(
     		ImmutableBackingStore<String, BlobMeta> backingStore,
     		JdbcTemplate jdbc,
-			com.veritynow.core.store.jpa.InodeManager inodeManager,
+			InodeManager inodeManager,
             ContextAwareTransactionManager txnManager,
             LockingService lockingService
             

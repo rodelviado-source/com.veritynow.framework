@@ -33,7 +33,7 @@ import com.veritynow.core.txn.jdbc.ContextAwareTransactionManager;
 import util.DBUtil;
 
 
-public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta>, TransactionAware, LockingAware {
+public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta>, TransactionAware<ContextScope>, LockingAware {
     
     private static final Logger LOGGER = LogManager.getLogger();
     
@@ -41,7 +41,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     private final ContextAwareTransactionManager txnManager;
     LockingService lockingService;
     
-    private final JPAPublisher jpaPublisher;
+    private final JdbcPublisher jpaPublisher;
 	private final InodeManager inodeManager;
 
     public VersionJPAStore(
@@ -54,7 +54,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         this.backingStore = backingStore;
         this.txnManager = txnManager;
 		this.lockingService = lockingService;
-		this.jpaPublisher  = new JPAPublisher(jdbc, lockingService);
+		this.jpaPublisher  = new JdbcPublisher(jdbc, lockingService);
 		this.inodeManager = Objects.requireNonNull(inodeManager, "inodeManager required");
         
 		inodeManager.ensureRootInode();
@@ -273,7 +273,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         if (inodeIdOpt.isEmpty()) return Optional.empty();
         
         Long inodeId = inodeIdOpt.get();
-        return getLatestVersionById(inodeId);
+        return getLatestVersionByInodeId(inodeId);
     }
 
     @Override
@@ -295,7 +295,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
             List<DirEntryEntity> children = inodeManager.findAllByParentId(inodeId);
             for (DirEntryEntity child : children) {
                 Long childId = child.getChild().getId();
-                Optional<VersionMeta> vmOpt = getLatestVersionById(childId);
+                Optional<VersionMeta> vmOpt = getLatestVersionByInodeId(childId);
                 if (vmOpt.isPresent()) out.add(vmOpt.get());
             }
         }
@@ -434,7 +434,7 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     }
  
 
-    private Optional<VersionMeta> getLatestVersionById(Long id) {
+    private Optional<VersionMeta> getLatestVersionByInodeId(Long id) {
     	Optional<VersionMetaHeadEntity> head = inodeManager.getHeadById(id);
         if (head.isPresent()) {
             return Optional.of(toVersionMeta(head.get().getHeadVersion()));

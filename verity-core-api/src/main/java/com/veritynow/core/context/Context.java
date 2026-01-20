@@ -55,8 +55,13 @@ public final class Context {
     }
     
     /** Returns principal or null if not present. */
-    public static String getContextNameOrNull() {
+    public static String contextNameOrNull() {
         return get().getContextName().orElse(null);
+    }
+    
+    /** Returns principal or null if not present. */
+    public static String workflowIdOrNull() {
+        return get().getWorkflowId().orElse(null);
     }
 
     /** Returns the ensured immutable snapshot of the current context. */

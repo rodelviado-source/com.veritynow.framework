@@ -15,7 +15,7 @@ import com.veritynow.core.txn.TransactionService;
  *
  * This is intentionally minimal and does not attempt to solve nested transaction policy.
  */
-public class ContextAwareTransactionManager implements TransactionAware {
+public class ContextAwareTransactionManager implements TransactionAware<ContextScope> {
 
     private final TransactionService txnService;
 

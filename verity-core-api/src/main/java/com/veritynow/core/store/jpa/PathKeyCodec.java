@@ -18,7 +18,7 @@ public final class PathKeyCodec {
 
     private PathKeyCodec() {}
 
-    public static String toLtreeKey(String path) {
+    public static String toLTree(String path) {
         String p = PathUtils.normalizePath(path);
 
         if ("/".equals(p)) {

@@ -61,7 +61,7 @@ public class InodeManager {
 
 	public Optional<Long> resolveInodeId(String nodePath) {
 		Objects.requireNonNull(nodePath, "nodePath");
-		String scopeKey = PathKeyCodec.toLtreeKey(nodePath);
+		String scopeKey = PathKeyCodec.toLTree(nodePath);
 		return inodeRepo.findIdByScopeKey(scopeKey);
     }
 
@@ -73,7 +73,7 @@ public class InodeManager {
 	 */
 	public Optional<String> resolveScopeKey(String nodePath) {
 		Objects.requireNonNull(nodePath, "nodePath");
-		String scopeKey = PathKeyCodec.toLtreeKey(nodePath);
+		String scopeKey = PathKeyCodec.toLTree(nodePath);
 		return inodeRepo.findIdByScopeKey(scopeKey).isPresent() ? Optional.of(scopeKey) : Optional.empty();
 	}
     

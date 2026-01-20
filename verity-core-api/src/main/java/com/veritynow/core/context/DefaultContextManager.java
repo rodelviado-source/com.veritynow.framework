@@ -11,12 +11,12 @@ final class DefaultContextManager implements ContextManager {
 
     private final ContextStorage storage;
     private final IdGenerator idGenerator;
-    private final MdcBridge mdcBridge;
+    
 
-    DefaultContextManager(ContextStorage storage, IdGenerator idGenerator, MdcBridge mdcBridge) {
+    DefaultContextManager(ContextStorage storage, IdGenerator idGenerator) {
         this.storage = storage;
         this.idGenerator = idGenerator;
-        this.mdcBridge = mdcBridge;
+        
     }
 
     
@@ -65,23 +65,12 @@ final class DefaultContextManager implements ContextManager {
         ContextSnapshot cur = storage.currentOrNull();
         if (cur != null) return cur;
 
-        // If MDC is present and already has a trace id, adopt it.
-        if (mdcBridge != null) {
-            Optional<ContextSnapshot> opt = mdcBridge.tryExtract();
-            if (opt.isPresent()) {
-                ContextSnapshot snap = opt.get();
-                storage.bind(snap);
-                mdcBridge.apply(snap);
-                return snap;
-            }
-        }
 
         ContextSnapshot snap = ContextSnapshot.builder()
                 .correlationId(idGenerator.newCorrelationId())
                 .propagated(false)
                 .build();
         storage.bind(snap);
-        if (mdcBridge != null) mdcBridge.apply(snap);
         return snap;
     }
 
@@ -89,7 +78,7 @@ final class DefaultContextManager implements ContextManager {
     public ContextScope scope() {
         ensure();
         ContextSnapshot prev = storage.currentOrNull();
-        return new ContextScope(storage, prev, mdcBridge);
+        return new ContextScope(storage, prev);
     }
 
     @Override
@@ -97,8 +86,8 @@ final class DefaultContextManager implements ContextManager {
         if (snapshot == null) throw new IllegalArgumentException("snapshot must not be null");
         ContextSnapshot prev = storage.currentOrNull();
         storage.bind(snapshot);
-        if (mdcBridge != null) mdcBridge.apply(snapshot);
-        return new ContextScope(storage, prev, mdcBridge);
+        
+        return new ContextScope(storage, prev);
     }
 
     @Override
