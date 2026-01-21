@@ -1,0 +1,5 @@
+databaseChangeLog:
+  # Master changelog. For now we only ship a Postgres implementation.
+  # If/when you need H2/MySQL support, add additional include blocks with contexts.
+  - include:
+      file: db/changelog/db.changelog-postgres.yaml

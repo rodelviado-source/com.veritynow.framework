@@ -6,11 +6,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 
 public class InodeManager {
-	
+	private static final Logger LOGGER = LogManager.getLogger();
 	private final JdbcTemplate jdbc;
 	private final InodeRepository inodeRepo;
 	private final DirEntryRepository dirRepo;
@@ -32,6 +34,9 @@ public class InodeManager {
 		this.pathSegRepo = pathSegRepo;
 		this.headRepo = headRepo;
 		this.verRepo = verRepo;
+		
+		LOGGER.info("\n\tInode Manger started");
+		
 	}
 
 
@@ -90,6 +95,7 @@ public class InodeManager {
 		List<InodePathSegmentEntity> segs = pathSegRepo.findAllByInode_IdOrderByOrdAsc(inode.getId());
 		if (segs.isEmpty()) {
 			// No backfill/repair in Phase-1: projection must exist for this inode.
+			LOGGER.warn("Backfill needed");
 			return Optional.empty();
 		}
 		

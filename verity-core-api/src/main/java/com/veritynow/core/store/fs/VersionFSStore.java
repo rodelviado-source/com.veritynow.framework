@@ -63,6 +63,7 @@ public class VersionFSStore
     private final ImmutableBackingStore<String, BlobMeta> backingStore;
 
     public VersionFSStore(Path rootDirectory, ImmutableBackingStore<String, BlobMeta> backingStore) {
+    	super(backingStore.getHashingService());
         Objects.requireNonNull(rootDirectory, "rootDirectory");
         Objects.requireNonNull(backingStore, "backingStore");
 

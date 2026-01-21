@@ -35,29 +35,7 @@ public abstract class AbstractStore<KEY, META> implements Store<KEY, META> {
 		}
 	}
 	
-	public AbstractStore(StoreCapabilities ...ops ) {
-		this.capabilities = Set.of(ops);
-		try {
-			this.hs = new DefaultHashingService("SHA-1");
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException("No such algorithm : SHA-1",e);
-		}
-	}
-	
-	public AbstractStore() {
-		this.capabilities = Set.of(
-				StoreCapabilities.CREATE, 
-				StoreCapabilities.READ, 
-				StoreCapabilities.UPDATE, 
-				StoreCapabilities.DELETE, 
-				StoreCapabilities.UNDELETE,
-				StoreCapabilities.RESTORE);
-		try {
-			this.hs = new DefaultHashingService("SHA-1");
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException("No such algorithm : SHA-1");
-		}
-	}
+		
 	
 	public boolean canCreate() { return capabilities.contains(StoreCapabilities.CREATE) ;}
 	public boolean canRead() { return capabilities.contains(StoreCapabilities.READ) ;}

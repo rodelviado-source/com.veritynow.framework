@@ -118,7 +118,6 @@ public class APIController {
 		}
 	}
 	
-	
 
 	@PutMapping
 	public ResponseEntity<VersionMeta> update(HttpServletRequest request,
@@ -157,7 +156,6 @@ public class APIController {
 		
 	}
 
-		
 	
 	@GetMapping (produces = { MediaType.APPLICATION_OCTET_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE})
 	public void get(HttpServletRequest request, HttpServletResponse response) {

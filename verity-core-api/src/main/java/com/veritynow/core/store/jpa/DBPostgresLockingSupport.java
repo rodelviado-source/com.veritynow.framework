@@ -126,6 +126,7 @@ public final class DBPostgresLockingSupport extends AbstractAuxiliaryDatabaseObj
 	@Override
 	public String[] sqlDropStrings(SqlStringGenerationContext context) {
 		LOGGER.info("\n\tDROPPING Auxillary Tables created by Locking Support");
+		
 		return DROP_STRINGS;
 	}
 

@@ -51,6 +51,8 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
             ContextAwareTransactionManager txnManager,
             LockingService lockingService
     ) {
+   
+    	super(backingStore.getHashingService());
         this.backingStore = backingStore;
         this.txnManager = txnManager;
 		this.lockingService = lockingService;

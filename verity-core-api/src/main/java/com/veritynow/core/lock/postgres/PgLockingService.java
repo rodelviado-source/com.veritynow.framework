@@ -14,6 +14,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,6 +37,8 @@ import com.veritynow.core.store.jpa.PathUtils;
  */
 public class PgLockingService implements LockingService {
 
+	final static Logger  LOGGER = LogManager.getLogger();
+	
     private final JdbcTemplate jdbc;
 
     /**
@@ -54,7 +58,8 @@ public class PgLockingService implements LockingService {
     public PgLockingService(JdbcTemplate jdbc, long ttlMs) {
         this.jdbc = Objects.requireNonNull(jdbc, "JDBC required");
         this.ttlMs = ttlMs;
-
+        LOGGER.info("\n\tPostgres Locking Service Support started ttl = {}", ttlMs);
+        
         if (ttlMs > 0) {
             // Renew at ~1/3 TTL; clamp to a reasonable minimum to avoid a tight loop.
             this.renewEveryMs = Math.max(250L, ttlMs / 3L);

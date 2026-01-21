@@ -3,8 +3,13 @@ package com.veritynow.core.store.spring;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 
+import javax.sql.DataSource;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
@@ -12,6 +17,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 
 import com.veritynow.core.lock.LockingService;
 import com.veritynow.core.lock.postgres.PgLockingService;
@@ -42,12 +48,16 @@ import com.veritynow.core.txn.jdbc.JdbcTransactionService;
 public class VersionStoreConfig {
 	final static Logger  LOGGER = LogManager.getLogger(); 
 	
+	  @Bean
+	public DSLContext dsl(DataSource ds) {
+	   return DSL.using(new TransactionAwareDataSourceProxy(ds), SQLDialect.POSTGRES);
+	}
 	
 	@Bean 
 	HashingService hashingService(@Value("${verity.store.hash.algo:SHA-1}") String algo) throws NoSuchAlgorithmException {
 		return new DefaultHashingService(algo);
 	}
-
+	
 	@Bean 
 	TransactionFinalizer transactionFinalizer() {
 		return new JdbcTransactionFinalizer();
@@ -76,6 +86,8 @@ public class VersionStoreConfig {
 	ContextAwareTransactionManager contextAwareTransactionManager(TransactionService txnService)  {
 		return new ContextAwareTransactionManager(txnService);
 	}
+	
+	
 	
 	// Root directory for filesystem blobs, configurable via application.properties/yaml
     @Bean

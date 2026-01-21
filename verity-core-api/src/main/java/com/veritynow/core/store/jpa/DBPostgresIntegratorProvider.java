@@ -11,10 +11,12 @@ import org.hibernate.integrator.spi.Integrator;
 import org.hibernate.jpa.boot.spi.IntegratorProvider;
 import org.hibernate.jpa.boot.spi.JpaSettings;
 import org.hibernate.service.spi.SessionFactoryServiceRegistry;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.hibernate.autoconfigure.HibernatePropertiesCustomizer;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(name = "verity.db.aux-ddl.enabled", havingValue = "true", matchIfMissing = true)
 public class DBPostgresIntegratorProvider implements IntegratorProvider, Integrator, HibernatePropertiesCustomizer  {
 
 	@Override

@@ -118,6 +118,7 @@ public final class JdbcPublisher {
 
 	    LOGGER.info("No Fence JPAPublish BEFORE moveHead inodeId={} versionId={}", inodeId, versionId);
 
+	    
 	    int rows = jdbc.update(MOVE_HEAD, inodeId, versionId); // <-- only 2 params
 
 	    if (rows == 0) {

@@ -19,7 +19,8 @@ import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 @Configuration
 @Profile("embedded-postgres")
 public class EmbeddedPostgresConfig {
-	final static Logger  LOGGER = LogManager.getLogger(); 
+	final static Logger  LOGGER = LogManager.getLogger();
+	private static EmbeddedPostgres EMBEDDED_POSTGRES;
 	
 	@Bean(destroyMethod = "close")
     public EmbeddedPostgres embeddedPostgres() throws IOException {
@@ -27,9 +28,10 @@ public class EmbeddedPostgresConfig {
         Path dataDir = Files.createTempDirectory("vn-pgdata-");
         Runtime.getRuntime().addShutdownHook(new Thread(() -> deleteRecursively(dataDir)));
         LOGGER.info("\n\tEmbedded Postgres Started");
-        return EmbeddedPostgres.builder()
-                .setDataDirectory(dataDir.toFile())
+        EMBEDDED_POSTGRES = EmbeddedPostgres.builder()
+                .setDataDirectory(dataDir.toFile()).setPort(5432)
                 .start();
+        return EMBEDDED_POSTGRES;
     }
 
     @Bean
@@ -39,19 +41,8 @@ public class EmbeddedPostgresConfig {
     	LOGGER.info("\n\tAdding extension");
     	
         DataSource ds = pg.getPostgresDatabase();
+        pg.getJdbcUrl(null, null);
         return ds;
-//        try (Connection connection = ds.getConnection()) {
-//        	  Resource resource = new ClassPathResource("extensions_ddl.sql"); 	
-//            // Use Spring's ScriptUtils to run the SQL script
-//            // This class can handle multi-line statements and comments
-//            ScriptUtils.executeSqlScript(connection, resource);
-//            LOGGER.info("Database schema initialized from extensions_ddl.sql");
-//        } catch (Exception e) {
-//            LOGGER.error("Failed to initialize database schema: " + e.getMessage());
-//            throw new RuntimeException("Database initialization failed", e);
-//        }
-
-        
     }
 
     private static void deleteRecursively(Path root) {
@@ -64,5 +55,10 @@ public class EmbeddedPostgresConfig {
                         try { Files.deleteIfExists(p); } catch (IOException ignored) {}
                     });
         } catch (IOException ignored) {}
+    }
+    
+    
+    public static EmbeddedPostgres getEmbedded() {
+    	return EMBEDDED_POSTGRES;
     }
 }
