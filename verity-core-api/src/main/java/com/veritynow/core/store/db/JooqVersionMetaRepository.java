@@ -2,6 +2,7 @@ package com.veritynow.core.store.db;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_HEAD;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_VERSION;
+import static org.jooq.impl.DSL.currentOffsetDateTime;
 
 import java.util.List;
 import java.util.Objects;
@@ -9,6 +10,7 @@ import java.util.Optional;
 
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.impl.DSL;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.veritynow.core.store.meta.VersionMeta;
@@ -38,15 +40,10 @@ public final class JooqVersionMetaRepository {
         Objects.requireNonNull(vm, "vme");
         Objects.requireNonNull(inodeId, "inodeId");
         
-        try {
-			System.out.println("===============================================================\n" + JSON.MAPPER.writeValueAsString(vm));
-		} catch (JsonProcessingException e) {
-			//ignore
-		}
         VnNodeVersionRecord inserted = dsl
         	    .insertInto(VN_NODE_VERSION)
         	    .set(VN_NODE_VERSION.INODE_ID, inodeId)
-        	    .set(VN_NODE_VERSION.TIMESTAMP, vm.timestamp())
+        	    .set(VN_NODE_VERSION.TIMESTAMP, DbTime.nowEpochMs())
         	    .set(VN_NODE_VERSION.PATH, vm.path())
         	    .set(VN_NODE_VERSION.OPERATION, vm.operation())
         	    .set(VN_NODE_VERSION.PRINCIPAL, vm.principal())
