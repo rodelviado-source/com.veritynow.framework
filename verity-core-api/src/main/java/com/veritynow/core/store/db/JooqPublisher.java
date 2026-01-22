@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.jooq.CommonTableExpression;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.InsertSetMoreStep;
 import org.jooq.Record2;
 import org.jooq.impl.DSL;
 import org.springframework.dao.DataAccessException;
@@ -22,6 +23,7 @@ import org.springframework.dao.DataAccessException;
 import com.veritynow.core.lock.LockHandle;
 import com.veritynow.core.lock.LockingService;
 import com.veritynow.core.store.meta.VersionMeta;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 
 /**
  * Publisher that moves HEAD rows using jOOQ generated tables.
@@ -66,51 +68,19 @@ public final class JooqPublisher {
   private int persistAndPublishFenced(long inodeId, VersionMeta vm, long fenceToken) {
     Objects.requireNonNull(vm, "vm");
 
-    // Insert the new version row, then move HEAD using the returned version id.
+	// Insert the new version row, then move HEAD using the returned version id.
     // This keeps all store ids inside the persistence layer and avoids confusing inode_id vs version_id.
     CommonTableExpression<Record2<Long, Long>> ins = DSL.name("ins")
         .fields("version_id", "inode_id")
         .as(
-            dsl.insertInto(
-                    VN_NODE_VERSION,
-                    VN_NODE_VERSION.INODE_ID,
-                    VN_NODE_VERSION.TIMESTAMP,
-                    VN_NODE_VERSION.PATH,
-                    VN_NODE_VERSION.OPERATION,
-                    VN_NODE_VERSION.PRINCIPAL,
-                    VN_NODE_VERSION.CORRELATION_ID,
-                    VN_NODE_VERSION.WORKFLOW_ID,
-                    VN_NODE_VERSION.CONTEXT_NAME,
-                    VN_NODE_VERSION.TRANSACTION_ID,
-                    VN_NODE_VERSION.TRANSACTION_RESULT,
-                    VN_NODE_VERSION.HASH,
-                    VN_NODE_VERSION.NAME,
-                    VN_NODE_VERSION.MIME_TYPE,
-                    VN_NODE_VERSION.SIZE
-                )
-                .values(
-                    inodeId,
-                    vm.timestamp(),
-                    vm.path(),
-                    vm.operation(),
-                    vm.principal(),
-                    vm.correlationId(),
-                    vm.workflowId(),
-                    vm.contextName(),
-                    vm.transactionId(),
-                    vm.transactionResult(),
-                    vm.hash(),
-                    vm.name(),
-                    vm.mimeType(),
-                    vm.size()
-                )
+        		insertVersionMeta(vm, inodeId)
                 .returningResult(VN_NODE_VERSION.ID, VN_NODE_VERSION.INODE_ID)
         );
 
     Field<Long> vId = DSL.field(DSL.name("ins", "version_id"), Long.class);
     Field<Long> iId = DSL.field(DSL.name("ins", "inode_id"), Long.class);
 
-    Field<OffsetDateTime> now = DSL.field("now()", OffsetDateTime.class);
+    Field<OffsetDateTime> now =  DSL.currentOffsetDateTime();
 
     try {
       int rows = dsl.with(ins)
@@ -126,7 +96,7 @@ public final class JooqPublisher {
                       iId,
                       vId,
                       DSL.val(fenceToken),
-                      now
+                     now
                   )
                   .from(DSL.table(DSL.name("ins")))
           )
@@ -177,45 +147,13 @@ public final class JooqPublisher {
     CommonTableExpression<Record2<Long, Long>> ins = DSL.name("ins")
         .fields("version_id", "inode_id")
         .as(
-            dsl.insertInto(
-                    VN_NODE_VERSION,
-                    VN_NODE_VERSION.INODE_ID,
-                    VN_NODE_VERSION.TIMESTAMP,
-                    VN_NODE_VERSION.PATH,
-                    VN_NODE_VERSION.OPERATION,
-                    VN_NODE_VERSION.PRINCIPAL,
-                    VN_NODE_VERSION.CORRELATION_ID,
-                    VN_NODE_VERSION.WORKFLOW_ID,
-                    VN_NODE_VERSION.CONTEXT_NAME,
-                    VN_NODE_VERSION.TRANSACTION_ID,
-                    VN_NODE_VERSION.TRANSACTION_RESULT,
-                    VN_NODE_VERSION.HASH,
-                    VN_NODE_VERSION.NAME,
-                    VN_NODE_VERSION.MIME_TYPE,
-                    VN_NODE_VERSION.SIZE
-                )
-                .values(
-                    inodeId,
-                    vm.timestamp(),
-                    vm.path(),
-                    vm.operation(),
-                    vm.principal(),
-                    vm.correlationId(),
-                    vm.workflowId(),
-                    vm.contextName(),
-                    vm.transactionId(),
-                    vm.transactionResult(),
-                    vm.hash(),
-                    vm.name(),
-                    vm.mimeType(),
-                    vm.size()
-                )
+            insertVersionMeta(vm, inodeId)
                 .returningResult(VN_NODE_VERSION.ID, VN_NODE_VERSION.INODE_ID)
         );
 
     Field<Long> vId = DSL.field(DSL.name("ins", "version_id"), Long.class);
     Field<Long> iId = DSL.field(DSL.name("ins", "inode_id"), Long.class);
-    Field<OffsetDateTime> now = DSL.field("now()", OffsetDateTime.class);
+    Field<OffsetDateTime> now = DSL.currentOffsetDateTime();
 
     int rows = dsl.with(ins)
         .insertInto(
@@ -301,5 +239,23 @@ public final class JooqPublisher {
       Thread.currentThread().interrupt();
       throw new RuntimeException("Interrupted while waiting to publish", ie);
     }
+  }
+  
+  private  InsertSetMoreStep<VnNodeVersionRecord> insertVersionMeta(VersionMeta vm, Long inodeId) {
+	  return dsl.insertInto(VN_NODE_VERSION).
+          	set(VN_NODE_VERSION.INODE_ID, inodeId ).
+            set(VN_NODE_VERSION.TIMESTAMP, DbTime.nowEpochMs()).
+            set(VN_NODE_VERSION.PATH, vm.path()).
+            set(VN_NODE_VERSION.OPERATION, vm.operation()).
+            set(VN_NODE_VERSION.PRINCIPAL, vm.principal()).
+            set(VN_NODE_VERSION.CORRELATION_ID, vm.correlationId()).
+            set(VN_NODE_VERSION.WORKFLOW_ID, vm.workflowId()).
+            set(VN_NODE_VERSION.CONTEXT_NAME, vm.contextName()).
+            set(VN_NODE_VERSION.TRANSACTION_ID, vm.transactionId()).
+            set(VN_NODE_VERSION.TRANSACTION_RESULT, vm.transactionResult()).
+            set(VN_NODE_VERSION.HASH, vm.hash()).
+            set(VN_NODE_VERSION.NAME, vm.name()).
+            set( VN_NODE_VERSION.MIME_TYPE, vm.mimeType()).
+            set(VN_NODE_VERSION.SIZE, vm.size());
   }
 }

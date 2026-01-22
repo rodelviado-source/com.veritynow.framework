@@ -20,7 +20,7 @@ import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 @Profile("embedded-postgres")
 public class EmbeddedPostgresConfig {
 	final static Logger  LOGGER = LogManager.getLogger();
-	
+	static EmbeddedPostgres ep;
 	
 	@Bean(destroyMethod = "close")
     public EmbeddedPostgres embeddedPostgres() throws IOException {
@@ -28,10 +28,13 @@ public class EmbeddedPostgresConfig {
         Path dataDir = Files.createTempDirectory("vn-pgdata-");
         Runtime.getRuntime().addShutdownHook(new Thread(() -> deleteRecursively(dataDir)));
         LOGGER.info("\n\tEmbedded Postgres Started");
-        return EmbeddedPostgres.builder()
+        ep = EmbeddedPostgres.builder()
                 .setDataDirectory(dataDir.toFile()).setPort(5432)
                 .start();
+        return ep;
     }
+	
+	
 
     @Bean
     public DataSource dataSource(EmbeddedPostgres pg) throws IOException {
@@ -43,6 +46,9 @@ public class EmbeddedPostgresConfig {
     }
 
     private static void deleteRecursively(Path root) {
+    	if (ep != null) {
+    		ep.getProcess().destroy();
+    	}
     	LOGGER.info("\n\tDeleting dataDir {}", root);
         try {
             if (root == null || !Files.exists(root)) return;

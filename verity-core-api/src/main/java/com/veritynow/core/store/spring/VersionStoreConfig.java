@@ -123,7 +123,7 @@ public class VersionStoreConfig {
     
     @Bean
     @Primary
-    public VersionStore<PK, BlobMeta, VersionMeta> versionJPAStore(
+    public VersionStore<PK, BlobMeta, VersionMeta> versionStore(
     		ImmutableBackingStore<String, BlobMeta> backingStore,
     		DSLContext dsl,
 			RepositoryManager repositoryManager,

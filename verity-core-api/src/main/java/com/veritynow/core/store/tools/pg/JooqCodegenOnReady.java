@@ -115,7 +115,7 @@ private String ltreeBinding;
       try (var conn = dataSource.getConnection()) {
         url = conn.getMetaData().getURL();
       }
-System.out.println("JOOQ_CODEGEN_USING_JDBC URL: " + url);
+      System.out.println("JOOQ_CODEGEN_USING_JDBC URL: " + url);
       
       Configuration cfg = new Configuration()
           .withJdbc(new Jdbc().withUrl(url)

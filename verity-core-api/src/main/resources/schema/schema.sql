@@ -1,3 +1,6 @@
+create schema if not exists "public";
+
+create extension if not exists ltree;
 
 create table "public"."vn_dir_entry" (
   "child_id" bigint not null,
@@ -95,4 +98,4 @@ alter table "public"."vn_node_head" add constraint "fkaono5m08t5x8txq0vg3ca3wdh"
 alter table "public"."vn_node_head" add constraint "fkod48yv13fhdrs5rxjxmj8u1od" foreign key ("version_id") references "public"."vn_node_version" ("id");
 alter table "public"."vn_node_version" add constraint "fkgsea7tlnqrybidbrinb952lw0" foreign key ("inode_id") references "public"."vn_inode" ("id");
 alter table "public"."vn_path_lock" add constraint "vn_path_lock_lock_group_id_fkey" foreign key ("lock_group_id") references "public"."vn_lock_group" ("lock_group_id");
-
+create sequence if not exists "public"."vn_fence_token_seq";
