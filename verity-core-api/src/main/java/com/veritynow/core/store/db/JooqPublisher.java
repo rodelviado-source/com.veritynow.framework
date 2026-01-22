@@ -48,13 +48,13 @@ public final class JooqPublisher {
 
   private final DSLContext dsl;
   private final LockingService lockingService;
-  @SuppressWarnings("unused")
-  private final InodeManager inodeManager;
+  
+  private final RepositoryManager repositoryManager;
 
-  public JooqPublisher(DSLContext dsl, LockingService lockingService, InodeManager inodeManger) {
+  public JooqPublisher(DSLContext dsl, LockingService lockingService, RepositoryManager repositoryManager) {
     this.dsl = Objects.requireNonNull(dsl, "dsl");
     this.lockingService = lockingService; // may be null if running without locking
-    this.inodeManager = Objects.requireNonNull(inodeManger, "inodeManager");
+    this.repositoryManager = Objects.requireNonNull(repositoryManager, "repositoryManager");
   }
 
   /**
@@ -170,7 +170,7 @@ public final class JooqPublisher {
     Objects.requireNonNull(vm, "vm");
     
  // Store-owned inode resolution/creation (O(1) scope_key invariant via projection)
-    Long inodeId = inodeManager.resolveOrCreateInode(vm.path()).getId();
+    Long inodeId = repositoryManager.resolveOrCreateInode(vm.path()).id();
 
     // Insert the new version row, then move HEAD in "degraded" mode (unfenced).
     // Update is only allowed if the existing head is also unfenced.
@@ -259,7 +259,7 @@ public final class JooqPublisher {
     Objects.requireNonNull(lockingService, "Locking service required");
 
     // Store-owned inode resolution/creation (O(1) scope_key invariant via projection)
-    Long inodeId = inodeManager.resolveOrCreateInode(vm.path()).getId();
+    Long inodeId = repositoryManager.resolveOrCreateInode(vm.path()).id();
     
     final int maxAttempts = 3;
     long delayMs = 20;

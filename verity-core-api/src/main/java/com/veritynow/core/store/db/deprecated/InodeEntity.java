@@ -1,8 +1,10 @@
-package com.veritynow.core.store.db;
+package com.veritynow.core.store.db.deprecated;
 
 import java.time.Instant;
 
 import org.hibernate.annotations.Type;
+
+import com.veritynow.core.store.db.DBPostgresLtreeType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

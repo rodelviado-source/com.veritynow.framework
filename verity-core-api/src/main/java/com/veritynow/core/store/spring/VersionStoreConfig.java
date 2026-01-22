@@ -25,13 +25,10 @@ import com.veritynow.core.store.ImmutableBackingStore;
 import com.veritynow.core.store.VersionStore;
 import com.veritynow.core.store.base.DefaultHashingService;
 import com.veritynow.core.store.base.PK;
-import com.veritynow.core.store.db.InodeManager;
-import com.veritynow.core.store.db.JooqDirEntryRepository;
-import com.veritynow.core.store.db.JooqInodePathSegmentRepository;
 import com.veritynow.core.store.db.JooqInodeRepository;
-import com.veritynow.core.store.db.JooqVersionMetaHeadRepository;
 import com.veritynow.core.store.db.JooqVersionMetaRepository;
 import com.veritynow.core.store.db.JooqVersionStore;
+import com.veritynow.core.store.db.RepositoryManager;
 import com.veritynow.core.store.fs.ImmutableFSBackingStore;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
@@ -114,29 +111,14 @@ public class VersionStoreConfig {
     	return new JooqVersionMetaRepository(dsl);
     }
     
-    @Bean 
-    JooqInodePathSegmentRepository JooqInodePathSegmentRepository(DSLContext dsl) {
-    	return new JooqInodePathSegmentRepository(dsl);
-    }
-    
-    @Bean
-    JooqDirEntryRepository jooqDirEntryRepository(DSLContext dsl) {
-    	return new JooqDirEntryRepository(dsl);
-    }
-    
-    @Bean
-    JooqVersionMetaHeadRepository jooqVersionMetaHeadRepository(DSLContext dsl) {
-    	return new JooqVersionMetaHeadRepository(dsl);
-    }
-    
     @Bean
     JooqInodeRepository jooqInodeRepository(DSLContext dsl) {
     	return new JooqInodeRepository(dsl);
     }
     
     @Bean
-    public InodeManager inodeManger(JooqInodeRepository inodeRepo, JooqDirEntryRepository dirRepo, JooqInodePathSegmentRepository pathSegRepo, JooqVersionMetaHeadRepository headRepo, JooqVersionMetaRepository verRepo) {
-    	return new InodeManager(inodeRepo, dirRepo, pathSegRepo, headRepo, verRepo);
+    public RepositoryManager repositoryManager(JooqInodeRepository inodeRepo, JooqVersionMetaRepository verRepo) {
+    	return new RepositoryManager(inodeRepo, verRepo);
     }
     
     @Bean
@@ -144,12 +126,12 @@ public class VersionStoreConfig {
     public VersionStore<PK, BlobMeta, VersionMeta> versionJPAStore(
     		ImmutableBackingStore<String, BlobMeta> backingStore,
     		DSLContext dsl,
-			InodeManager inodeManager,
+			RepositoryManager repositoryManager,
             ContextAwareTransactionManager txnManager,
             LockingService lockingService
             
     ) {
-		return new JooqVersionStore(backingStore, dsl, inodeManager, txnManager, lockingService);
+		return new JooqVersionStore(backingStore, dsl, repositoryManager, txnManager, lockingService);
     }
     
     @Bean

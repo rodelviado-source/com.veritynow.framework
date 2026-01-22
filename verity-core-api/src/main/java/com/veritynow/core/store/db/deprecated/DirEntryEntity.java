@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db;
+package com.veritynow.core.store.db.deprecated;
 
 import java.time.Instant;
 

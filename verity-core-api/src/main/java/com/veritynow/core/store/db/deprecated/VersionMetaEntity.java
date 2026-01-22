@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db;
+package com.veritynow.core.store.db.deprecated;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

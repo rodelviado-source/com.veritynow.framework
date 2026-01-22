@@ -9,29 +9,22 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.veritynow.core.store.db.model.DirEntry;
+import com.veritynow.core.store.db.model.Inode;
+import com.veritynow.core.store.db.model.InodePathSegment;
 import com.veritynow.core.store.meta.VersionMeta;
 
 
 
-public class InodeManager {
+public class RepositoryManager {
 	private static final Logger LOGGER = LogManager.getLogger();
 	private final JooqInodeRepository inodeRepo;
-	private final JooqDirEntryRepository dirRepo;
-	private final JooqInodePathSegmentRepository pathSegRepo;
-	private final JooqVersionMetaHeadRepository headRepo;
 	private final JooqVersionMetaRepository verRepo;
 
-	public InodeManager(JooqInodeRepository inodeRepo, JooqDirEntryRepository dirRepo, JooqInodePathSegmentRepository pathSegRepo, JooqVersionMetaHeadRepository headRepo, JooqVersionMetaRepository verRepo) {
-		Objects.requireNonNull(inodeRepo, InodeEntity.class.getName() + " Repository required");
-		Objects.requireNonNull(dirRepo,   DirEntryEntity.class.getName() + " Repository required");
-		Objects.requireNonNull(pathSegRepo,   InodePathSegmentEntity.class.getName() + " Repository required");
-		Objects.requireNonNull(headRepo,  VersionMetaHeadEntity.class.getName() + " Repository required");
-		Objects.requireNonNull(verRepo,   VersionMeta.class.getName() + " Repository required");
-		
+	public RepositoryManager(JooqInodeRepository inodeRepo,  JooqVersionMetaRepository verRepo) {
+		Objects.requireNonNull(inodeRepo, "Inode Repository required");
+		Objects.requireNonNull(verRepo,    "Version Repository required");
 		this.inodeRepo = inodeRepo;
-		this.dirRepo = dirRepo;
-		this.pathSegRepo = pathSegRepo;
-		this.headRepo = headRepo;
 		this.verRepo = verRepo;
 		
 		LOGGER.info("\n\tInode Manger started");
@@ -40,11 +33,11 @@ public class InodeManager {
 
 
 	public Optional<VersionMeta> getLatestVersionInodeId(Long id) {
-		return  headRepo.findLatestVersionByInodeId(id);
+		return  verRepo.findLatestVersionByInodeId(id);
 	}
 	
-	public List<DirEntryEntity> findAllByParentId(Long id) { 
-		return dirRepo.findAllByParentIdOrderByNameAsc(id);
+	public List<DirEntry> findAllByParentId(Long id) { 
+		return inodeRepo.findAllByParentIdOrderByNameAsc(id);
 	}
 	
 	public List<VersionMeta> findAllByInodeIdOrderByTimestampDescIdDesc(Long inodeId) {
@@ -52,11 +45,11 @@ public class InodeManager {
 	} 
 	
 	public VersionMeta saveVersionMeta(VersionMeta vm) {
-		InodeEntity inode = resolveOrCreateInode(vm.path());
-		return verRepo.save(vm, inode.getId());
+		Inode inode = resolveOrCreateInode(vm.path());
+		return verRepo.save(vm, inode.id());
 	}
 	
-	public InodeEntity rootInode() {
+	public Inode rootInode() {
 	  Long rootId = inodeRepo.findIdByScopeKey(PathKeyCodec.ROOT_LABEL)
 	      .orElseThrow(() -> new IllegalStateException("Root inode missing for scope_key=" + PathKeyCodec.ROOT_LABEL));
 	  return inodeRepo.findById(rootId)
@@ -79,15 +72,15 @@ public class InodeManager {
 	public Optional<String> resolvePathFromInode(Long inodeId) {
         Objects.requireNonNull(inodeId, "inodeId");
 
-		Optional<InodeEntity> inodeOpt = inodeRepo.findById(inodeId);
+		Optional<Inode> inodeOpt = inodeRepo.findById(inodeId);
 		if (inodeOpt.isEmpty()) return Optional.empty();
 		
-		InodeEntity inode = inodeOpt.get();
-		InodeEntity root = rootInode();
+		Inode inode = inodeOpt.get();
+		Inode root = rootInode();
 		
-		if (inode.getId().equals(root.getId())) return Optional.of("/");
+		if (inode.id().equals(root.id())) return Optional.of("/");
 		
-		List<InodePathSegmentEntity> segs = pathSegRepo.findAllByInode_IdOrderByOrdAsc(inode.getId());
+		List<InodePathSegment> segs = inodeRepo.findAllByInodeIdOrderByOrdAsc(inode.id());
 		if (segs.isEmpty()) {
 			// No backfill/repair in Phase-1: projection must exist for this inode.
 			LOGGER.warn("Backfill needed");
@@ -95,8 +88,8 @@ public class InodeManager {
 		}
 		
 		List<String> names = new ArrayList<>(segs.size());
-		for (InodePathSegmentEntity s : segs) {
-			names.add(s.getDirEntry().getName());
+		for (InodePathSegment s : segs) {
+			names.add(s.dirEntry().name());
 		}
 		return Optional.of("/" + String.join("/", names));
     }
@@ -105,29 +98,29 @@ public class InodeManager {
     // inode path resolution / creation (no full-path column)
     // -----------------------------
 
-    public InodeEntity resolveOrCreateInode(String nodePath) {
+    public Inode resolveOrCreateInode(String nodePath) {
         List<String> segs = PathUtils.splitSegments(nodePath);
-        InodeEntity cur = rootInode();
+        Inode cur = rootInode();
 
         for (String seg : segs) {
-            Optional<DirEntryEntity> e = dirRepo.findByParentIdAndName(cur.getId(), seg);
+            Optional<DirEntry> e = inodeRepo.findByParentIdAndName(cur.id(), seg);
             if (e.isPresent()) {
-                cur = e.get().getChild();
+                cur = e.get().child();
                 continue;
             }
-            String childScopeKey = PathKeyCodec.appendSegLabel(cur.getScopeKey(), PathKeyCodec.label(seg));
+            String childScopeKey = PathKeyCodec.appendSegLabel(cur.scopeKey(), PathKeyCodec.label(seg));
             
-            InodeEntity child = inodeRepo.save(new InodeEntity(Instant.now(), childScopeKey));
-			DirEntryEntity entry = dirRepo.save(new DirEntryEntity(cur, seg, child));
+            Inode child = inodeRepo.save(new Inode(Instant.now(), childScopeKey));
+			DirEntry entry = inodeRepo.save(new DirEntry(cur, seg, child));
 			
 			// Store-owned projection (Phase-1): inode -> ordered direntry chain
-			List<InodePathSegmentEntity> parentSegs = pathSegRepo.findAllByInode_IdOrderByOrdAsc(cur.getId());
-			List<InodePathSegmentEntity> childSegs = new ArrayList<>(parentSegs.size() + 1);
-			for (InodePathSegmentEntity ps : parentSegs) {
-				childSegs.add(new InodePathSegmentEntity(child, ps.getOrd(), ps.getDirEntry()));
+			List<InodePathSegment> parentSegs = inodeRepo.findAllByInodeIdOrderByOrdAsc(cur.id());
+			List<InodePathSegment> childSegs = new ArrayList<>(parentSegs.size() + 1);
+			for (InodePathSegment ps : parentSegs) {
+				childSegs.add(new InodePathSegment(child, ps.ord(), ps.dirEntry()));
 			}
-			childSegs.add(new InodePathSegmentEntity(child, parentSegs.size(), entry));
-			pathSegRepo.saveAll(childSegs);
+			childSegs.add(new InodePathSegment(child, parentSegs.size(), entry));
+			inodeRepo.saveAll(childSegs);
 			
             cur = child;
         }
@@ -141,7 +134,7 @@ public class InodeManager {
         if (inodeRepo.findIdByScopeKey(PathKeyCodec.ROOT_LABEL).isPresent()) {
             return;
         }
-        inodeRepo.save(new InodeEntity(Instant.now(), PathKeyCodec.ROOT_LABEL));
+        inodeRepo.save(new Inode(Instant.now(), PathKeyCodec.ROOT_LABEL));
     }
 
 

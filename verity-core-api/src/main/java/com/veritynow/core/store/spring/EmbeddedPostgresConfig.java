@@ -20,7 +20,7 @@ import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 @Profile("embedded-postgres")
 public class EmbeddedPostgresConfig {
 	final static Logger  LOGGER = LogManager.getLogger();
-	private static EmbeddedPostgres EMBEDDED_POSTGRES;
+	
 	
 	@Bean(destroyMethod = "close")
     public EmbeddedPostgres embeddedPostgres() throws IOException {
@@ -28,10 +28,9 @@ public class EmbeddedPostgresConfig {
         Path dataDir = Files.createTempDirectory("vn-pgdata-");
         Runtime.getRuntime().addShutdownHook(new Thread(() -> deleteRecursively(dataDir)));
         LOGGER.info("\n\tEmbedded Postgres Started");
-        EMBEDDED_POSTGRES = EmbeddedPostgres.builder()
+        return EmbeddedPostgres.builder()
                 .setDataDirectory(dataDir.toFile()).setPort(5432)
                 .start();
-        return EMBEDDED_POSTGRES;
     }
 
     @Bean
@@ -39,9 +38,7 @@ public class EmbeddedPostgresConfig {
         // Provides a ready JDBC DataSource to the embedded instance
     	LOGGER.info("\n\tUsing Postgres as Datasource");
     	LOGGER.info("\n\tAdding extension");
-    	
         DataSource ds = pg.getPostgresDatabase();
-        pg.getJdbcUrl(null, null);
         return ds;
     }
 
@@ -57,8 +54,4 @@ public class EmbeddedPostgresConfig {
         } catch (IOException ignored) {}
     }
     
-    
-    public static EmbeddedPostgres getEmbedded() {
-    	return EMBEDDED_POSTGRES;
-    }
 }

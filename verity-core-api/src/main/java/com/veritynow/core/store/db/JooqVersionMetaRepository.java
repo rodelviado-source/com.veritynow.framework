@@ -1,14 +1,14 @@
 package com.veritynow.core.store.db;
 
-import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
+import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_HEAD;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_VERSION;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.jooq.DSLContext;
 import org.jooq.Record;
-import org.jooq.Result;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.veritynow.core.store.meta.VersionMeta;
@@ -27,16 +27,11 @@ public final class JooqVersionMetaRepository {
     public List<VersionMeta> findAllByInodeIdOrderByTimestampDescIdDesc(Long inodeId) {
         Objects.requireNonNull(inodeId, "inodeId");
 
-        Result<Record> rows = dsl
-            .select(VN_NODE_VERSION.fields())
-            .select(VN_INODE.fields())
-            .from(VN_NODE_VERSION)
-            .join(VN_INODE).on(VN_INODE.ID.eq(VN_NODE_VERSION.INODE_ID))
+        return dsl
+            .selectFrom(VN_NODE_VERSION)
             .where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
             .orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-            .fetch();
-
-        return rows.map(this::toVersionMeta);
+            .fetch(this::nodeVersionToVersionMeta);
     }
 
     public VersionMeta save(VersionMeta vm, Long inodeId) {
@@ -71,13 +66,44 @@ public final class JooqVersionMetaRepository {
         	    throw new IllegalStateException("Insert into vn_node_version did not return an id");
         	}
 
-        	return toVersionMeta(inserted);
+        	return nodeVersionToVersionMeta(inserted);
  
     }
 
-       
+    public Optional<VersionMeta> findLatestVersionByInodeId(Long inodeId) {
+        Objects.requireNonNull(inodeId, "inodeId");
+
+        return dsl
+            .select(VN_NODE_VERSION.fields())
+            .from(VN_NODE_HEAD)
+            .join(VN_NODE_VERSION)
+                .on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID))
+            .where(VN_NODE_HEAD.INODE_ID.eq(inodeId))
+            .fetchOptional(this::fromHeadVersiontoVersionMeta); // mapper reads VN_NODE_VERSION only
+    }
     
-    private VersionMeta toVersionMeta(VnNodeVersionRecord r) {
+    
+    
+    private VersionMeta fromHeadVersiontoVersionMeta(Record r) {
+        Long size = r.get(VN_NODE_VERSION.SIZE);
+        return new VersionMeta(
+            r.get(VN_NODE_VERSION.HASH),
+            r.get(VN_NODE_VERSION.NAME),
+            r.get(VN_NODE_VERSION.MIME_TYPE),
+            size == null ? 0L : size,
+            r.get(VN_NODE_VERSION.PATH),
+            r.get(VN_NODE_VERSION.TIMESTAMP),
+            r.get(VN_NODE_VERSION.OPERATION),
+            r.get(VN_NODE_VERSION.PRINCIPAL),
+            r.get(VN_NODE_VERSION.CORRELATION_ID),
+            r.get(VN_NODE_VERSION.WORKFLOW_ID),
+            r.get(VN_NODE_VERSION.CONTEXT_NAME),
+            r.get(VN_NODE_VERSION.TRANSACTION_ID),
+            r.get(VN_NODE_VERSION.TRANSACTION_RESULT)
+        );
+    }   
+    
+    private VersionMeta nodeVersionToVersionMeta(VnNodeVersionRecord r) {
         Long size = r.getSize();
         return new VersionMeta(
             r.getHash(),
@@ -97,25 +123,6 @@ public final class JooqVersionMetaRepository {
         );
     }
     
-    private VersionMeta toVersionMeta(Record r) {
-        Long size = r.get(VN_NODE_VERSION.SIZE);
-
-        return new VersionMeta(
-            r.get(VN_NODE_VERSION.HASH),
-            r.get(VN_NODE_VERSION.NAME),
-            r.get(VN_NODE_VERSION.MIME_TYPE),
-            size == null ? 0L : size,
-
-            r.get(VN_NODE_VERSION.PATH),
-            r.get(VN_NODE_VERSION.TIMESTAMP),
-            r.get(VN_NODE_VERSION.OPERATION),
-            r.get(VN_NODE_VERSION.PRINCIPAL),
-            r.get(VN_NODE_VERSION.CORRELATION_ID),
-            r.get(VN_NODE_VERSION.WORKFLOW_ID),
-            r.get(VN_NODE_VERSION.CONTEXT_NAME),
-            r.get(VN_NODE_VERSION.TRANSACTION_ID),
-            r.get(VN_NODE_VERSION.TRANSACTION_RESULT)
-        );
-    }
+    
 
 }

@@ -26,6 +26,7 @@ import com.veritynow.core.store.base.AbstractStore;
 import com.veritynow.core.store.base.PK;
 import com.veritynow.core.store.base.PathEvent;
 import com.veritynow.core.store.base.StoreContext;
+import com.veritynow.core.store.db.model.DirEntry;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.txn.jooq.ContextAwareTransactionManager;
@@ -42,12 +43,12 @@ public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements Ver
     LockingService lockingService;
     
     private final JooqPublisher publisher;
-	private final InodeManager inodeManager;
+	private final RepositoryManager repositoryManager;
 
     public JooqVersionStore(
             ImmutableBackingStore<String, BlobMeta> backingStore,
 			DSLContext dsl,
-			InodeManager inodeManager,
+			RepositoryManager repositoryManager,
             ContextAwareTransactionManager txnManager,
             LockingService lockingService
     ) {
@@ -56,10 +57,10 @@ public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements Ver
         this.backingStore = backingStore;
         this.txnManager = txnManager;
 		this.lockingService = lockingService;
-		this.publisher  = new JooqPublisher(dsl, lockingService, inodeManager);
-		this.inodeManager = Objects.requireNonNull(inodeManager, "InodeManager required");
+		this.publisher  = new JooqPublisher(dsl, lockingService, repositoryManager);
+		this.repositoryManager = Objects.requireNonNull(repositoryManager, "repositoryManager required");
         
-		inodeManager.ensureRootInode();
+		repositoryManager.ensureRootInode();
         
         if (publisher.isLockingCapable()) {
         	DBUtil.ensureProjectionReady(dsl);
@@ -271,7 +272,7 @@ public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements Ver
     public Optional<VersionMeta> getLatestVersion(String nodePath) throws IOException {
         Objects.requireNonNull(nodePath, "nodePath");
         nodePath = PathUtils.normalizePath(nodePath);
-        Optional<Long> inodeIdOpt = inodeManager.resolveInodeId(nodePath);
+        Optional<Long> inodeIdOpt = repositoryManager.resolveInodeId(nodePath);
         if (inodeIdOpt.isEmpty()) return Optional.empty();
         
         Long inodeId = inodeIdOpt.get();
@@ -285,16 +286,16 @@ public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements Ver
 
         nodePath = PathUtils.normalizePath(nodePath);
 
-        Optional<Long> inodeIdOpt = inodeManager.resolveInodeId(nodePath);
+        Optional<Long> inodeIdOpt = repositoryManager.resolveInodeId(nodePath);
         if (inodeIdOpt.isEmpty()) return List.of();
 
         Long inodeId = inodeIdOpt.get();
         List<VersionMeta> out = new ArrayList<>();
-        // container semantics: latest under each direct child leaf :contentReference[oaicite:11]{index=11}
-        List<DirEntryEntity> children = inodeManager.findAllByParentId(inodeId);
-        for (DirEntryEntity child : children) {
-            Long childId = child.getChild().getId();
-            Optional<VersionMeta> vmOpt = getLatestVersionByInodeId(childId);
+        Optional<VersionMeta> vmOpt;
+        List<DirEntry> children = repositoryManager.findAllByParentId(inodeId);
+        for (DirEntry child : children) {
+            Long childId = child.child().id();
+            vmOpt = getLatestVersionByInodeId(childId);
             if (vmOpt.isPresent()) out.add(vmOpt.get());
         }
         
@@ -308,15 +309,15 @@ public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements Ver
 
         nodePath = PathUtils.normalizePath(nodePath);
 
-        Optional<Long> inodeIdOpt = inodeManager.resolveInodeId(nodePath);
+        Optional<Long> inodeIdOpt = repositoryManager.resolveInodeId(nodePath);
         if (inodeIdOpt.isEmpty()) return List.of();
 
         Long inodeId = inodeIdOpt.get();
         String np = PathUtils.trimEndingSlash(nodePath);
 
-        List<DirEntryEntity> children = inodeManager.findAllByParentId(inodeId);
+        List<DirEntry> children = repositoryManager.findAllByParentId(inodeId);
         return children.stream()
-                .map(de -> np + "/" + de.getName())
+                .map(de -> np + "/" + de.name())
                 .collect(Collectors.toList());
     }
 
@@ -327,12 +328,12 @@ public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements Ver
 
         nodePath = PathUtils.normalizePath(nodePath);
 
-        Optional<Long> inodeIdOpt = inodeManager.resolveInodeId(nodePath);
+        Optional<Long> inodeIdOpt = repositoryManager.resolveInodeId(nodePath);
         if (inodeIdOpt.isEmpty()) return List.of();
 
         Long inodeId = inodeIdOpt.get();
 
-        return inodeManager.findAllByInodeIdOrderByTimestampDescIdDesc(inodeId);
+        return repositoryManager.findAllByInodeIdOrderByTimestampDescIdDesc(inodeId);
         
    
         
@@ -427,7 +428,7 @@ public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements Ver
  
 
     private Optional<VersionMeta> getLatestVersionByInodeId(Long id) {
-    	return inodeManager.getLatestVersionInodeId(id);
+    	return repositoryManager.getLatestVersionInodeId(id);
     }
 
     
