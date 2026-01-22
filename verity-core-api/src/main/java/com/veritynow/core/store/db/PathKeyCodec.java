@@ -1,4 +1,4 @@
-package com.veritynow.core.store.jpa;
+package com.veritynow.core.store.db;
 
 import java.util.ArrayList;
 import java.util.List;

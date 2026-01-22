@@ -1,4 +1,4 @@
-package com.veritynow.core.store.jpa;
+package com.veritynow.core.store.db;
 
 import java.time.Instant;
 
@@ -41,6 +41,13 @@ public class VersionMetaHeadEntity {
         this.inode = inode;
         this.headVersion = headVersion;
         this.updatedAt = Instant.now();
+    }
+    
+    public VersionMetaHeadEntity(InodeEntity inode, VersionMetaEntity headVersion, Long fenceToken, Instant updatedAt) {
+        this.inode = inode;
+        this.headVersion = headVersion;
+        this.fenceToken = fenceToken;
+        this.updatedAt = updatedAt;
     }
 
     public Long getId() { return id; }

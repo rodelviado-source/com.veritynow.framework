@@ -1,4 +1,4 @@
-package com.veritynow.core.txn.jdbc;
+package com.veritynow.core.txn.jooq;
 
 import java.util.Objects;
 import java.util.Optional;

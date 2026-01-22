@@ -4,14 +4,6 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
-import com.veritynow.core.store.jooq.LTree;
-import com.veritynow.core.store.jooq.LTreeBinding;
-import com.veritynow.core.store.persistence.jooq.Indexes;
-import com.veritynow.core.store.persistence.jooq.Keys;
-import com.veritynow.core.store.persistence.jooq.Public;
-import com.veritynow.core.store.persistence.jooq.tables.VnLockGroup.VnLockGroupPath;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnPathLockRecord;
-
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,6 +33,14 @@ import org.jooq.impl.DSL;
 import org.jooq.impl.DefaultDataType;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
+
+import com.veritynow.core.store.db.jooq.binding.LTree;
+import com.veritynow.core.store.db.jooq.binding.LTreeBinding;
+import com.veritynow.core.store.persistence.jooq.Indexes;
+import com.veritynow.core.store.persistence.jooq.Keys;
+import com.veritynow.core.store.persistence.jooq.Public;
+import com.veritynow.core.store.persistence.jooq.tables.VnLockGroup.VnLockGroupPath;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnPathLockRecord;
 
 
 /**

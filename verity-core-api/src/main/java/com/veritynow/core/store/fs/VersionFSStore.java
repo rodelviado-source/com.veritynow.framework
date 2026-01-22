@@ -26,7 +26,7 @@ import com.veritynow.core.store.base.AbstractStore;
 import com.veritynow.core.store.base.PK;
 import com.veritynow.core.store.base.PathEvent;
 import com.veritynow.core.store.base.StoreContext;
-import com.veritynow.core.store.jpa.PathUtils;
+import com.veritynow.core.store.db.PathUtils;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 

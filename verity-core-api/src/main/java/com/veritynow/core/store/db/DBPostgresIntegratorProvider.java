@@ -1,4 +1,4 @@
-package com.veritynow.core.store.jpa;
+package com.veritynow.core.store.db;
 
 import java.util.Collections;
 import java.util.List;

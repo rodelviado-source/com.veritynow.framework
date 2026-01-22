@@ -1,7 +1,10 @@
 package com.veritynow.core.lock.postgres;
 
-import java.sql.Array;
-import java.sql.PreparedStatement;
+import static com.veritynow.core.store.persistence.jooq.Sequences.VN_FENCE_TOKEN_SEQ;
+import static com.veritynow.core.store.persistence.jooq.Tables.VN_LOCK_GROUP;
+import static com.veritynow.core.store.persistence.jooq.Tables.VN_PATH_LOCK;
+
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -16,7 +19,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Table;
+import org.jooq.impl.DSL;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,47 +31,44 @@ import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextSnapshot;
 import com.veritynow.core.lock.LockHandle;
 import com.veritynow.core.lock.LockingService;
-import com.veritynow.core.store.jpa.PathKeyCodec;
-import com.veritynow.core.store.jpa.PathUtils;
+import com.veritynow.core.store.db.PathKeyCodec;
+import com.veritynow.core.store.db.PathUtils;
+import com.veritynow.core.store.db.jooq.binding.LTree;
 
 /**
  * Postgres locking kernel: exclusive subtree locking using ltree scope keys.
  *
- * Alignment rules:
- * - Locking does not compute segment hashes or ltree codecs.
- * - Store provides precomputed ltree scope keys (per-inode) for requested paths.
+ * jOOQ version (no JdbcTemplate):
+ * - conflict detection uses explicit CROSS JOIN unnest(text[]) and ltree @>/<@ predicates
+ * - fence token from VN_FENCE_TOKEN_SEQ
+ * - lock group / path locks inserted via DSL
+ * - release / renew via DSL
  */
 public class PgLockingService implements LockingService {
 
-	final static Logger  LOGGER = LogManager.getLogger();
-	
-    private final JdbcTemplate jdbc;
+    private static final Logger LOGGER = LogManager.getLogger();
 
-    /**
-     * Lease TTL in milliseconds. When negative, leases are disabled and locks behave as before (no expiry).
-     */
+    private final DSLContext dsl;
+
+    /** Lease TTL in milliseconds. When <= 0, leases disabled. */
     private final long ttlMs;
 
-    /**
-     * Renewal interval in milliseconds (only used when ttlMs > 0).
-     */
+    /** Renewal interval in milliseconds (only used when ttlMs > 0). */
     private final long renewEveryMs;
 
     private final ScheduledExecutorService renewScheduler;
     private final ConcurrentMap<UUID, ScheduledFuture<?>> renewTasks = new ConcurrentHashMap<>();
-    
 
-    public PgLockingService(JdbcTemplate jdbc, long ttlMs) {
-        this.jdbc = Objects.requireNonNull(jdbc, "JDBC required");
+    public PgLockingService(DSLContext dsl, long ttlMs) {
+        this.dsl = Objects.requireNonNull(dsl, "dsl required");
         this.ttlMs = ttlMs;
-        LOGGER.info("\n\tPostgres Locking Service Support started ttl = {}", ttlMs);
-        
+
+        LOGGER.info("\n\tPostgres Locking Service started ttl = {}", ttlMs);
+
         if (ttlMs > 0) {
-            // Renew at ~1/3 TTL; clamp to a reasonable minimum to avoid a tight loop.
             this.renewEveryMs = Math.max(250L, ttlMs / 3L);
             this.renewScheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
+                @Override public Thread newThread(Runnable r) {
                     Thread t = new Thread(r, "verity-lock-lease-renewer");
                     t.setDaemon(true);
                     return t;
@@ -77,11 +80,9 @@ public class PgLockingService implements LockingService {
         }
     }
 
-    /**
-     * Backwards-compatible constructor: TTL disabled (pre-TTL behavior).
-     */
-    public PgLockingService(JdbcTemplate jdbc) {
-        this(jdbc, -1L);
+    /** Backwards-compatible: TTL disabled. */
+    public PgLockingService(DSLContext dsl) {
+        this(dsl, -1L);
     }
 
     @Override
@@ -91,51 +92,39 @@ public class PgLockingService implements LockingService {
 
         ContextSnapshot snap = Context.snapshot();
         String ownerId = snap.transactionIdOrNull();
-        
-        if (ownerId == null || ownerId.isBlank()) {
-            ownerId = snap.correlationId();
-        }
-        if (ownerId == null || ownerId.isBlank()) {
-            throw new IllegalStateException("No transactionId/correlationId in Context");
-        }
+        if (ownerId == null || ownerId.isBlank()) ownerId = snap.correlationId();
+        if (ownerId == null || ownerId.isBlank()) throw new IllegalStateException("No transactionId/correlationId in Context");
 
         List<String> normalized = paths.stream()
-                .filter(Objects::nonNull)
-                .map(PathUtils::normalizePath)
-                .distinct()
-                .sorted()
-                .toList();
+            .filter(Objects::nonNull)
+            .map(PathUtils::normalizePath)
+            .distinct()
+            .sorted()
+            .toList();
 
-        if (normalized.isEmpty()) {
-            throw new IllegalArgumentException("No scopes provided");
-        }
+        if (normalized.isEmpty()) throw new IllegalArgumentException("No scopes provided");
 
         List<String> minimalScopes = minimizeScopes(normalized);
 
-        // Resolve ltree scope keys using store-owned codec logic. The inode may not exist yet
-        // (e.g., callers lock an intent path before creation), so we must not require resolution
-        // through the inode/direntry graph here.
-        List<String> scopeKeys = minimalScopes.stream()
-                .map(PathKeyCodec::toLTree)
-                .toList();
+        // store-owned codec
+        List<String> scopeKeyStrings = minimalScopes.stream()
+            .map(PathKeyCodec::toLTree)
+            .toList();
 
-        // 1) Conflict check
-        if (existsConflicts(ownerId, scopeKeys)) {
+        // 1) conflict check
+        if (existsConflicts(ownerId, scopeKeyStrings)) {
             throw new IllegalStateException("Lock conflict");
         }
 
-        // 2) Allocate fence token
+        // 2) fence token
         long fenceToken = nextFenceToken();
 
-        // 3) Create lock group
+        // 3) lock group
         UUID lockGroupId = UUID.randomUUID();
         insertLockGroup(lockGroupId, ownerId, fenceToken);
 
-        // 4) Insert lock rows (scope keys already derived by store)
-        insertPathLocks(lockGroupId, ownerId, scopeKeys);
-
-        // 5) For transparency/debugging, capture derived scope keys as text
-        //List<String> scopeKeys = resolveScopeKeys(minimalScopes);
+        // 4) lock rows
+        insertPathLocks(lockGroupId, ownerId, scopeKeyStrings);
 
         LockHandle handle = new LockHandle(ownerId, lockGroupId, fenceToken);
         startLeaseRenewal(handle);
@@ -149,98 +138,131 @@ public class PgLockingService implements LockingService {
 
         stopLeaseRenewal(handle.lockGroupId());
 
-        jdbc.update(
-            "UPDATE vn_path_lock " +
-            "SET active = false, released_at = now() " +
-            "WHERE lock_group_id = ? AND active = true",
-            handle.lockGroupId()
-        );
+        dsl.update(VN_PATH_LOCK)
+           .set(VN_PATH_LOCK.ACTIVE, false)
+           .set(VN_PATH_LOCK.RELEASED_AT, DSL.currentOffsetDateTime())
+           .where(VN_PATH_LOCK.LOCK_GROUP_ID.eq(handle.lockGroupId())
+               .and(VN_PATH_LOCK.ACTIVE.eq(true)))
+           .execute();
 
-        jdbc.update(
-            "UPDATE vn_lock_group " +
-            "SET active = false, released_at = now() " +
-            "WHERE lock_group_id = ? AND active = true",
-            handle.lockGroupId()
-        );
+        dsl.update(VN_LOCK_GROUP)
+           .set(VN_LOCK_GROUP.ACTIVE, false)
+           .set(VN_LOCK_GROUP.RELEASED_AT, DSL.currentOffsetDateTime())
+           .where(VN_LOCK_GROUP.LOCK_GROUP_ID.eq(handle.lockGroupId())
+               .and(VN_LOCK_GROUP.ACTIVE.eq(true)))
+           .execute();
     }
 
-    private boolean existsConflicts(String ownerId, List<String> scopeKeys) {
-        Integer v = jdbc.query(con -> {
-            PreparedStatement ps = con.prepareStatement(
-                // Compute candidate ltree[] once, then use for overlap predicates.
-                "WITH keys AS (" +
-                "  SELECT array_agg(p::ltree) AS ks " +
-                "  FROM unnest(?::text[]) AS p" +
-                ") " +
-                "SELECT CASE WHEN EXISTS (" +
-                "  SELECT 1 " +
-                "  FROM vn_path_lock pl " +
-                "  JOIN vn_lock_group lg ON lg.lock_group_id = pl.lock_group_id " +
-                "  CROSS JOIN keys " +
-                "  WHERE pl.active = true " +
-                "    AND lg.active = true " +
-                "    AND (lg.expires_at IS NULL OR lg.expires_at > now()) " +
-                "    AND pl.owner_id <> ? " +
-                "    AND ( " +
-                "      pl.scope_key @> ANY (keys.ks) " +
-                "      OR pl.scope_key <@ ANY (keys.ks) " +
-                "    )" +
-                ") THEN 1 ELSE 0 END"
-            );
+    // ---------- jOOQ kernel ops ----------
 
-            Array arr = con.createArrayOf("text", scopeKeys.toArray(String[]::new));
-            ps.setArray(1, arr);
-            ps.setString(2, ownerId);
-            return ps;
-        }, rs -> rs.next() ? rs.getInt(1) : 0);
+    private boolean existsConflicts(String ownerId, List<String> scopeKeyStrings) {
+        // Derived table: unnest(text[]) -> p(p)
+        // We cast each p to ltree on the fly, preserving your original SQL semantics.
+        Table<?> p = DSL.table("unnest({0}::text[]) as p(p)", DSL.val(scopeKeyStrings.toArray(String[]::new)));
+        Field<String> pText = DSL.field(DSL.name("p", "p"), String.class);
+        Field<LTree> k = DSL.field("{0}::ltree", LTree.class, pText);
 
-        return v != null && v.intValue() == 1;
+        // pl.scope_key @> k OR pl.scope_key <@ k
+        // Use PlainSQL conditions to preserve operator semantics with your LTree binding.
+        var overlap =
+            DSL.condition("{0} @> {1}", VN_PATH_LOCK.SCOPE_KEY, k)
+               .or(DSL.condition("{0} <@ {1}", VN_PATH_LOCK.SCOPE_KEY, k));
+
+        return dsl.fetchExists(
+            dsl.selectOne()
+               .from(VN_PATH_LOCK)
+               .join(VN_LOCK_GROUP).on(VN_LOCK_GROUP.LOCK_GROUP_ID.eq(VN_PATH_LOCK.LOCK_GROUP_ID))
+               .crossJoin(p)
+               .where(VN_PATH_LOCK.ACTIVE.eq(true))
+               .and(VN_LOCK_GROUP.ACTIVE.eq(true))
+               .and(DSL.condition("( {0} is null OR {0} > now() )", VN_LOCK_GROUP.EXPIRES_AT))
+               .and(VN_PATH_LOCK.OWNER_ID.ne(ownerId))
+               .and(overlap)
+        );
     }
 
     private long nextFenceToken() {
-        Long v = jdbc.queryForObject("select nextval('vn_fence_token_seq')", Long.class);
+    	Long v = dsl.select(VN_FENCE_TOKEN_SEQ.nextval()).fetchOne(0, Long.class);
         if (v == null) throw new IllegalStateException("Failed to allocate fence token");
-        return v;
+        return v.longValue();
     }
 
     private void insertLockGroup(UUID lockGroupId, String ownerId, long fenceToken) {
         if (ttlMs > 0) {
-            jdbc.update(
-                "INSERT INTO vn_lock_group(lock_group_id, owner_id, fence_token, active, acquired_at, expires_at) " +
-                "VALUES (?, ?, ?, true, now(), now() + (? * interval '1 millisecond'))",
-                lockGroupId, ownerId, fenceToken, ttlMs
-            );
+            // expires_at = now() + ttlMs * interval '1 millisecond'
+            Field<OffsetDateTime> expiresAt =
+                DSL.field("now() + ({0} * interval '1 millisecond')", OffsetDateTime.class, DSL.val(ttlMs));
+
+            dsl.insertInto(VN_LOCK_GROUP)
+               .set(VN_LOCK_GROUP.LOCK_GROUP_ID, lockGroupId)
+               .set(VN_LOCK_GROUP.OWNER_ID, ownerId)
+               .set(VN_LOCK_GROUP.FENCE_TOKEN, fenceToken)
+               .set(VN_LOCK_GROUP.ACTIVE, true)
+               .set(VN_LOCK_GROUP.ACQUIRED_AT, DSL.currentOffsetDateTime())
+               .set(VN_LOCK_GROUP.EXPIRES_AT, expiresAt)
+               .execute();
         } else {
-            // TTL disabled: expires_at stays NULL, meaning infinite lease.
-            jdbc.update(
-                "INSERT INTO vn_lock_group(lock_group_id, owner_id, fence_token, active, acquired_at, expires_at) " +
-                "VALUES (?, ?, ?, true, now(), NULL)",
-                lockGroupId, ownerId, fenceToken
-            );
+            dsl.insertInto(VN_LOCK_GROUP)
+               .set(VN_LOCK_GROUP.LOCK_GROUP_ID, lockGroupId)
+               .set(VN_LOCK_GROUP.OWNER_ID, ownerId)
+               .set(VN_LOCK_GROUP.FENCE_TOKEN, fenceToken)
+               .set(VN_LOCK_GROUP.ACTIVE, true)
+               .set(VN_LOCK_GROUP.ACQUIRED_AT, DSL.currentOffsetDateTime())
+               .setNull(VN_LOCK_GROUP.EXPIRES_AT)
+               .execute();
         }
     }
+
+    private void insertPathLocks(UUID lockGroupId, String ownerId, List<String> scopeKeyStrings) {
+        // No synthesis: scope keys are store-derived; acquired_at has DB default, but we can set explicitly as before.
+        List<org.jooq.Query> inserts = new ArrayList<>(scopeKeyStrings.size());
+        for (String s : scopeKeyStrings) {
+            inserts.add(
+                dsl.insertInto(VN_PATH_LOCK)
+                   .set(VN_PATH_LOCK.LOCK_GROUP_ID, lockGroupId)
+                   .set(VN_PATH_LOCK.OWNER_ID, ownerId)
+                   .set(VN_PATH_LOCK.SCOPE_KEY, LTree.of(s))
+                   .set(VN_PATH_LOCK.ACTIVE, true)
+                   .set(VN_PATH_LOCK.ACQUIRED_AT, DSL.currentOffsetDateTime())
+            );
+        }
+        dsl.batch(inserts).execute();
+    }
+
+    private boolean renewLease(LockHandle handle) {
+        if (ttlMs <= 0) return true;
+
+        Field<OffsetDateTime> newExpiry =
+            DSL.field("now() + ({0} * interval '1 millisecond')", OffsetDateTime.class, DSL.val(ttlMs));
+
+        int rows = dsl.update(VN_LOCK_GROUP)
+            .set(VN_LOCK_GROUP.EXPIRES_AT, newExpiry)
+            .where(VN_LOCK_GROUP.LOCK_GROUP_ID.eq(handle.lockGroupId()))
+            .and(VN_LOCK_GROUP.ACTIVE.eq(true))
+            .and(VN_LOCK_GROUP.OWNER_ID.eq(handle.ownerId()))
+            .and(VN_LOCK_GROUP.FENCE_TOKEN.eq(handle.fenceToken()))
+            .and(DSL.condition("( {0} is null OR {0} > now() )", VN_LOCK_GROUP.EXPIRES_AT))
+            .execute();
+
+        return rows == 1;
+    }
+
+    // ---------- lease scheduler (unchanged semantics) ----------
 
     private void startLeaseRenewal(LockHandle handle) {
         if (handle == null) return;
         if (ttlMs <= 0) return;
         if (renewScheduler == null) return;
 
-        // Avoid duplicate tasks for the same lock group.
         renewTasks.computeIfAbsent(handle.lockGroupId(), lgid -> {
             Runnable r = () -> {
                 try {
                     boolean ok = renewLease(handle);
-                    if (!ok) {
-                        stopLeaseRenewal(lgid);
-                    }
+                    if (!ok) stopLeaseRenewal(lgid);
                 } catch (Throwable t) {
-                    // Renewal failures should not crash the process. If renewal is unstable,
-                    // allow the lease to expire and let fencing prevent stale publishes.
                     stopLeaseRenewal(lgid);
                 }
             };
-
-            // Initial delay: renewEveryMs; fixed rate keeps leases stable under moderate jitter.
             return renewScheduler.scheduleAtFixedRate(r, renewEveryMs, renewEveryMs, TimeUnit.MILLISECONDS);
         });
     }
@@ -248,53 +270,17 @@ public class PgLockingService implements LockingService {
     private void stopLeaseRenewal(UUID lockGroupId) {
         if (lockGroupId == null) return;
         ScheduledFuture<?> f = renewTasks.remove(lockGroupId);
-        if (f != null) {
-            f.cancel(false);
-        }
+        if (f != null) f.cancel(false);
     }
 
-    private boolean renewLease(LockHandle handle) {
-        // Extend only if we still own the lock and it hasn't expired.
-        int rows = jdbc.update(
-            "UPDATE vn_lock_group " +
-            "SET expires_at = now() + (? * interval '1 millisecond') " +
-            "WHERE lock_group_id = ? " +
-            "  AND active = true " +
-            "  AND owner_id = ? " +
-            "  AND fence_token = ? " +
-            "  AND (expires_at IS NULL OR expires_at > now())",
-            ttlMs,
-            handle.lockGroupId(),
-            handle.ownerId(),
-            handle.fenceToken()
-        );
-        return rows == 1;
-    }
-
-    private void insertPathLocks(UUID lockGroupId, String ownerId, List<String> scopeKeys) {
-        // Insert one lock row per scope. scope_key is already derived by the store.
-        jdbc.batchUpdate(
-            "INSERT INTO vn_path_lock(lock_group_id, owner_id, scope_key, active, acquired_at) " +
-            "VALUES (?, ?, ?::ltree, true, now())",
-            scopeKeys,
-            200,
-            (ps, scope) -> {
-                ps.setObject(1, lockGroupId);
-                ps.setString(2, ownerId);
-                ps.setString(3, scope);
-            }
-        );
-    }
+    // ---------- scope minimization (unchanged) ----------
 
     private static List<String> minimizeScopes(List<String> sortedScopes) {
         List<String> out = new ArrayList<>();
         for (String s : sortedScopes) {
             boolean covered = false;
             for (String kept : out) {
-                if (isAncestorOrSame(kept, s)) {
-                    covered = true;
-                    break;
-                }
+                if (isAncestorOrSame(kept, s)) { covered = true; break; }
             }
             if (!covered) out.add(s);
         }
@@ -306,6 +292,4 @@ public class PgLockingService implements LockingService {
         if ("/".equals(a)) return true;
         return b.startsWith(a + "/");
     }
-    
-    
 }

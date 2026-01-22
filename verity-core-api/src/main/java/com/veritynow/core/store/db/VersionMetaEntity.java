@@ -1,4 +1,4 @@
-package com.veritynow.core.store.jpa;
+package com.veritynow.core.store.db;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -70,12 +70,12 @@ public class VersionMetaEntity {
 
     protected VersionMetaEntity() { }
 
-	public VersionMetaEntity(InodeEntity inode,  String path, long timestamp, String operation,
+	public VersionMetaEntity(Long id, InodeEntity inode,  String path, long timestamp, String operation,
 			String principal, String correlationId, String workflowId, String contextName, String transactionId, String transactionResult,
 			String hash, String name, String mimeType, long size) {
 		super();
 		//DB generated
-		this.id = null;
+		this.id = id;
 		this.inode = inode;
 		this.path = path;
 		this.timestamp = timestamp;
@@ -91,6 +91,28 @@ public class VersionMetaEntity {
 		this.mimeType = mimeType;
 		this.size = size;
 	}
+	
+	//Use to set DB generated id
+	public VersionMetaEntity(Long id, VersionMetaEntity vme) {
+		super();
+		//DB generated
+		this.id = id;
+		this.inode = vme.getInode();
+		this.path = vme.getPath();
+		this.timestamp = vme.getTimestamp();
+		this.operation = vme.getOperation();
+		this.principal = vme.getPrincipal();
+		this.correlationId = vme.getCorrelationId();
+		this.workflowId = vme.getWorkflowId();
+		this.contextName = vme.getContextName();
+		this.transactionId = vme.getTransactionId();
+		this.transactionResult = vme.getTransactionResult();
+		this.hash = vme.getHash();
+		this.name = vme.getName();
+		this.mimeType = vme.getMimeType();
+		this.size = vme.getSize();
+	}
+	
 
 	public Long getId() { return id; }
 	public InodeEntity getInode() {	return inode; }

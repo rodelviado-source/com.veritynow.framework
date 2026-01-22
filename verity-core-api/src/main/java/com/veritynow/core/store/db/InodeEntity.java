@@ -1,6 +1,8 @@
-package com.veritynow.core.store.jpa;
+package com.veritynow.core.store.db;
 
 import java.time.Instant;
+
+import org.hibernate.annotations.Type;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -8,8 +10,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-
-import org.hibernate.annotations.Type;
 
 @Entity
 @Table(name = "vn_inode")
@@ -36,6 +36,12 @@ public class InodeEntity {
     }
 
     public InodeEntity(Instant createdAt, String scopeKey) {
+        this.createdAt = createdAt != null ? createdAt : Instant.now();
+        this.scopeKey = scopeKey;
+    }
+    
+    public InodeEntity(Long id, Instant createdAt, String scopeKey) {
+    	this.id = id;
         this.createdAt = createdAt != null ? createdAt : Instant.now();
         this.scopeKey = scopeKey;
     }

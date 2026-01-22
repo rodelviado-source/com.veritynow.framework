@@ -1,12 +1,15 @@
-package com.veritynow.core.store.jooq;
+package com.veritynow.core.store.db.jooq.binding;
+
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Types;
 
 import org.jooq.Binding;
 import org.jooq.Converter;
 import org.jooq.conf.ParamType;
 import org.jooq.impl.DSL;
 import org.jooq.util.postgres.PGobject;
-
-import java.sql.*;
 
 /**
  * jOOQ Binding for PostgreSQL ltree.

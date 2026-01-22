@@ -13,7 +13,7 @@ public record StoreContext(
 
 ) {
 
-	public final static String AUTO_COMMITTED = "AUTO COMMITTED";
+	public final static String AUTO_COMMITTED = "AUTO_COMMITTED";
 	public static final String IN_FLIGHT = "IN_FLIGHT";
 	
 	public final static String ANONYMOUS = "anonymous";

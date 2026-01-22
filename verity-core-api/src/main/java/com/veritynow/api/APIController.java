@@ -76,6 +76,7 @@ public class APIController {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
 			
 		} catch (Exception e) {
+			LOGGER.error("Create failed", e);
 			return ResponseEntity.internalServerError().build();
 		}
 	}
@@ -114,6 +115,7 @@ public class APIController {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
 			
 		} catch (Exception e) {
+			LOGGER.error("Create exact path failed", e);
 			return ResponseEntity.internalServerError().build();
 		}
 	}
@@ -151,6 +153,7 @@ public class APIController {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
 			
 		} catch (Exception e) {
+			LOGGER.error("Update failed", e);
 			return ResponseEntity.internalServerError().build();
 		}
 		
@@ -168,12 +171,11 @@ public class APIController {
 		}
 		
 		try (ServletOutputStream sos = response.getOutputStream(); InputStream payload = opt.get();) {
-			//response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
-			
 			StreamUtils.copy(payload, sos);
 			response.setStatus(HttpStatus.OK.value());
 	        response.flushBuffer();
 		} catch (Exception e) {
+			LOGGER.error("Get failed", e);
 			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
 		}
 	}
@@ -185,12 +187,16 @@ public class APIController {
 	public ResponseEntity<BlobMeta> delete(HttpServletRequest request, @RequestHeader HttpHeaders headers,
 			@RequestParam(name = "reason", required = false) String reason) {
 
+		try {
 		String path = NamespaceUtils.applyNamespace(request, namespace);
 
 		Optional<BlobMeta> opt = apiService.delete(path, reason);
 		if (opt.isPresent())
 			return ResponseEntity.ok(opt.get());
-		
+		} catch (Exception e) {
+			LOGGER.error("Delete failed", e);
+			return ResponseEntity.internalServerError().build();
+		}
 		return ResponseEntity.badRequest().build();
 
 	}
@@ -199,11 +205,16 @@ public class APIController {
 	public ResponseEntity<VersionMeta> undelete(HttpServletRequest request, @RequestHeader HttpHeaders headers
 			) {
 
+		try {
 		String path = NamespaceUtils.applyNamespace(request, namespace);
 		 Optional<VersionMeta> opt = apiService.undelete(path);
 		if (opt.isPresent()) {
 			VersionMeta vm = opt.get();
 			return ResponseEntity.ok(NamespaceUtils.toClientVersionMeta(vm, namespace));
+		}
+		} catch (Exception e) {
+			LOGGER.error("Undelete failed", e);
+			return ResponseEntity.internalServerError().build();
 		}
 		return ResponseEntity.badRequest().build();
 	}
@@ -212,7 +223,8 @@ public class APIController {
 	public ResponseEntity<VersionMeta> restore(HttpServletRequest request, @RequestHeader HttpHeaders headers,
 			 @RequestParam(value = "restore", required = true) String hash)
 	 {
-		System.out.println(hash);
+		
+		try {
 		String path = NamespaceUtils.applyNamespace(request, namespace);
 
 		 Optional<VersionMeta> opt = apiService.restore(path, hash);
@@ -220,17 +232,26 @@ public class APIController {
 			VersionMeta vm = opt.get();
 			return ResponseEntity.ok(NamespaceUtils.toClientVersionMeta(vm, namespace));
 		}
+		} catch (Exception e) {
+			LOGGER.error("Restore failed", e);
+			return ResponseEntity.internalServerError().build();
+		}
 		return ResponseEntity.badRequest().build();
 
 	}
 
 	@GetMapping(params = "list")
 	public ResponseEntity<List<VersionMeta>> list(HttpServletRequest request, @RequestHeader HttpHeaders headers) {
+		try {
 		String path = NamespaceUtils.applyNamespace(request, namespace);
 		 List<VersionMeta> metas = apiService.list(path);
 		List<VersionMeta> clientMetas = metas.stream().map((vm) -> {return NamespaceUtils.toClientVersionMeta(vm, namespace);}).toList();
 		return ResponseEntity.ok(clientMetas);
-
+		} catch (Exception e) {
+			LOGGER.error("List failed", e);
+			return ResponseEntity.internalServerError().build();
+		}
+		
 	}
 	
 	

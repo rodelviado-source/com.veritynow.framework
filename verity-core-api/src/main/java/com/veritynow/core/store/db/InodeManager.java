@@ -1,4 +1,4 @@
-package com.veritynow.core.store.jpa;
+package com.veritynow.core.store.db;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -8,27 +8,26 @@ import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.jdbc.core.JdbcTemplate;
+
+import com.veritynow.core.store.meta.VersionMeta;
+
 
 
 public class InodeManager {
 	private static final Logger LOGGER = LogManager.getLogger();
-	private final JdbcTemplate jdbc;
-	private final InodeRepository inodeRepo;
-	private final DirEntryRepository dirRepo;
-	private final InodePathSegmentRepository pathSegRepo;
-	private final VersionMetaHeadRepository headRepo;
-	private final VersionMetaRepository verRepo;
+	private final JooqInodeRepository inodeRepo;
+	private final JooqDirEntryRepository dirRepo;
+	private final JooqInodePathSegmentRepository pathSegRepo;
+	private final JooqVersionMetaHeadRepository headRepo;
+	private final JooqVersionMetaRepository verRepo;
 
-	public InodeManager(JdbcTemplate jdbc, InodeRepository inodeRepo, DirEntryRepository dirRepo, InodePathSegmentRepository pathSegRepo, VersionMetaHeadRepository headRepo, VersionMetaRepository verRepo) {
-		Objects.requireNonNull(jdbc, "JDBC required");
+	public InodeManager(JooqInodeRepository inodeRepo, JooqDirEntryRepository dirRepo, JooqInodePathSegmentRepository pathSegRepo, JooqVersionMetaHeadRepository headRepo, JooqVersionMetaRepository verRepo) {
 		Objects.requireNonNull(inodeRepo, InodeEntity.class.getName() + " Repository required");
 		Objects.requireNonNull(dirRepo,   DirEntryEntity.class.getName() + " Repository required");
 		Objects.requireNonNull(pathSegRepo,   InodePathSegmentEntity.class.getName() + " Repository required");
 		Objects.requireNonNull(headRepo,  VersionMetaHeadEntity.class.getName() + " Repository required");
-		Objects.requireNonNull(verRepo,   VersionMetaEntity.class.getName() + " Repository required");
+		Objects.requireNonNull(verRepo,   VersionMeta.class.getName() + " Repository required");
 		
-		this.jdbc = jdbc;
 		this.inodeRepo = inodeRepo;
 		this.dirRepo = dirRepo;
 		this.pathSegRepo = pathSegRepo;
@@ -40,20 +39,21 @@ public class InodeManager {
 	}
 
 
-	public Optional<VersionMetaHeadEntity> getHeadById(Long id) {
-		return  headRepo.findById(id);
+	public Optional<VersionMeta> getLatestVersionInodeId(Long id) {
+		return  headRepo.findLatestVersionByInodeId(id);
 	}
 	
 	public List<DirEntryEntity> findAllByParentId(Long id) { 
-		return dirRepo.findAllByParent_Id(id);
+		return dirRepo.findAllByParentIdOrderByNameAsc(id);
 	}
 	
-	public List<VersionMetaEntity> findAllByInodeIdOrderByTimestampDescIdDesc(Long inodeId) {
-	 return verRepo.findAllByInode_IdOrderByTimestampDescIdDesc(inodeId);
+	public List<VersionMeta> findAllByInodeIdOrderByTimestampDescIdDesc(Long inodeId) {
+	 return verRepo.findAllByInodeIdOrderByTimestampDescIdDesc(inodeId);
 	} 
 	
-	public VersionMetaEntity saveVersionMetaEntity(VersionMetaEntity vme) {
-		return verRepo.save(vme);
+	public VersionMeta saveVersionMeta(VersionMeta vm) {
+		InodeEntity inode = resolveOrCreateInode(vm.path());
+		return verRepo.save(vm, inode.getId());
 	}
 	
 	public InodeEntity rootInode() {
@@ -63,12 +63,7 @@ public class InodeManager {
 	      .orElseThrow(() -> new IllegalStateException("Root inode missing id=" + rootId));
 	}
 
-	public Optional<Long> resolveInodeId(String nodePath) {
-		Objects.requireNonNull(nodePath, "nodePath");
-		String scopeKey = PathKeyCodec.toLTree(nodePath);
-		return inodeRepo.findIdByScopeKey(scopeKey);
-    }
-
+	
 	/**
 	 * Resolve a normalized absolute path to its inode's precomputed scope_key.
 	 *
@@ -115,7 +110,7 @@ public class InodeManager {
         InodeEntity cur = rootInode();
 
         for (String seg : segs) {
-            Optional<DirEntryEntity> e = dirRepo.findByParent_IdAndName(cur.getId(), seg);
+            Optional<DirEntryEntity> e = dirRepo.findByParentIdAndName(cur.getId(), seg);
             if (e.isPresent()) {
                 cur = e.get().getChild();
                 continue;
@@ -142,14 +137,16 @@ public class InodeManager {
     public void ensureRootInode() {
         // Store-owned bootstrap: root inode is the unique inode with scope_key = PathKeyCodec.ROOT_LABEL.
         // Also ensure the store-level invariant index exists (equality lookup by scope_key).
-        jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_vn_inode_scope_key ON vn_inode(scope_key)");
-
+        inodeRepo.ensureScopeKeyUniqueIndex();
         if (inodeRepo.findIdByScopeKey(PathKeyCodec.ROOT_LABEL).isPresent()) {
             return;
         }
-
         inodeRepo.save(new InodeEntity(Instant.now(), PathKeyCodec.ROOT_LABEL));
-        inodeRepo.flush();
     }
+
+
+	public Optional<Long> resolveInodeId(String nodePath) {
+		return inodeRepo.resolveInodeId(nodePath);
+	}
 
 }

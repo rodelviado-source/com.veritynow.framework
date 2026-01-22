@@ -1,4 +1,4 @@
-package com.veritynow.core.store.jpa;
+package com.veritynow.core.store.db;
 
 import java.time.Instant;
 
@@ -57,6 +57,14 @@ public class InodePathSegmentEntity {
         this.ord = ord;
         this.dirEntry = dirEntry;
         this.createdAt = Instant.now();
+    }
+    
+    public InodePathSegmentEntity(Long id, InodeEntity inode, int ord, DirEntryEntity dirEntry, Instant createdAt) {
+    	this.id = id;
+        this.inode = inode;
+        this.ord = ord;
+        this.dirEntry = dirEntry;
+        this.createdAt = createdAt;
     }
 
     public Long getId() { return id; }

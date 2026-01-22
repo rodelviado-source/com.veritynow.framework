@@ -1,4 +1,4 @@
-package com.veritynow.core.store.jpa;
+package com.veritynow.core.store.db;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.jooq.DSLContext;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.veritynow.core.context.ContextScope;
@@ -28,12 +28,12 @@ import com.veritynow.core.store.base.PathEvent;
 import com.veritynow.core.store.base.StoreContext;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
-import com.veritynow.core.txn.jdbc.ContextAwareTransactionManager;
+import com.veritynow.core.txn.jooq.ContextAwareTransactionManager;
 
 import util.DBUtil;
 
 
-public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta>, TransactionAware<ContextScope>, LockingAware {
+public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta>, TransactionAware<ContextScope>, LockingAware {
     
     private static final Logger LOGGER = LogManager.getLogger();
     
@@ -41,12 +41,12 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     private final ContextAwareTransactionManager txnManager;
     LockingService lockingService;
     
-    private final JdbcPublisher publisher;
+    private final JooqPublisher publisher;
 	private final InodeManager inodeManager;
 
-    public VersionJPAStore(
+    public JooqVersionStore(
             ImmutableBackingStore<String, BlobMeta> backingStore,
-			JdbcTemplate jdbc,
+			DSLContext dsl,
 			InodeManager inodeManager,
             ContextAwareTransactionManager txnManager,
             LockingService lockingService
@@ -56,13 +56,13 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         this.backingStore = backingStore;
         this.txnManager = txnManager;
 		this.lockingService = lockingService;
-		this.publisher  = new JdbcPublisher(jdbc, lockingService);
+		this.publisher  = new JooqPublisher(dsl, lockingService, inodeManager);
 		this.inodeManager = Objects.requireNonNull(inodeManager, "InodeManager required");
         
 		inodeManager.ensureRootInode();
         
         if (publisher.isLockingCapable()) {
-        	DBUtil.ensureProjectionReady(jdbc);
+        	DBUtil.ensureProjectionReady(dsl);
         }	
         
         LOGGER.info("\n\tJPA Inode-backed Versioning Store started\n\t" + 
@@ -289,17 +289,13 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         if (inodeIdOpt.isEmpty()) return List.of();
 
         Long inodeId = inodeIdOpt.get();
-        Optional<VersionMetaHeadEntity> headOpt = inodeManager.getHeadById(inodeId);
         List<VersionMeta> out = new ArrayList<>();
-        boolean isContainer = headOpt.isEmpty(); // same as FS: !HEAD exists :contentReference[oaicite:10]{index=10}
-        if (isContainer) {
-            // container semantics: latest under each direct child leaf :contentReference[oaicite:11]{index=11}
-            List<DirEntryEntity> children = inodeManager.findAllByParentId(inodeId);
-            for (DirEntryEntity child : children) {
-                Long childId = child.getChild().getId();
-                Optional<VersionMeta> vmOpt = getLatestVersionByInodeId(childId);
-                if (vmOpt.isPresent()) out.add(vmOpt.get());
-            }
+        // container semantics: latest under each direct child leaf :contentReference[oaicite:11]{index=11}
+        List<DirEntryEntity> children = inodeManager.findAllByParentId(inodeId);
+        for (DirEntryEntity child : children) {
+            Long childId = child.getChild().getId();
+            Optional<VersionMeta> vmOpt = getLatestVersionByInodeId(childId);
+            if (vmOpt.isPresent()) out.add(vmOpt.get());
         }
         
         return out;
@@ -335,15 +331,10 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
         if (inodeIdOpt.isEmpty()) return List.of();
 
         Long inodeId = inodeIdOpt.get();
-        Optional<VersionMetaHeadEntity> head = inodeManager.getHeadById(inodeId);
-        if (head.isEmpty()) return List.of(); 
 
-        List<VersionMetaEntity> l = inodeManager.findAllByInodeIdOrderByTimestampDescIdDesc(inodeId);
+        return inodeManager.findAllByInodeIdOrderByTimestampDescIdDesc(inodeId);
         
-        
-        return  l.stream().map((vme) -> {
-        		return toVersionMeta(vme);
-        } ).toList();
+   
         
     
     }
@@ -417,31 +408,26 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     private void persistAndPublish(String nodePath, BlobMeta blobMeta,  StoreOperation operation) throws IOException {
     	StoreContext sc = StoreContext.create(operation.name());
         PathEvent pe = new PathEvent(nodePath,  sc);
-        
-        // 1) Persist binding as a row
-        VersionMetaEntity vme = createVersionMetaEntity(blobMeta, pe);
-        VersionMetaEntity saved = inodeManager.saveVersionMetaEntity(vme);
 
-        //publish
+        // Publish is the authoritative write: insert the version row and move HEAD in one statement.
+        // This keeps inode/version ids entirely within the persistence layer.
+        VersionMeta vm = new VersionMeta(blobMeta, pe);
+
         if (StoreContext.AUTO_COMMITTED.equals(sc.transactionResult())) {
-        	if (publisher.isLockingCapable()) {
-        		publisher.acquireLockAndPublish(saved);
-        	} else {
-        		//degrade to a non-locking store
-        		publisher.publish(saved);
-        	}
+            if (publisher.isLockingCapable()) {
+                publisher.acquireLockAndPublish(vm);
+            } else {
+                // Degraded mode: only allowed if the current head is also unfenced.
+                publisher.publish(vm);
+            }
         } else {
-        	//transaction layer handles the commit
+            // Transaction layer handles IN_FLIGHT -> COMMITTED/ROLLED_BACK and HEAD movement.
         }
     }
  
 
     private Optional<VersionMeta> getLatestVersionByInodeId(Long id) {
-    	Optional<VersionMetaHeadEntity> head = inodeManager.getHeadById(id);
-        if (head.isPresent()) {
-            return Optional.of(toVersionMeta(head.get().getHeadVersion()));
-        }
-        return Optional.empty();
+    	return inodeManager.getLatestVersionInodeId(id);
     }
 
     
@@ -449,54 +435,5 @@ public class VersionJPAStore extends AbstractStore<PK, BlobMeta> implements Vers
     	return StoreOperation.Deleted().equals(m.operation());
     }
 	
-    //this is a necessity, from DB Entity to immutable VersionMeta
-    //Though its a mirror of each other we can't expose DB related fields and its not immutable
-    private  VersionMeta toVersionMeta(VersionMetaEntity vme) {
-    	
-     String path = inodeManager.resolvePathFromInode(vme.getInode().getId())
-    	        .orElseThrow(() -> new IllegalStateException("Orphan inode " + vme.getInode().getId()));
-    	
-    	return new VersionMeta(
-    			vme.getHash(),
-    			vme.getName(),
-    			vme.getMimeType(),
-    			vme.getSize(),
-    			
-    			path,
-    			vme.getTimestamp(),
-    			vme.getOperation(),
-    			vme.getPrincipal(),
-    			vme.getCorrelationId(),
-    			vme.getWorkflowId(),
-    			vme.getContextName(),
-    			vme.getTransactionId(),
-    			vme.getTransactionResult()
-    			
-    			) ;
-    }
-    
-    private  VersionMetaEntity createVersionMetaEntity(
-    		BlobMeta bm, 
-    		PathEvent pe
-  ) {
-    
-    InodeEntity inode = inodeManager.resolveOrCreateInode(pe.path());	
-   	return new VersionMetaEntity(
-   			inode,
-   			pe.path(),
-   			pe.timestamp(),
-   			pe.operation(),
-   			pe.principal(),
-   			pe.correlationId(),
-   			pe.workflowId(),
-   			pe.contextName(),
-   			pe.transactionId(),
-   			pe.transactionResult(),
-   			
-   			bm.hash(),
-   			bm.name(),
-   			bm.mimeType(),
-   			bm.size()
-   			) ;
-   }
+   
 }

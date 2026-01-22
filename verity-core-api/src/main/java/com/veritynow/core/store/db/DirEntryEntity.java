@@ -1,4 +1,4 @@
-package com.veritynow.core.store.jpa;
+package com.veritynow.core.store.db;
 
 import java.time.Instant;
 
@@ -53,6 +53,15 @@ public class DirEntryEntity {
         this.createdAt = Instant.now();
     }
 
+    public DirEntryEntity(Long id, InodeEntity parent, String name, InodeEntity child, Instant createdAt) {
+    	this.id = id;
+        this.parent = parent;
+        this.name = name;
+        this.child = child;
+        this.createdAt = createdAt;
+    }
+    
+    
     public Long getId() { return id; }
     public InodeEntity getParent() { return parent; }
     public String getName() { return name; }

@@ -2,8 +2,6 @@ package com.veritynow.core.txn;
 
 import java.util.UUID;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-
 /**
  * Store-specific finalization operations.
  *
@@ -21,7 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  */
 public interface TransactionFinalizer {
 
-    void commit(String txnId, UUID lockGroupId, long fenceToken, JdbcTemplate jdbc);
+    void commit(String txnId, UUID lockGroupId, long fenceToken);
 
-    void rollback(String txnId, JdbcTemplate jdbc);
+    void rollback(String txnId);
 }

@@ -4,6 +4,11 @@
 package com.veritynow.core.store.persistence.jooq;
 
 
+import org.jooq.Index;
+import org.jooq.OrderField;
+import org.jooq.impl.DSL;
+import org.jooq.impl.Internal;
+
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
@@ -11,11 +16,6 @@ import com.veritynow.core.store.persistence.jooq.tables.VnLockGroup;
 import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion;
 import com.veritynow.core.store.persistence.jooq.tables.VnPathLock;
 import com.veritynow.core.store.persistence.jooq.tables.VnTxnEpoch;
-
-import org.jooq.Index;
-import org.jooq.OrderField;
-import org.jooq.impl.DSL;
-import org.jooq.impl.Internal;
 
 
 /**

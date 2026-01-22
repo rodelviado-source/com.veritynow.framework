@@ -1,4 +1,4 @@
-package com.veritynow.core.store.jooq;
+package com.veritynow.core.store.db.jooq.binding;
 
 import org.jooq.Condition;
 import org.jooq.Field;

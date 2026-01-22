@@ -16,7 +16,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 
 import com.veritynow.core.lock.LockingService;
@@ -26,23 +25,23 @@ import com.veritynow.core.store.ImmutableBackingStore;
 import com.veritynow.core.store.VersionStore;
 import com.veritynow.core.store.base.DefaultHashingService;
 import com.veritynow.core.store.base.PK;
+import com.veritynow.core.store.db.InodeManager;
+import com.veritynow.core.store.db.JooqDirEntryRepository;
+import com.veritynow.core.store.db.JooqInodePathSegmentRepository;
+import com.veritynow.core.store.db.JooqInodeRepository;
+import com.veritynow.core.store.db.JooqVersionMetaHeadRepository;
+import com.veritynow.core.store.db.JooqVersionMetaRepository;
+import com.veritynow.core.store.db.JooqVersionStore;
 import com.veritynow.core.store.fs.ImmutableFSBackingStore;
-import com.veritynow.core.store.jpa.DirEntryRepository;
-import com.veritynow.core.store.jpa.InodeManager;
-import com.veritynow.core.store.jpa.InodePathSegmentRepository;
-import com.veritynow.core.store.jpa.InodeRepository;
-import com.veritynow.core.store.jpa.VersionJPAStore;
-import com.veritynow.core.store.jpa.VersionMetaHeadRepository;
-import com.veritynow.core.store.jpa.VersionMetaRepository;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.txn.PublishCoordinator;
 import com.veritynow.core.txn.TransactionFinalizer;
 import com.veritynow.core.txn.TransactionService;
-import com.veritynow.core.txn.jdbc.ContextAwareTransactionManager;
-import com.veritynow.core.txn.jdbc.JdbcPublishCoordinator;
-import com.veritynow.core.txn.jdbc.JdbcTransactionFinalizer;
-import com.veritynow.core.txn.jdbc.JdbcTransactionService;
+import com.veritynow.core.txn.jooq.ContextAwareTransactionManager;
+import com.veritynow.core.txn.jooq.JooqPublishCoordinator;
+import com.veritynow.core.txn.jooq.JooqTransactionFinalizer;
+import com.veritynow.core.txn.jooq.JooqTransactionService;
 
 @Configuration
 public class VersionStoreConfig {
@@ -59,27 +58,27 @@ public class VersionStoreConfig {
 	}
 	
 	@Bean 
-	TransactionFinalizer transactionFinalizer() {
-		return new JdbcTransactionFinalizer();
+	TransactionFinalizer transactionFinalizer(DSLContext dsl) {
+		return new JooqTransactionFinalizer(dsl);
 	}
 	
 	@Bean 
-	PublishCoordinator publishCoordinator(JdbcTemplate jdbc, TransactionFinalizer finalizer)  {
-		return new JdbcPublishCoordinator(jdbc, finalizer);
+	PublishCoordinator publishCoordinator(DSLContext dsl, TransactionFinalizer finalizer)  {
+		return new JooqPublishCoordinator(dsl, finalizer);
 	}
 	
 	@Bean
 	LockingService lockingService(
-			JdbcTemplate jdbc,
+			DSLContext dsl,
 			@Value("${verity.lock.ttl-ms:-1}") long lockTtlMs
 	)  {
-		return new PgLockingService(jdbc, lockTtlMs);
+		return new PgLockingService(dsl, lockTtlMs);
 	}
 	
 	
 	@Bean 
-	TransactionService transactionService(JdbcTemplate jdbc, PublishCoordinator coordinator)  {
-		return new JdbcTransactionService(jdbc,  coordinator);
+	TransactionService transactionService(DSLContext dsl, PublishCoordinator coordinator)  {
+		return new JooqTransactionService(dsl, coordinator);
 	}
 	
 	@Bean 
@@ -111,21 +110,46 @@ public class VersionStoreConfig {
     
     
     @Bean
-    public InodeManager inodeManger(JdbcTemplate jdbc, InodeRepository inodeRepo, DirEntryRepository dirRepo, InodePathSegmentRepository pathSegRepo, VersionMetaHeadRepository headRepo, VersionMetaRepository verRepo) {
-    	return new InodeManager(jdbc, inodeRepo, dirRepo, pathSegRepo, headRepo, verRepo);
+    public JooqVersionMetaRepository jooqVersionMetaRepository(DSLContext dsl) {
+    	return new JooqVersionMetaRepository(dsl);
+    }
+    
+    @Bean 
+    JooqInodePathSegmentRepository JooqInodePathSegmentRepository(DSLContext dsl) {
+    	return new JooqInodePathSegmentRepository(dsl);
+    }
+    
+    @Bean
+    JooqDirEntryRepository jooqDirEntryRepository(DSLContext dsl) {
+    	return new JooqDirEntryRepository(dsl);
+    }
+    
+    @Bean
+    JooqVersionMetaHeadRepository jooqVersionMetaHeadRepository(DSLContext dsl) {
+    	return new JooqVersionMetaHeadRepository(dsl);
+    }
+    
+    @Bean
+    JooqInodeRepository jooqInodeRepository(DSLContext dsl) {
+    	return new JooqInodeRepository(dsl);
+    }
+    
+    @Bean
+    public InodeManager inodeManger(JooqInodeRepository inodeRepo, JooqDirEntryRepository dirRepo, JooqInodePathSegmentRepository pathSegRepo, JooqVersionMetaHeadRepository headRepo, JooqVersionMetaRepository verRepo) {
+    	return new InodeManager(inodeRepo, dirRepo, pathSegRepo, headRepo, verRepo);
     }
     
     @Bean
     @Primary
     public VersionStore<PK, BlobMeta, VersionMeta> versionJPAStore(
     		ImmutableBackingStore<String, BlobMeta> backingStore,
-    		JdbcTemplate jdbc,
+    		DSLContext dsl,
 			InodeManager inodeManager,
             ContextAwareTransactionManager txnManager,
             LockingService lockingService
             
     ) {
-		return new VersionJPAStore(backingStore, jdbc, inodeManager, txnManager, lockingService);
+		return new JooqVersionStore(backingStore, dsl, inodeManager, txnManager, lockingService);
     }
     
     @Bean

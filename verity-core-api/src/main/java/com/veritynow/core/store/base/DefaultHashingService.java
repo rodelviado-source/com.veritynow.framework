@@ -16,13 +16,12 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.lwjgl.util.xxhash.XXH128Hash;
+import org.lwjgl.util.xxhash.XXH3State;
+import org.lwjgl.util.xxhash.XXHash;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.veritynow.core.store.HashingService;
-
-import org.lwjgl.util.xxhash.XXHash;
-import org.lwjgl.util.xxhash.XXH128Hash;
-import org.lwjgl.util.xxhash.XXH3State;
 
 /**
  * HashingService implementation supporting:

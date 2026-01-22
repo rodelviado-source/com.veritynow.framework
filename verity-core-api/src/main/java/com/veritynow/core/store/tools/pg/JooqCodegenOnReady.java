@@ -1,7 +1,8 @@
 package com.veritynow.core.store.tools.pg;
 
-import java.lang.System.Logger;
 import java.nio.file.Path;
+
+import javax.sql.DataSource;
 
 import org.jooq.codegen.GenerationTool;
 import org.jooq.meta.jaxb.Configuration;
@@ -17,9 +18,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import com.veritynow.core.store.spring.EmbeddedPostgresConfig;
 
-import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 
 /**
  * Dev-only: generate jOOQ sources from the live Postgres catalog (embedded or remote) after the
@@ -31,9 +30,12 @@ import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 @ConditionalOnProperty(name = "verity.jooq.codegen.enabled", havingValue = "true")
 public class JooqCodegenOnReady {
 	
-  @Autowired	
 
-  @Value("${verity.jooq.codegen.schema:public}")
+  
+  @Autowired
+  private DataSource dataSource;
+
+@Value("${verity.jooq.codegen.schema:public}")
   private String schema;
 
   @Value("${verity.jooq.codegen.includes:vn_.*}")
@@ -59,10 +61,10 @@ public class JooqCodegenOnReady {
 @Value("${verity.jooq.codegen.ltreeBindingEnabled:true}")
 private boolean ltreeBindingEnabled;
 
-@Value("${verity.jooq.codegen.ltreeUserType:com.veritynow.core.store.jooq.LTree}")
+@Value("${verity.jooq.codegen.ltreeUserType:com.veritynow.core.store.db.jooq.binding.LTree}")
 private String ltreeUserType;
 
-@Value("${verity.jooq.codegen.ltreeBinding:com.veritynow.core.store.jooq.LTreeBinding}")
+@Value("${verity.jooq.codegen.ltreeBinding:com.veritynow.core.store.db.jooq.binding.LTreeBinding}")
 private String ltreeBinding;
 
 @Value("${verity.jooq.codegen.ltreeAsVarchar:true}")
@@ -108,12 +110,12 @@ private String ltreeBinding;
                   .withPackageName(packageName)
                   .withDirectory(outputDir)
           );
-
-      EmbeddedPostgres ep = EmbeddedPostgresConfig.getEmbedded();
-
-      String url = ep.getJdbcUrl("postgres", "");
-      
-      System.out.println("JOOQ_CODEGEN_USING_JDBC URL: " + url);
+      // Use the live DataSource provided by Spring (embedded-postgres or external)
+      String url;
+      try (var conn = dataSource.getConnection()) {
+        url = conn.getMetaData().getURL();
+      }
+System.out.println("JOOQ_CODEGEN_USING_JDBC URL: " + url);
       
       Configuration cfg = new Configuration()
           .withJdbc(new Jdbc().withUrl(url)
@@ -125,4 +127,3 @@ private String ltreeBinding;
       System.out.println("JOOQ_CODEGEN_WRITTEN: " + Path.of(outputDir).toAbsolutePath());
     }
  }
-
