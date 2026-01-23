@@ -1,12 +1,12 @@
 package com.veritynow.core.store.tools.pg;
 
+import static com.veritynow.core.store.persistence.jooq.Public.PUBLIC;
+
 import java.io.BufferedWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-
-import javax.sql.DataSource;
 
 import org.jooq.DSLContext;
 import org.jooq.Queries;
@@ -16,7 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import static com.veritynow.core.store.persistence.jooq.Public.PUBLIC; 
+import org.threeten.bp.Instant; 
 
 
 
@@ -45,14 +45,18 @@ public class SchemaDumpOnReady {
 	  
 	  Files.createDirectories(out.toAbsolutePath().getParent());
 	  
+	  if (Files.exists(out)) {
+		  String filename = Instant.now().toString() + "-" + out.getFileName();
+		  Path dest = out.getParent().resolve(Path.of(filename));
+		  Files.move(out, dest);
+	  }
+	  
 	  try (BufferedWriter w = Files.newBufferedWriter(out, StandardCharsets.UTF_8,
 	          StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
 		  for (Query query : ddl.queries()) {
 		        w.write(query.toString() + ";\n"); // Prints the DDL SQL statement
 		   }
-		  
 	  }
-
 	  
 	  
     System.out.println("SCHEMA_DUMP_WRITTEN: " + Path.of(outPath).toAbsolutePath());
