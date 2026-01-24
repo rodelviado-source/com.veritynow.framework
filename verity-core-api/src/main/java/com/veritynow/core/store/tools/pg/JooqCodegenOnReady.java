@@ -29,9 +29,7 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(name = "verity.jooq.codegen.enabled", havingValue = "true")
 public class JooqCodegenOnReady {
-	
-
-  
+   
   @Autowired
   private DataSource dataSource;
 
@@ -54,21 +52,11 @@ public class JooqCodegenOnReady {
    * Treat Postgres 'ltree' columns as VARCHAR in generated sources (pragmatic default).
    */
   
-/**
- * Enable first-class ltree binding (recommended for path-centric design).
- * When enabled, generated columns of type ltree become Field<LTree>.
- */
-@Value("${verity.jooq.codegen.ltreeBindingEnabled:true}")
-private boolean ltreeBindingEnabled;
-
 @Value("${verity.jooq.codegen.ltreeUserType:com.veritynow.core.store.db.jooq.binding.LTree}")
 private String ltreeUserType;
 
 @Value("${verity.jooq.codegen.ltreeBinding:com.veritynow.core.store.db.jooq.binding.LTreeBinding}")
 private String ltreeBinding;
-
-@Value("${verity.jooq.codegen.ltreeAsVarchar:true}")
-  private boolean ltreeAsVarchar;
 
   /**
    * Regex to match ltree columns; default targets your standard naming (scope_key).
@@ -85,7 +73,7 @@ private String ltreeBinding;
           .withIncludes(includes)
           .withExcludes(excludes);
 
-      if (ltreeBindingEnabled) {
+     
   database.withForcedTypes(
       new ForcedType()
           .withUserType(ltreeUserType)
@@ -93,14 +81,6 @@ private String ltreeBinding;
           .withIncludeTypes("ltree")
           .withIncludeExpression(ltreeColumnRegex)
   );
-} else if (ltreeAsVarchar) {
-  database.withForcedTypes(
-      new ForcedType()
-          .withName("VARCHAR")
-          .withIncludeTypes("ltree")
-          .withIncludeExpression(ltreeColumnRegex)
-  );
-}
 
 
       Generator generator = new Generator()
@@ -112,13 +92,17 @@ private String ltreeBinding;
           );
       // Use the live DataSource provided by Spring (embedded-postgres or external)
       String url;
+      String username;
       try (var conn = dataSource.getConnection()) {
         url = conn.getMetaData().getURL();
+        username = conn.getMetaData().getUserName();
+        
+        
       }
       System.out.println("JOOQ_CODEGEN_USING_JDBC URL: " + url);
       
       Configuration cfg = new Configuration()
-          .withJdbc(new Jdbc().withUrl(url)
+          .withJdbc(new Jdbc().withUrl(url).withUser(username)
           .withDriver("org.postgresql.Driver"))
           .withGenerator(generator);
 

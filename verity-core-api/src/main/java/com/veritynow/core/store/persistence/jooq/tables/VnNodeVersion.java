@@ -4,6 +4,13 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
+import com.veritynow.core.store.persistence.jooq.Indexes;
+import com.veritynow.core.store.persistence.jooq.Keys;
+import com.veritynow.core.store.persistence.jooq.Public;
+import com.veritynow.core.store.persistence.jooq.tables.VnInode.VnInodePath;
+import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead.VnNodeHeadPath;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -30,13 +37,6 @@ import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
-
-import com.veritynow.core.store.persistence.jooq.Indexes;
-import com.veritynow.core.store.persistence.jooq.Keys;
-import com.veritynow.core.store.persistence.jooq.Public;
-import com.veritynow.core.store.persistence.jooq.tables.VnInode.VnInodePath;
-import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead.VnNodeHeadPath;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 
 
 /**
@@ -219,7 +219,7 @@ public class VnNodeVersion extends TableImpl<VnNodeVersionRecord> {
 
     @Override
     public List<ForeignKey<VnNodeVersionRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.VN_NODE_VERSION__FKGSEA7TLNQRYBIDBRINB952LW0);
+        return Arrays.asList(Keys.VN_NODE_VERSION__VN_NODE_VERSION_INODE_ID_FK);
     }
 
     private transient VnInodePath _vnInode;
@@ -229,7 +229,7 @@ public class VnNodeVersion extends TableImpl<VnNodeVersionRecord> {
      */
     public VnInodePath vnInode() {
         if (_vnInode == null)
-            _vnInode = new VnInodePath(this, Keys.VN_NODE_VERSION__FKGSEA7TLNQRYBIDBRINB952LW0, null);
+            _vnInode = new VnInodePath(this, Keys.VN_NODE_VERSION__VN_NODE_VERSION_INODE_ID_FK, null);
 
         return _vnInode;
     }
@@ -242,7 +242,7 @@ public class VnNodeVersion extends TableImpl<VnNodeVersionRecord> {
      */
     public VnNodeHeadPath vnNodeHead() {
         if (_vnNodeHead == null)
-            _vnNodeHead = new VnNodeHeadPath(this, null, Keys.VN_NODE_HEAD__FKOD48YV13FHDRS5RXJXMJ8U1OD.getInverseKey());
+            _vnNodeHead = new VnNodeHeadPath(this, null, Keys.VN_NODE_HEAD__VN_NODE_HEAD_VERSION_ID_FK.getInverseKey());
 
         return _vnNodeHead;
     }

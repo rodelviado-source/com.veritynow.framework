@@ -4,6 +4,12 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
+import com.veritynow.core.store.persistence.jooq.Indexes;
+import com.veritynow.core.store.persistence.jooq.Keys;
+import com.veritynow.core.store.persistence.jooq.Public;
+import com.veritynow.core.store.persistence.jooq.tables.VnPathLock.VnPathLockPath;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnLockGroupRecord;
+
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,12 +37,6 @@ import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
-
-import com.veritynow.core.store.persistence.jooq.Indexes;
-import com.veritynow.core.store.persistence.jooq.Keys;
-import com.veritynow.core.store.persistence.jooq.Public;
-import com.veritynow.core.store.persistence.jooq.tables.VnPathLock.VnPathLockPath;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnLockGroupRecord;
 
 
 /**
@@ -180,7 +180,7 @@ public class VnLockGroup extends TableImpl<VnLockGroupRecord> {
      */
     public VnPathLockPath vnPathLock() {
         if (_vnPathLock == null)
-            _vnPathLock = new VnPathLockPath(this, null, Keys.VN_PATH_LOCK__VN_PATH_LOCK_LOCK_GROUP_ID_FKEY.getInverseKey());
+            _vnPathLock = new VnPathLockPath(this, null, Keys.VN_PATH_LOCK__VN_PATH_LOCK_LOCK_GROUP_ID_FK.getInverseKey());
 
         return _vnPathLock;
     }

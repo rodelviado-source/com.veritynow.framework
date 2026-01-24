@@ -4,6 +4,13 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
+import com.veritynow.core.store.persistence.jooq.Indexes;
+import com.veritynow.core.store.persistence.jooq.Keys;
+import com.veritynow.core.store.persistence.jooq.Public;
+import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry.VnDirEntryPath;
+import com.veritynow.core.store.persistence.jooq.tables.VnInode.VnInodePath;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnInodePathSegmentRecord;
+
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,13 +38,6 @@ import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
-
-import com.veritynow.core.store.persistence.jooq.Indexes;
-import com.veritynow.core.store.persistence.jooq.Keys;
-import com.veritynow.core.store.persistence.jooq.Public;
-import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry.VnDirEntryPath;
-import com.veritynow.core.store.persistence.jooq.tables.VnInode.VnInodePath;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnInodePathSegmentRecord;
 
 
 /**
@@ -177,7 +177,7 @@ public class VnInodePathSegment extends TableImpl<VnInodePathSegmentRecord> {
 
     @Override
     public List<ForeignKey<VnInodePathSegmentRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.VN_INODE_PATH_SEGMENT__FKA7EHNITIJGI0LE9M875FXW42V, Keys.VN_INODE_PATH_SEGMENT__FKG9TO0SPYUX7E4CYP7FPXQ27DJ);
+        return Arrays.asList(Keys.VN_INODE_PATH_SEGMENT__VN_INODE_PATH_SEGMENT_DIR_ENTRY_ID_FK, Keys.VN_INODE_PATH_SEGMENT__VN_INODE_PATH_SEGMENT_INODE_ID_FK);
     }
 
     private transient VnDirEntryPath _vnDirEntry;
@@ -187,7 +187,7 @@ public class VnInodePathSegment extends TableImpl<VnInodePathSegmentRecord> {
      */
     public VnDirEntryPath vnDirEntry() {
         if (_vnDirEntry == null)
-            _vnDirEntry = new VnDirEntryPath(this, Keys.VN_INODE_PATH_SEGMENT__FKA7EHNITIJGI0LE9M875FXW42V, null);
+            _vnDirEntry = new VnDirEntryPath(this, Keys.VN_INODE_PATH_SEGMENT__VN_INODE_PATH_SEGMENT_DIR_ENTRY_ID_FK, null);
 
         return _vnDirEntry;
     }
@@ -199,7 +199,7 @@ public class VnInodePathSegment extends TableImpl<VnInodePathSegmentRecord> {
      */
     public VnInodePath vnInode() {
         if (_vnInode == null)
-            _vnInode = new VnInodePath(this, Keys.VN_INODE_PATH_SEGMENT__FKG9TO0SPYUX7E4CYP7FPXQ27DJ, null);
+            _vnInode = new VnInodePath(this, Keys.VN_INODE_PATH_SEGMENT__VN_INODE_PATH_SEGMENT_INODE_ID_FK, null);
 
         return _vnInode;
     }

@@ -4,6 +4,13 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
+import com.veritynow.core.store.persistence.jooq.Indexes;
+import com.veritynow.core.store.persistence.jooq.Keys;
+import com.veritynow.core.store.persistence.jooq.Public;
+import com.veritynow.core.store.persistence.jooq.tables.VnInode.VnInodePath;
+import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment.VnInodePathSegmentPath;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnDirEntryRecord;
+
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,13 +38,6 @@ import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
-
-import com.veritynow.core.store.persistence.jooq.Indexes;
-import com.veritynow.core.store.persistence.jooq.Keys;
-import com.veritynow.core.store.persistence.jooq.Public;
-import com.veritynow.core.store.persistence.jooq.tables.VnInode.VnInodePath;
-import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment.VnInodePathSegmentPath;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnDirEntryRecord;
 
 
 /**
@@ -175,33 +175,33 @@ public class VnDirEntry extends TableImpl<VnDirEntryRecord> {
 
     @Override
     public List<ForeignKey<VnDirEntryRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.VN_DIR_ENTRY__FKPHTN4ICDTOH8XGJUVTW4QCD0I, Keys.VN_DIR_ENTRY__FKRYI5XNY4GG8SP06UEF12IEEQ5);
+        return Arrays.asList(Keys.VN_DIR_ENTRY__VN_DIR_ENTRY_CHILD_ID_FK, Keys.VN_DIR_ENTRY__VN_DIR_ENTRY_PARENT_ID_FK);
     }
 
-    private transient VnInodePath _fkphtn4icdtoh8xgjuvtw4qcd0i;
+    private transient VnInodePath _vnDirEntryChildIdFk;
 
     /**
      * Get the implicit join path to the <code>public.vn_inode</code> table, via
-     * the <code>fkphtn4icdtoh8xgjuvtw4qcd0i</code> key.
+     * the <code>vn_dir_entry_child_id_fk</code> key.
      */
-    public VnInodePath fkphtn4icdtoh8xgjuvtw4qcd0i() {
-        if (_fkphtn4icdtoh8xgjuvtw4qcd0i == null)
-            _fkphtn4icdtoh8xgjuvtw4qcd0i = new VnInodePath(this, Keys.VN_DIR_ENTRY__FKPHTN4ICDTOH8XGJUVTW4QCD0I, null);
+    public VnInodePath vnDirEntryChildIdFk() {
+        if (_vnDirEntryChildIdFk == null)
+            _vnDirEntryChildIdFk = new VnInodePath(this, Keys.VN_DIR_ENTRY__VN_DIR_ENTRY_CHILD_ID_FK, null);
 
-        return _fkphtn4icdtoh8xgjuvtw4qcd0i;
+        return _vnDirEntryChildIdFk;
     }
 
-    private transient VnInodePath _fkryi5xny4gg8sp06uef12ieeq5;
+    private transient VnInodePath _vnDirEntryParentIdFk;
 
     /**
      * Get the implicit join path to the <code>public.vn_inode</code> table, via
-     * the <code>fkryi5xny4gg8sp06uef12ieeq5</code> key.
+     * the <code>vn_dir_entry_parent_id_fk</code> key.
      */
-    public VnInodePath fkryi5xny4gg8sp06uef12ieeq5() {
-        if (_fkryi5xny4gg8sp06uef12ieeq5 == null)
-            _fkryi5xny4gg8sp06uef12ieeq5 = new VnInodePath(this, Keys.VN_DIR_ENTRY__FKRYI5XNY4GG8SP06UEF12IEEQ5, null);
+    public VnInodePath vnDirEntryParentIdFk() {
+        if (_vnDirEntryParentIdFk == null)
+            _vnDirEntryParentIdFk = new VnInodePath(this, Keys.VN_DIR_ENTRY__VN_DIR_ENTRY_PARENT_ID_FK, null);
 
-        return _fkryi5xny4gg8sp06uef12ieeq5;
+        return _vnDirEntryParentIdFk;
     }
 
     private transient VnInodePathSegmentPath _vnInodePathSegment;
@@ -212,7 +212,7 @@ public class VnDirEntry extends TableImpl<VnDirEntryRecord> {
      */
     public VnInodePathSegmentPath vnInodePathSegment() {
         if (_vnInodePathSegment == null)
-            _vnInodePathSegment = new VnInodePathSegmentPath(this, null, Keys.VN_INODE_PATH_SEGMENT__FKA7EHNITIJGI0LE9M875FXW42V.getInverseKey());
+            _vnInodePathSegment = new VnInodePathSegmentPath(this, null, Keys.VN_INODE_PATH_SEGMENT__VN_INODE_PATH_SEGMENT_DIR_ENTRY_ID_FK.getInverseKey());
 
         return _vnInodePathSegment;
     }

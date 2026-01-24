@@ -4,6 +4,12 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
+import com.veritynow.core.store.persistence.jooq.Keys;
+import com.veritynow.core.store.persistence.jooq.Public;
+import com.veritynow.core.store.persistence.jooq.tables.VnInode.VnInodePath;
+import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion.VnNodeVersionPath;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeHeadRecord;
+
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,12 +35,6 @@ import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
-
-import com.veritynow.core.store.persistence.jooq.Keys;
-import com.veritynow.core.store.persistence.jooq.Public;
-import com.veritynow.core.store.persistence.jooq.tables.VnInode.VnInodePath;
-import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion.VnNodeVersionPath;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeHeadRecord;
 
 
 /**
@@ -152,7 +152,7 @@ public class VnNodeHead extends TableImpl<VnNodeHeadRecord> {
 
     @Override
     public List<ForeignKey<VnNodeHeadRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.VN_NODE_HEAD__FKAONO5M08T5X8TXQ0VG3CA3WDH, Keys.VN_NODE_HEAD__FKOD48YV13FHDRS5RXJXMJ8U1OD);
+        return Arrays.asList(Keys.VN_NODE_HEAD__VN_NODE_HEAD_INODE_ID_FK, Keys.VN_NODE_HEAD__VN_NODE_HEAD_VERSION_ID_FK);
     }
 
     private transient VnInodePath _vnInode;
@@ -162,7 +162,7 @@ public class VnNodeHead extends TableImpl<VnNodeHeadRecord> {
      */
     public VnInodePath vnInode() {
         if (_vnInode == null)
-            _vnInode = new VnInodePath(this, Keys.VN_NODE_HEAD__FKAONO5M08T5X8TXQ0VG3CA3WDH, null);
+            _vnInode = new VnInodePath(this, Keys.VN_NODE_HEAD__VN_NODE_HEAD_INODE_ID_FK, null);
 
         return _vnInode;
     }
@@ -175,7 +175,7 @@ public class VnNodeHead extends TableImpl<VnNodeHeadRecord> {
      */
     public VnNodeVersionPath vnNodeVersion() {
         if (_vnNodeVersion == null)
-            _vnNodeVersion = new VnNodeVersionPath(this, Keys.VN_NODE_HEAD__FKOD48YV13FHDRS5RXJXMJ8U1OD, null);
+            _vnNodeVersion = new VnNodeVersionPath(this, Keys.VN_NODE_HEAD__VN_NODE_HEAD_VERSION_ID_FK, null);
 
         return _vnNodeVersion;
     }

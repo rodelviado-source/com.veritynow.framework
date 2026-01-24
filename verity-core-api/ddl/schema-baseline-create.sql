@@ -1,3 +1,5 @@
+create schema if not exists "public";
+create extension if not exists ltree;
 
 create table "public"."vn_dir_entry" (
   "child_id" bigint not null,
@@ -87,12 +89,12 @@ create index "ix_vn_path_lock_group" on "public"."vn_path_lock"("lock_group_id")
 create index "ix_vn_path_lock_owner_active" on "public"."vn_path_lock"("owner_id", "active");
 create index "ix_vn_path_lock_scope_key_gist" on "public"."vn_path_lock"("scope_key");
 create index "ix_vn_txn_epoch_status" on "public"."vn_txn_epoch"("status");
-alter table "public"."vn_dir_entry" add constraint "fkphtn4icdtoh8xgjuvtw4qcd0i" foreign key ("child_id") references "public"."vn_inode" ("id");
-alter table "public"."vn_dir_entry" add constraint "fkryi5xny4gg8sp06uef12ieeq5" foreign key ("parent_id") references "public"."vn_inode" ("id");
-alter table "public"."vn_inode_path_segment" add constraint "fka7ehnitijgi0le9m875fxw42v" foreign key ("dir_entry_id") references "public"."vn_dir_entry" ("id");
-alter table "public"."vn_inode_path_segment" add constraint "fkg9to0spyux7e4cyp7fpxq27dj" foreign key ("inode_id") references "public"."vn_inode" ("id");
-alter table "public"."vn_node_head" add constraint "fkaono5m08t5x8txq0vg3ca3wdh" foreign key ("inode_id") references "public"."vn_inode" ("id");
-alter table "public"."vn_node_head" add constraint "fkod48yv13fhdrs5rxjxmj8u1od" foreign key ("version_id") references "public"."vn_node_version" ("id");
-alter table "public"."vn_node_version" add constraint "fkgsea7tlnqrybidbrinb952lw0" foreign key ("inode_id") references "public"."vn_inode" ("id");
-alter table "public"."vn_path_lock" add constraint "vn_path_lock_lock_group_id_fkey" foreign key ("lock_group_id") references "public"."vn_lock_group" ("lock_group_id");
-
+alter table "public"."vn_dir_entry" add constraint "vn_dir_entry_child_id_fk" foreign key ("child_id") references "public"."vn_inode" ("id");
+alter table "public"."vn_dir_entry" add constraint "vn_dir_entry_parent_id_fk" foreign key ("parent_id") references "public"."vn_inode" ("id");
+alter table "public"."vn_inode_path_segment" add constraint "vn_inode_path_segment_dir_entry_id_fk" foreign key ("dir_entry_id") references "public"."vn_dir_entry" ("id");
+alter table "public"."vn_inode_path_segment" add constraint "vn_inode_path_segment_inode_id_fk" foreign key ("inode_id") references "public"."vn_inode" ("id");
+alter table "public"."vn_node_head" add constraint "vn_node_head_inode_id_fk" foreign key ("inode_id") references "public"."vn_inode" ("id");
+alter table "public"."vn_node_head" add constraint "vn_node_head_version_id_fk" foreign key ("version_id") references "public"."vn_node_version" ("id");
+alter table "public"."vn_node_version" add constraint "vn_node_version_inode_id_fk" foreign key ("inode_id") references "public"."vn_inode" ("id");
+alter table "public"."vn_path_lock" add constraint "vn_path_lock_lock_group_id_fk" foreign key ("lock_group_id") references "public"."vn_lock_group" ("lock_group_id");
+create sequence "public"."vn_fence_token_seq";

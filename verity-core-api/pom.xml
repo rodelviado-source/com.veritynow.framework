@@ -7,23 +7,20 @@
 	<version>1.0.0</version>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<encoding>UTF-8</encoding>
-		 <filteredExtensions>properties</filteredExtensions>
-        
 		<java.version>21</java.version>
+
 		<maven.compiler.release>${java.version}</maven.compiler.release>
 		<maven.compiler.plugin.version>3.14.1</maven.compiler.plugin.version>
 		<maven.surefire.plugin.version>3.5.4</maven.surefire.plugin.version>
 		<maven.resources.plugin.version>3.4.0</maven.resources.plugin.version>
+		
 		<spring-boot.version>4.0.1</spring-boot.version>
+		
 		<log4j.version>2.25.2</log4j.version>
-
 		<lwjgl.version>3.4.0</lwjgl.version>
 		<openhft.version>0.27ea1</openhft.version>
-
 		<google.cloud.version>26.71.0</google.cloud.version>
 		<pdfbox.version>3.0.6</pdfbox.version>
-
 		<embedded.postgres.version>2.2.0</embedded.postgres.version>
 		<embedded.postgres.binary.version>18.1.0</embedded.postgres.binary.version>
 		<tika.version>3.2.3</tika.version>
@@ -235,8 +232,11 @@
 			</resource>
 			<resource>
 				<directory>src/main/resources-filtered</directory>
+				<includes>
+					<include>**/project.properties</include>
+				</includes>
 				<filtering>true</filtering>
-				
+
 			</resource>
 		</resources>
 		<plugins>
@@ -263,13 +263,13 @@
 				<version>${maven.surefire.plugin.version}</version>
 			</plugin>
 			<plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <version>${maven.resources.plugin.version}</version>
-        <configuration>
-          <propertiesEncoding>UTF-8</propertiesEncoding>
-        </configuration>
-      </plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>${maven.resources.plugin.version}</version>
+				<configuration>
+					<propertiesEncoding>UTF-8</propertiesEncoding>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 </project>

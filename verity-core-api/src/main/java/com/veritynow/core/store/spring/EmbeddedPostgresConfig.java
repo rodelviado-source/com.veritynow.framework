@@ -24,7 +24,17 @@ public class EmbeddedPostgresConfig {
 	final static String TMP_DIR = System.getProperty("java.io.tmpdir");
 	final static String PGDATA_DIR = "vn-pgdata-justtobesure";
 	final static Logger  LOGGER = LogManager.getLogger();
-	static EmbeddedPostgres ep;
+	
+	
+	
+	 @Bean
+	    public DataSource dataSource(EmbeddedPostgres pg) throws IOException {
+	        // Provides a ready JDBC DataSource to the embedded instance
+	    	LOGGER.info("\n\tUsing Postgres as Datasource");
+	        DataSource ds = pg.getPostgresDatabase();
+	        return ds;
+	    }
+	
 	
 	@Bean(destroyMethod = "close")
     public EmbeddedPostgres embeddedPostgres() throws IOException {
@@ -41,11 +51,14 @@ public class EmbeddedPostgresConfig {
 			deleteRecursively(dataDir);
 		} 
 		
-		Files.createDirectory(dataDir);
+		//just create the directory, TEMP_DIR is expected to exists
+		if (!Files.exists(dataDir)) Files.createDirectory(dataDir);
         
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> { killPostgres(PG_NAME); deleteRecursively(dataDir); }));
 		
-        ep = EmbeddedPostgres.builder()
+		EmbeddedPostgres ep; 
+		
+		ep = EmbeddedPostgres.builder()
                 .setDataDirectory(dataDir.toFile())
                 .setPort(5432)
                 .setCleanDataDirectory(true)
@@ -55,13 +68,7 @@ public class EmbeddedPostgresConfig {
         return ep;
     }
 	
-    @Bean
-    public DataSource dataSource(EmbeddedPostgres pg) throws IOException {
-        // Provides a ready JDBC DataSource to the embedded instance
-    	LOGGER.info("\n\tUsing Postgres as Datasource");
-        DataSource ds = pg.getPostgresDatabase();
-        return ds;
-    }
+   
 
     private static void deleteRecursively(Path root) {
     	LOGGER.info("\n\tDeleting dataDir {}", root);

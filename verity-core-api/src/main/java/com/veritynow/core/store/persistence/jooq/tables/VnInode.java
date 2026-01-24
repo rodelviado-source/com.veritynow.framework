@@ -4,6 +4,17 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
+import com.veritynow.core.store.db.jooq.binding.LTree;
+import com.veritynow.core.store.db.jooq.binding.LTreeBinding;
+import com.veritynow.core.store.persistence.jooq.Indexes;
+import com.veritynow.core.store.persistence.jooq.Keys;
+import com.veritynow.core.store.persistence.jooq.Public;
+import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry.VnDirEntryPath;
+import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment.VnInodePathSegmentPath;
+import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead.VnNodeHeadPath;
+import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion.VnNodeVersionPath;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
+
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,17 +43,6 @@ import org.jooq.impl.DSL;
 import org.jooq.impl.DefaultDataType;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
-
-import com.veritynow.core.store.db.jooq.binding.LTree;
-import com.veritynow.core.store.db.jooq.binding.LTreeBinding;
-import com.veritynow.core.store.persistence.jooq.Indexes;
-import com.veritynow.core.store.persistence.jooq.Keys;
-import com.veritynow.core.store.persistence.jooq.Public;
-import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry.VnDirEntryPath;
-import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment.VnInodePathSegmentPath;
-import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead.VnNodeHeadPath;
-import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion.VnNodeVersionPath;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
 
 
 /**
@@ -163,17 +163,32 @@ public class VnInode extends TableImpl<VnInodeRecord> {
         return Keys.VN_INODE_PKEY;
     }
 
-    private transient VnNodeHeadPath _vnNodeHead;
+    private transient VnDirEntryPath _vnDirEntryChildIdFk;
 
     /**
      * Get the implicit to-many join path to the
-     * <code>public.vn_node_head</code> table
+     * <code>public.vn_dir_entry</code> table, via the
+     * <code>vn_dir_entry_child_id_fk</code> key
      */
-    public VnNodeHeadPath vnNodeHead() {
-        if (_vnNodeHead == null)
-            _vnNodeHead = new VnNodeHeadPath(this, null, Keys.VN_NODE_HEAD__FKAONO5M08T5X8TXQ0VG3CA3WDH.getInverseKey());
+    public VnDirEntryPath vnDirEntryChildIdFk() {
+        if (_vnDirEntryChildIdFk == null)
+            _vnDirEntryChildIdFk = new VnDirEntryPath(this, null, Keys.VN_DIR_ENTRY__VN_DIR_ENTRY_CHILD_ID_FK.getInverseKey());
 
-        return _vnNodeHead;
+        return _vnDirEntryChildIdFk;
+    }
+
+    private transient VnDirEntryPath _vnDirEntryParentIdFk;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.vn_dir_entry</code> table, via the
+     * <code>vn_dir_entry_parent_id_fk</code> key
+     */
+    public VnDirEntryPath vnDirEntryParentIdFk() {
+        if (_vnDirEntryParentIdFk == null)
+            _vnDirEntryParentIdFk = new VnDirEntryPath(this, null, Keys.VN_DIR_ENTRY__VN_DIR_ENTRY_PARENT_ID_FK.getInverseKey());
+
+        return _vnDirEntryParentIdFk;
     }
 
     private transient VnInodePathSegmentPath _vnInodePathSegment;
@@ -184,9 +199,22 @@ public class VnInode extends TableImpl<VnInodeRecord> {
      */
     public VnInodePathSegmentPath vnInodePathSegment() {
         if (_vnInodePathSegment == null)
-            _vnInodePathSegment = new VnInodePathSegmentPath(this, null, Keys.VN_INODE_PATH_SEGMENT__FKG9TO0SPYUX7E4CYP7FPXQ27DJ.getInverseKey());
+            _vnInodePathSegment = new VnInodePathSegmentPath(this, null, Keys.VN_INODE_PATH_SEGMENT__VN_INODE_PATH_SEGMENT_INODE_ID_FK.getInverseKey());
 
         return _vnInodePathSegment;
+    }
+
+    private transient VnNodeHeadPath _vnNodeHead;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.vn_node_head</code> table
+     */
+    public VnNodeHeadPath vnNodeHead() {
+        if (_vnNodeHead == null)
+            _vnNodeHead = new VnNodeHeadPath(this, null, Keys.VN_NODE_HEAD__VN_NODE_HEAD_INODE_ID_FK.getInverseKey());
+
+        return _vnNodeHead;
     }
 
     private transient VnNodeVersionPath _vnNodeVersion;
@@ -197,37 +225,9 @@ public class VnInode extends TableImpl<VnInodeRecord> {
      */
     public VnNodeVersionPath vnNodeVersion() {
         if (_vnNodeVersion == null)
-            _vnNodeVersion = new VnNodeVersionPath(this, null, Keys.VN_NODE_VERSION__FKGSEA7TLNQRYBIDBRINB952LW0.getInverseKey());
+            _vnNodeVersion = new VnNodeVersionPath(this, null, Keys.VN_NODE_VERSION__VN_NODE_VERSION_INODE_ID_FK.getInverseKey());
 
         return _vnNodeVersion;
-    }
-
-    private transient VnDirEntryPath _fkphtn4icdtoh8xgjuvtw4qcd0i;
-
-    /**
-     * Get the implicit to-many join path to the
-     * <code>public.vn_dir_entry</code> table, via the
-     * <code>fkphtn4icdtoh8xgjuvtw4qcd0i</code> key
-     */
-    public VnDirEntryPath fkphtn4icdtoh8xgjuvtw4qcd0i() {
-        if (_fkphtn4icdtoh8xgjuvtw4qcd0i == null)
-            _fkphtn4icdtoh8xgjuvtw4qcd0i = new VnDirEntryPath(this, null, Keys.VN_DIR_ENTRY__FKPHTN4ICDTOH8XGJUVTW4QCD0I.getInverseKey());
-
-        return _fkphtn4icdtoh8xgjuvtw4qcd0i;
-    }
-
-    private transient VnDirEntryPath _fkryi5xny4gg8sp06uef12ieeq5;
-
-    /**
-     * Get the implicit to-many join path to the
-     * <code>public.vn_dir_entry</code> table, via the
-     * <code>fkryi5xny4gg8sp06uef12ieeq5</code> key
-     */
-    public VnDirEntryPath fkryi5xny4gg8sp06uef12ieeq5() {
-        if (_fkryi5xny4gg8sp06uef12ieeq5 == null)
-            _fkryi5xny4gg8sp06uef12ieeq5 = new VnDirEntryPath(this, null, Keys.VN_DIR_ENTRY__FKRYI5XNY4GG8SP06UEF12IEEQ5.getInverseKey());
-
-        return _fkryi5xny4gg8sp06uef12ieeq5;
     }
 
     @Override
