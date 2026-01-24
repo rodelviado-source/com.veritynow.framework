@@ -32,13 +32,13 @@ import com.veritynow.core.store.db.RepositoryManager;
 import com.veritynow.core.store.fs.ImmutableFSBackingStore;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
-import com.veritynow.core.txn.PublishCoordinator;
-import com.veritynow.core.txn.TransactionFinalizer;
-import com.veritynow.core.txn.TransactionService;
-import com.veritynow.core.txn.jooq.ContextAwareTransactionManager;
-import com.veritynow.core.txn.jooq.JooqPublishCoordinator;
-import com.veritynow.core.txn.jooq.JooqTransactionFinalizer;
-import com.veritynow.core.txn.jooq.JooqTransactionService;
+import com.veritynow.core.store.txn.PublishCoordinator;
+import com.veritynow.core.store.txn.TransactionFinalizer;
+import com.veritynow.core.store.txn.TransactionService;
+import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;
+import com.veritynow.core.store.txn.jooq.JooqPublishCoordinator;
+import com.veritynow.core.store.txn.jooq.JooqTransactionFinalizer;
+import com.veritynow.core.store.txn.jooq.JooqTransactionService;
 
 @Configuration
 public class VersionStoreConfig {

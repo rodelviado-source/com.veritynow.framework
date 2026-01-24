@@ -1,6 +1,7 @@
-package com.veritynow.core.txn.jooq;
+package com.veritynow.core.store.txn.jooq;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_TXN_EPOCH;
+import static org.jooq.impl.DSL.currentOffsetDateTime;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -8,12 +9,11 @@ import java.util.UUID;
 
 import org.jooq.DSLContext;
 import org.jooq.Record3;
-import org.jooq.impl.DSL;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.veritynow.core.lock.LockHandle;
-import com.veritynow.core.txn.PublishCoordinator;
-import com.veritynow.core.txn.TransactionService;
+import com.veritynow.core.store.txn.PublishCoordinator;
+import com.veritynow.core.store.txn.TransactionService;
 
 /**
  * jOOQ TransactionService backed by vn_txn_epoch.
@@ -38,11 +38,11 @@ public class JooqTransactionService implements TransactionService {
         dsl.insertInto(VN_TXN_EPOCH)
            .set(VN_TXN_EPOCH.TXN_ID, txnId)
            .set(VN_TXN_EPOCH.STATUS, "IN_FLIGHT")
-           .set(VN_TXN_EPOCH.UPDATED_AT, DSL.currentOffsetDateTime())
+           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .onConflict(VN_TXN_EPOCH.TXN_ID)
            .doUpdate()
            .set(VN_TXN_EPOCH.STATUS, "IN_FLIGHT")
-           .set(VN_TXN_EPOCH.UPDATED_AT, DSL.currentOffsetDateTime())
+           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .execute();
     }
 
@@ -55,7 +55,7 @@ public class JooqTransactionService implements TransactionService {
         dsl.update(VN_TXN_EPOCH)
            .set(VN_TXN_EPOCH.LOCK_GROUP_ID, lock.lockGroupId())
            .set(VN_TXN_EPOCH.FENCE_TOKEN, lock.fenceToken())
-           .set(VN_TXN_EPOCH.UPDATED_AT, DSL.currentOffsetDateTime())
+           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
            .execute();
     }
@@ -82,7 +82,7 @@ public class JooqTransactionService implements TransactionService {
 
         dsl.update(VN_TXN_EPOCH)
            .set(VN_TXN_EPOCH.STATUS, "COMMITTED")
-           .set(VN_TXN_EPOCH.UPDATED_AT, DSL.currentOffsetDateTime())
+           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
            .execute();
     }
@@ -105,7 +105,7 @@ public class JooqTransactionService implements TransactionService {
 
         dsl.update(VN_TXN_EPOCH)
            .set(VN_TXN_EPOCH.STATUS, "ROLLED_BACK")
-           .set(VN_TXN_EPOCH.UPDATED_AT, DSL.currentOffsetDateTime())
+           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
            .execute();
     }

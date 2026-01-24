@@ -1,4 +1,4 @@
-package com.veritynow.core.txn.jooq;
+package com.veritynow.core.store.txn.jooq;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_LOCK_GROUP;
 
@@ -9,8 +9,8 @@ import org.jooq.DSLContext;
 import org.jooq.Record3;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.veritynow.core.txn.PublishCoordinator;
-import com.veritynow.core.txn.TransactionFinalizer;
+import com.veritynow.core.store.txn.PublishCoordinator;
+import com.veritynow.core.store.txn.TransactionFinalizer;
 
 /**
  * jOOQ publish coordinator:

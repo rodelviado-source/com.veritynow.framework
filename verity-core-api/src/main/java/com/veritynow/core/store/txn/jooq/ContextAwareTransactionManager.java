@@ -1,4 +1,4 @@
-package com.veritynow.core.txn.jooq;
+package com.veritynow.core.store.txn.jooq;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -8,7 +8,7 @@ import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.context.ContextSnapshot;
 import com.veritynow.core.store.TransactionAware;
-import com.veritynow.core.txn.TransactionService;
+import com.veritynow.core.store.txn.TransactionService;
 
 /**
  * Convenience adapter for developers: provides begin/commit/rollback bound to Context.

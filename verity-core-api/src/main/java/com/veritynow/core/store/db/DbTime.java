@@ -1,20 +1,23 @@
 package com.veritynow.core.store.db;
 
+import static org.jooq.impl.DSL.currentOffsetDateTime;
+import static org.jooq.impl.DSL.currentTimestamp;
+import static org.jooq.impl.DSL.epoch;
+import static org.jooq.impl.DSL.floor;
+import static org.jooq.impl.DSL.inline;
+
 import org.jooq.Field;
-import org.jooq.impl.DSL;
-import org.jooq.DatePart;
 
 public final class DbTime {
     private DbTime() {}
 
     public static  Field<Long> nowEpochMs() {
-    	
-        return DSL.floor(
-            DSL.extract(DSL.currentTimestamp(), DatePart.EPOCH).mul(DSL.inline(1000))
+    	return floor(
+   			epoch(currentTimestamp()).mul(inline(1000))	
         ).cast(Long.class);
     }
 
     public static Field<java.time.OffsetDateTime> nowTimestamptz() {
-        return DSL.currentOffsetDateTime();
+        return currentOffsetDateTime();
     }
 }

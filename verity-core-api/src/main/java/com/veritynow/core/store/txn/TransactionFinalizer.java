@@ -1,4 +1,4 @@
-package com.veritynow.core.txn;
+package com.veritynow.core.store.txn;
 
 import java.util.UUID;
 

@@ -4,17 +4,6 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
-import com.veritynow.core.store.db.jooq.binding.LTree;
-import com.veritynow.core.store.db.jooq.binding.LTreeBinding;
-import com.veritynow.core.store.persistence.jooq.Indexes;
-import com.veritynow.core.store.persistence.jooq.Keys;
-import com.veritynow.core.store.persistence.jooq.Public;
-import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry.VnDirEntryPath;
-import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment.VnInodePathSegmentPath;
-import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead.VnNodeHeadPath;
-import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion.VnNodeVersionPath;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
-
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,6 +32,17 @@ import org.jooq.impl.DSL;
 import org.jooq.impl.DefaultDataType;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
+import org.jooq.postgres.extensions.bindings.LtreeBinding;
+import org.jooq.postgres.extensions.types.Ltree;
+
+import com.veritynow.core.store.persistence.jooq.Indexes;
+import com.veritynow.core.store.persistence.jooq.Keys;
+import com.veritynow.core.store.persistence.jooq.Public;
+import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry.VnDirEntryPath;
+import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment.VnInodePathSegmentPath;
+import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead.VnNodeHeadPath;
+import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion.VnNodeVersionPath;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
 
 
 /**
@@ -79,7 +79,7 @@ public class VnInode extends TableImpl<VnInodeRecord> {
     /**
      * The column <code>public.vn_inode.scope_key</code>.
      */
-    public final TableField<VnInodeRecord, LTree> SCOPE_KEY = createField(DSL.name("scope_key"), DefaultDataType.getDefaultDataType("\"public\".\"ltree\""), this, "", new LTreeBinding());
+    public final TableField<VnInodeRecord, Ltree> SCOPE_KEY = createField(DSL.name("scope_key"), DefaultDataType.getDefaultDataType("\"public\".\"ltree\""), this, "", new LtreeBinding());
 
     private VnInode(Name alias, Table<VnInodeRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

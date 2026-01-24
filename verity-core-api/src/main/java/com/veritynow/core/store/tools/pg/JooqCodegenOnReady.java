@@ -7,7 +7,6 @@ import javax.sql.DataSource;
 import org.jooq.codegen.GenerationTool;
 import org.jooq.meta.jaxb.Configuration;
 import org.jooq.meta.jaxb.Database;
-import org.jooq.meta.jaxb.ForcedType;
 import org.jooq.meta.jaxb.Generator;
 import org.jooq.meta.jaxb.Jdbc;
 import org.jooq.meta.jaxb.Target;
@@ -48,22 +47,6 @@ public class JooqCodegenOnReady {
   @Value("${verity.jooq.codegen.output:target/generated-sources/jooq}")
   private String outputDir;
 
-  /**
-   * Treat Postgres 'ltree' columns as VARCHAR in generated sources (pragmatic default).
-   */
-  
-@Value("${verity.jooq.codegen.ltreeUserType:com.veritynow.core.store.db.jooq.binding.LTree}")
-private String ltreeUserType;
-
-@Value("${verity.jooq.codegen.ltreeBinding:com.veritynow.core.store.db.jooq.binding.LTreeBinding}")
-private String ltreeBinding;
-
-  /**
-   * Regex to match ltree columns; default targets your standard naming (scope_key).
-   */
-  @Value("${verity.jooq.codegen.ltreeColumnRegex:.*\\.scope_key}")
-  private String ltreeColumnRegex;
-
   @EventListener(ApplicationReadyEvent.class)
   public void onReady() throws Exception {
   
@@ -72,15 +55,6 @@ private String ltreeBinding;
           .withInputSchema(schema)
           .withIncludes(includes)
           .withExcludes(excludes);
-
-     
-  database.withForcedTypes(
-      new ForcedType()
-          .withUserType(ltreeUserType)
-          .withBinding(ltreeBinding)
-          .withIncludeTypes("ltree")
-          .withIncludeExpression(ltreeColumnRegex)
-  );
 
 
       Generator generator = new Generator()

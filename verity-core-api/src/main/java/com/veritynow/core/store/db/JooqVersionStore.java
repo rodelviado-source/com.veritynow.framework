@@ -29,7 +29,7 @@ import com.veritynow.core.store.base.StoreContext;
 import com.veritynow.core.store.db.model.DirEntry;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
-import com.veritynow.core.txn.jooq.ContextAwareTransactionManager;
+import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;
 
 import util.DBUtil;
 

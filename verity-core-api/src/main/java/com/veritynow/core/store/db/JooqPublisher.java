@@ -2,6 +2,15 @@ package com.veritynow.core.store.db;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_HEAD;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_VERSION;
+import static org.jooq.impl.DSL.coalesce;
+import static org.jooq.impl.DSL.currentOffsetDateTime;
+import static org.jooq.impl.DSL.excluded;
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.inline;
+import static org.jooq.impl.DSL.name;
+import static org.jooq.impl.DSL.select;
+import static org.jooq.impl.DSL.table;
+import static org.jooq.impl.DSL.val;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -17,7 +26,6 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.InsertSetMoreStep;
 import org.jooq.Record2;
-import org.jooq.impl.DSL;
 import org.springframework.dao.DataAccessException;
 
 import com.veritynow.core.lock.LockHandle;
@@ -70,17 +78,17 @@ public final class JooqPublisher {
 
 	// Insert the new version row, then move HEAD using the returned version id.
     // This keeps all store ids inside the persistence layer and avoids confusing inode_id vs version_id.
-    CommonTableExpression<Record2<Long, Long>> ins = DSL.name("ins")
+    CommonTableExpression<Record2<Long, Long>> ins = name("ins")
         .fields("version_id", "inode_id")
         .as(
         		insertVersionMeta(vm, inodeId)
                 .returningResult(VN_NODE_VERSION.ID, VN_NODE_VERSION.INODE_ID)
         );
 
-    Field<Long> vId = DSL.field(DSL.name("ins", "version_id"), Long.class);
-    Field<Long> iId = DSL.field(DSL.name("ins", "inode_id"), Long.class);
+    Field<Long> vId = field(name("ins", "version_id"), Long.class);
+    Field<Long> iId = field(name("ins", "inode_id"), Long.class);
 
-    Field<OffsetDateTime> now =  DSL.currentOffsetDateTime();
+    Field<OffsetDateTime> now =  currentOffsetDateTime();
 
     try {
       int rows = dsl.with(ins)
@@ -92,22 +100,22 @@ public final class JooqPublisher {
               VN_NODE_HEAD.UPDATED_AT
           )
           .select(
-              DSL.select(
+              select(
                       iId,
                       vId,
-                      DSL.val(fenceToken),
+                      val(fenceToken),
                      now
                   )
-                  .from(DSL.table(DSL.name("ins")))
+                  .from(table(name("ins")))
           )
           .onConflict(VN_NODE_HEAD.INODE_ID)
           .doUpdate()
-          .set(VN_NODE_HEAD.VERSION_ID, DSL.excluded(VN_NODE_HEAD.VERSION_ID))
-          .set(VN_NODE_HEAD.FENCE_TOKEN, DSL.excluded(VN_NODE_HEAD.FENCE_TOKEN))
+          .set(VN_NODE_HEAD.VERSION_ID, excluded(VN_NODE_HEAD.VERSION_ID))
+          .set(VN_NODE_HEAD.FENCE_TOKEN, excluded(VN_NODE_HEAD.FENCE_TOKEN))
           .set(VN_NODE_HEAD.UPDATED_AT, now)
           .where(
-              DSL.coalesce(VN_NODE_HEAD.FENCE_TOKEN, DSL.inline(-1L))
-                  .lt(DSL.excluded(VN_NODE_HEAD.FENCE_TOKEN))
+              coalesce(VN_NODE_HEAD.FENCE_TOKEN, inline(-1L))
+                  .lt(excluded(VN_NODE_HEAD.FENCE_TOKEN))
           )
           .execute();
 
@@ -144,16 +152,16 @@ public final class JooqPublisher {
 
     // Insert the new version row, then move HEAD in "degraded" mode (unfenced).
     // Update is only allowed if the existing head is also unfenced.
-    CommonTableExpression<Record2<Long, Long>> ins = DSL.name("ins")
+    CommonTableExpression<Record2<Long, Long>> ins = name("ins")
         .fields("version_id", "inode_id")
         .as(
             insertVersionMeta(vm, inodeId)
                 .returningResult(VN_NODE_VERSION.ID, VN_NODE_VERSION.INODE_ID)
         );
 
-    Field<Long> vId = DSL.field(DSL.name("ins", "version_id"), Long.class);
-    Field<Long> iId = DSL.field(DSL.name("ins", "inode_id"), Long.class);
-    Field<OffsetDateTime> now = DSL.currentOffsetDateTime();
+    Field<Long> vId = field(name("ins", "version_id"), Long.class);
+    Field<Long> iId = field(name("ins", "inode_id"), Long.class);
+    Field<OffsetDateTime> now = currentOffsetDateTime();
 
     int rows = dsl.with(ins)
         .insertInto(
@@ -164,18 +172,18 @@ public final class JooqPublisher {
             VN_NODE_HEAD.UPDATED_AT
         )
         .select(
-            DSL.select(
+            select(
                     iId,
                     vId,
-                    DSL.val((Long) null),
+                    val((Long) null),
                     now
                 )
-                .from(DSL.table(DSL.name("ins")))
+                .from(table(name("ins")))
         )
         .onConflict(VN_NODE_HEAD.INODE_ID)
         .doUpdate()
-        .set(VN_NODE_HEAD.VERSION_ID, DSL.excluded(VN_NODE_HEAD.VERSION_ID))
-        .set(VN_NODE_HEAD.FENCE_TOKEN, DSL.val((Long) null))
+        .set(VN_NODE_HEAD.VERSION_ID, excluded(VN_NODE_HEAD.VERSION_ID))
+        .set(VN_NODE_HEAD.FENCE_TOKEN, val((Long) null))
         .set(VN_NODE_HEAD.UPDATED_AT, now)
         .where(VN_NODE_HEAD.FENCE_TOKEN.isNull())
         .execute();

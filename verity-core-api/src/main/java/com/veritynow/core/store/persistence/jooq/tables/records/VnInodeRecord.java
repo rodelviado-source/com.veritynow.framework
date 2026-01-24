@@ -4,13 +4,13 @@
 package com.veritynow.core.store.persistence.jooq.tables.records;
 
 
-import com.veritynow.core.store.db.jooq.binding.LTree;
-import com.veritynow.core.store.persistence.jooq.tables.VnInode;
-
 import java.time.OffsetDateTime;
 
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
+import org.jooq.postgres.extensions.types.Ltree;
+
+import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 
 
 /**
@@ -52,15 +52,15 @@ public class VnInodeRecord extends UpdatableRecordImpl<VnInodeRecord> {
     /**
      * Setter for <code>public.vn_inode.scope_key</code>.
      */
-    public void setScopeKey(LTree value) {
+    public void setScopeKey(Ltree value) {
         set(2, value);
     }
 
     /**
      * Getter for <code>public.vn_inode.scope_key</code>.
      */
-    public LTree getScopeKey() {
-        return (LTree) get(2);
+    public Ltree getScopeKey() {
+        return (Ltree) get(2);
     }
 
     // -------------------------------------------------------------------------
@@ -86,7 +86,7 @@ public class VnInodeRecord extends UpdatableRecordImpl<VnInodeRecord> {
     /**
      * Create a detached, initialised VnInodeRecord
      */
-    public VnInodeRecord(OffsetDateTime createdAt, Long id, LTree scopeKey) {
+    public VnInodeRecord(OffsetDateTime createdAt, Long id, Ltree scopeKey) {
         super(VnInode.VN_INODE);
 
         setCreatedAt(createdAt);

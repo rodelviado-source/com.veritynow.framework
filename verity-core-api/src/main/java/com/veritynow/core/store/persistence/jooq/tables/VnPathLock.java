@@ -4,14 +4,6 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
-import com.veritynow.core.store.db.jooq.binding.LTree;
-import com.veritynow.core.store.db.jooq.binding.LTreeBinding;
-import com.veritynow.core.store.persistence.jooq.Indexes;
-import com.veritynow.core.store.persistence.jooq.Keys;
-import com.veritynow.core.store.persistence.jooq.Public;
-import com.veritynow.core.store.persistence.jooq.tables.VnLockGroup.VnLockGroupPath;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnPathLockRecord;
-
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,6 +33,14 @@ import org.jooq.impl.DSL;
 import org.jooq.impl.DefaultDataType;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
+import org.jooq.postgres.extensions.bindings.LtreeBinding;
+import org.jooq.postgres.extensions.types.Ltree;
+
+import com.veritynow.core.store.persistence.jooq.Indexes;
+import com.veritynow.core.store.persistence.jooq.Keys;
+import com.veritynow.core.store.persistence.jooq.Public;
+import com.veritynow.core.store.persistence.jooq.tables.VnLockGroup.VnLockGroupPath;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnPathLockRecord;
 
 
 /**
@@ -82,7 +82,7 @@ public class VnPathLock extends TableImpl<VnPathLockRecord> {
     /**
      * The column <code>public.vn_path_lock.scope_key</code>.
      */
-    public final TableField<VnPathLockRecord, LTree> SCOPE_KEY = createField(DSL.name("scope_key"), DefaultDataType.getDefaultDataType("\"public\".\"ltree\"").nullable(false), this, "", new LTreeBinding());
+    public final TableField<VnPathLockRecord, Ltree> SCOPE_KEY = createField(DSL.name("scope_key"), DefaultDataType.getDefaultDataType("\"public\".\"ltree\"").nullable(false), this, "", new LtreeBinding());
 
     /**
      * The column <code>public.vn_path_lock.active</code>.

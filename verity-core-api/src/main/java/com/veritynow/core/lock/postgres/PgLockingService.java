@@ -3,6 +3,12 @@ package com.veritynow.core.lock.postgres;
 import static com.veritynow.core.store.persistence.jooq.Sequences.VN_FENCE_TOKEN_SEQ;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_LOCK_GROUP;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_PATH_LOCK;
+import static org.jooq.impl.DSL.condition;
+import static org.jooq.impl.DSL.currentOffsetDateTime;
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.name;
+import static org.jooq.impl.DSL.table;
+import static org.jooq.impl.DSL.val;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -21,8 +27,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.Query;
 import org.jooq.Table;
-import org.jooq.impl.DSL;
+import org.jooq.postgres.extensions.types.Ltree;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +40,6 @@ import com.veritynow.core.lock.LockHandle;
 import com.veritynow.core.lock.LockingService;
 import com.veritynow.core.store.db.PathKeyCodec;
 import com.veritynow.core.store.db.PathUtils;
-import com.veritynow.core.store.db.jooq.binding.LTree;
 
 /**
  * Postgres locking kernel: exclusive subtree locking using ltree scope keys.
@@ -140,14 +146,14 @@ public class PgLockingService implements LockingService {
 
         dsl.update(VN_PATH_LOCK)
            .set(VN_PATH_LOCK.ACTIVE, false)
-           .set(VN_PATH_LOCK.RELEASED_AT, DSL.currentOffsetDateTime())
+           .set(VN_PATH_LOCK.RELEASED_AT, currentOffsetDateTime())
            .where(VN_PATH_LOCK.LOCK_GROUP_ID.eq(handle.lockGroupId())
                .and(VN_PATH_LOCK.ACTIVE.eq(true)))
            .execute();
 
         dsl.update(VN_LOCK_GROUP)
            .set(VN_LOCK_GROUP.ACTIVE, false)
-           .set(VN_LOCK_GROUP.RELEASED_AT, DSL.currentOffsetDateTime())
+           .set(VN_LOCK_GROUP.RELEASED_AT, currentOffsetDateTime())
            .where(VN_LOCK_GROUP.LOCK_GROUP_ID.eq(handle.lockGroupId())
                .and(VN_LOCK_GROUP.ACTIVE.eq(true)))
            .execute();
@@ -158,15 +164,15 @@ public class PgLockingService implements LockingService {
     private boolean existsConflicts(String ownerId, List<String> scopeKeyStrings) {
         // Derived table: unnest(text[]) -> p(p)
         // We cast each p to ltree on the fly, preserving your original SQL semantics.
-        Table<?> p = DSL.table("unnest({0}::text[]) as p(p)", DSL.val(scopeKeyStrings.toArray(String[]::new)));
-        Field<String> pText = DSL.field(DSL.name("p", "p"), String.class);
-        Field<LTree> k = DSL.field("{0}::ltree", LTree.class, pText);
+        Table<?> p = table("unnest({0}::text[]) as p(p)", val(scopeKeyStrings.toArray(String[]::new)));
+        Field<String> pText = field(name("p", "p"), String.class);
+        Field<Ltree> k = field("{0}::ltree", Ltree.class, pText);
 
         // pl.scope_key @> k OR pl.scope_key <@ k
         // Use PlainSQL conditions to preserve operator semantics with your LTree binding.
         var overlap =
-            DSL.condition("{0} @> {1}", VN_PATH_LOCK.SCOPE_KEY, k)
-               .or(DSL.condition("{0} <@ {1}", VN_PATH_LOCK.SCOPE_KEY, k));
+            condition("{0} @> {1}", VN_PATH_LOCK.SCOPE_KEY, k)
+               .or(condition("{0} <@ {1}", VN_PATH_LOCK.SCOPE_KEY, k));
 
         return dsl.fetchExists(
             dsl.selectOne()
@@ -175,7 +181,7 @@ public class PgLockingService implements LockingService {
                .crossJoin(p)
                .where(VN_PATH_LOCK.ACTIVE.eq(true))
                .and(VN_LOCK_GROUP.ACTIVE.eq(true))
-               .and(DSL.condition("( {0} is null OR {0} > now() )", VN_LOCK_GROUP.EXPIRES_AT))
+               .and(condition("( {0} is null OR {0} > now() )", VN_LOCK_GROUP.EXPIRES_AT))
                .and(VN_PATH_LOCK.OWNER_ID.ne(ownerId))
                .and(overlap)
         );
@@ -191,14 +197,14 @@ public class PgLockingService implements LockingService {
         if (ttlMs > 0) {
             // expires_at = now() + ttlMs * interval '1 millisecond'
             Field<OffsetDateTime> expiresAt =
-                DSL.field("now() + ({0} * interval '1 millisecond')", OffsetDateTime.class, DSL.val(ttlMs));
+                field("now() + ({0} * interval '1 millisecond')", OffsetDateTime.class, val(ttlMs));
 
             dsl.insertInto(VN_LOCK_GROUP)
                .set(VN_LOCK_GROUP.LOCK_GROUP_ID, lockGroupId)
                .set(VN_LOCK_GROUP.OWNER_ID, ownerId)
                .set(VN_LOCK_GROUP.FENCE_TOKEN, fenceToken)
                .set(VN_LOCK_GROUP.ACTIVE, true)
-               .set(VN_LOCK_GROUP.ACQUIRED_AT, DSL.currentOffsetDateTime())
+               .set(VN_LOCK_GROUP.ACQUIRED_AT, currentOffsetDateTime())
                .set(VN_LOCK_GROUP.EXPIRES_AT, expiresAt)
                .execute();
         } else {
@@ -207,7 +213,7 @@ public class PgLockingService implements LockingService {
                .set(VN_LOCK_GROUP.OWNER_ID, ownerId)
                .set(VN_LOCK_GROUP.FENCE_TOKEN, fenceToken)
                .set(VN_LOCK_GROUP.ACTIVE, true)
-               .set(VN_LOCK_GROUP.ACQUIRED_AT, DSL.currentOffsetDateTime())
+               .set(VN_LOCK_GROUP.ACQUIRED_AT, currentOffsetDateTime())
                .setNull(VN_LOCK_GROUP.EXPIRES_AT)
                .execute();
         }
@@ -215,15 +221,15 @@ public class PgLockingService implements LockingService {
 
     private void insertPathLocks(UUID lockGroupId, String ownerId, List<String> scopeKeyStrings) {
         // No synthesis: scope keys are store-derived; acquired_at has DB default, but we can set explicitly as before.
-        List<org.jooq.Query> inserts = new ArrayList<>(scopeKeyStrings.size());
+        List<Query> inserts = new ArrayList<>(scopeKeyStrings.size());
         for (String s : scopeKeyStrings) {
             inserts.add(
                 dsl.insertInto(VN_PATH_LOCK)
                    .set(VN_PATH_LOCK.LOCK_GROUP_ID, lockGroupId)
                    .set(VN_PATH_LOCK.OWNER_ID, ownerId)
-                   .set(VN_PATH_LOCK.SCOPE_KEY, LTree.of(s))
+                   .set(VN_PATH_LOCK.SCOPE_KEY, Ltree.ltree(s))
                    .set(VN_PATH_LOCK.ACTIVE, true)
-                   .set(VN_PATH_LOCK.ACQUIRED_AT, DSL.currentOffsetDateTime())
+                   .set(VN_PATH_LOCK.ACQUIRED_AT, currentOffsetDateTime())
             );
         }
         dsl.batch(inserts).execute();
@@ -233,7 +239,7 @@ public class PgLockingService implements LockingService {
         if (ttlMs <= 0) return true;
 
         Field<OffsetDateTime> newExpiry =
-            DSL.field("now() + ({0} * interval '1 millisecond')", OffsetDateTime.class, DSL.val(ttlMs));
+            field("now() + ({0} * interval '1 millisecond')", OffsetDateTime.class, val(ttlMs));
 
         int rows = dsl.update(VN_LOCK_GROUP)
             .set(VN_LOCK_GROUP.EXPIRES_AT, newExpiry)
@@ -241,7 +247,7 @@ public class PgLockingService implements LockingService {
             .and(VN_LOCK_GROUP.ACTIVE.eq(true))
             .and(VN_LOCK_GROUP.OWNER_ID.eq(handle.ownerId()))
             .and(VN_LOCK_GROUP.FENCE_TOKEN.eq(handle.fenceToken()))
-            .and(DSL.condition("( {0} is null OR {0} > now() )", VN_LOCK_GROUP.EXPIRES_AT))
+            .and(condition("( {0} is null OR {0} > now() )", VN_LOCK_GROUP.EXPIRES_AT))
             .execute();
 
         return rows == 1;

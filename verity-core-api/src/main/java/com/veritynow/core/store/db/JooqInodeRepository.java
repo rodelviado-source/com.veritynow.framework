@@ -3,7 +3,9 @@ package com.veritynow.core.store.db;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_DIR_ENTRY;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE_PATH_SEGMENT;
+import static org.jooq.impl.DSL.condition;
 import static org.jooq.impl.DSL.currentOffsetDateTime;
+import static org.jooq.impl.DSL.val;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -17,9 +19,8 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record1;
 import org.jooq.Result;
-import org.jooq.impl.DSL;
+import org.jooq.postgres.extensions.types.Ltree;
 
-import com.veritynow.core.store.db.jooq.binding.LTree;
 import com.veritynow.core.store.db.model.DirEntry;
 import com.veritynow.core.store.db.model.Inode;
 import com.veritynow.core.store.db.model.InodePathSegment;
@@ -49,7 +50,7 @@ public final class JooqInodeRepository {
         Record1<Long> r = dsl
             .select(VN_INODE.ID)
             .from(VN_INODE)
-            .where(DSL.condition("{0} = cast({1} as ltree)", VN_INODE.SCOPE_KEY, DSL.val(scopeKey)))
+            .where(condition("{0} = cast({1} as ltree)", VN_INODE.SCOPE_KEY, val(scopeKey)))
             .fetchOne();
 
         return r == null ? Optional.empty() : Optional.ofNullable(r.value1());
@@ -74,7 +75,7 @@ public final class JooqInodeRepository {
         Objects.requireNonNull(entity.createdAt(), "entity.createdAt");
 
         OffsetDateTime createdAt = OffsetDateTime.ofInstant(entity.createdAt(), ZoneOffset.UTC);
-        LTree scope = entity.scopeKey() == null ? null : LTree.of(entity.scopeKey());
+        Ltree scope = entity.scopeKey() == null ? null :   Ltree.ltree(entity.scopeKey());
 
         VnInodeRecord inserted = dsl
             .insertInto(VN_INODE)

@@ -13,9 +13,9 @@
 		<maven.compiler.plugin.version>3.14.1</maven.compiler.plugin.version>
 		<maven.surefire.plugin.version>3.5.4</maven.surefire.plugin.version>
 		<maven.resources.plugin.version>3.4.0</maven.resources.plugin.version>
-		
+
 		<spring-boot.version>4.0.1</spring-boot.version>
-		
+
 		<log4j.version>2.25.2</log4j.version>
 		<lwjgl.version>3.4.0</lwjgl.version>
 		<openhft.version>0.27ea1</openhft.version>
@@ -127,6 +127,10 @@
 		<dependency>
 			<groupId>org.jooq</groupId>
 			<artifactId>jooq</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.jooq</groupId>
+			<artifactId>jooq-postgres-extensions</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.jooq</groupId>

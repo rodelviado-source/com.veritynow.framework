@@ -1,7 +1,17 @@
-package com.veritynow.core.txn.jooq;
+package com.veritynow.core.store.txn.jooq;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_HEAD;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_VERSION;
+import static org.jooq.impl.DSL.currentTimestamp;
+import static org.jooq.impl.DSL.excluded;
+import static org.jooq.impl.DSL.extract;
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.floor;
+import static org.jooq.impl.DSL.inline;
+import static org.jooq.impl.DSL.name;
+import static org.jooq.impl.DSL.select;
+import static org.jooq.impl.DSL.table;
+import static org.jooq.impl.DSL.val;
 
 import java.time.OffsetDateTime;
 import java.util.Objects;
@@ -13,10 +23,9 @@ import org.jooq.DatePart;
 import org.jooq.Field;
 import org.jooq.InsertOnDuplicateStep;
 import org.jooq.Record2;
-import org.jooq.impl.DSL;
 
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
-import com.veritynow.core.txn.TransactionFinalizer;
+import com.veritynow.core.store.txn.TransactionFinalizer;
 
 /**
  * TransactionFinalizer implemented with jOOQ generated tables using set-based SQL.
@@ -55,7 +64,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
               
         // Data-modifying CTE that clones IN_FLIGHT -> COMMITTED and returns (inode_id, version_id)
         CommonTableExpression<Record2<Long, Long>> cloned =
-        	    DSL.name("cloned")
+        	    name("cloned")
         	       .fields("inode_id", "version_id")
         	       .as(
         	    		cloneAndSetTransactionResult("COMMITTED", txnId)
@@ -65,7 +74,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
 
         // Server-side updated_at (timestamptz -> OffsetDateTime)
         
-        Field<OffsetDateTime> updatedAtNow = DSL.field("now()", OffsetDateTime.class);
+        Field<OffsetDateTime> updatedAtNow = field("now()", OffsetDateTime.class);
         // Reference the returned CTE columns in a stable way
         
         var c = cloned.asTable();
@@ -83,19 +92,19 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
                 VN_NODE_HEAD.FENCE_TOKEN
             )
             .select(
-                DSL.select(
+                select(
                     cInodeId,
                     cVersionId,
                     updatedAtNow,
-                    DSL.val(fenceToken)
-                ).from(DSL.table(DSL.name("cloned")))
+                    val(fenceToken)
+                ).from(table(name("cloned")))
             )
             .onConflict(VN_NODE_HEAD.INODE_ID)
             .doUpdate()
-            .set(VN_NODE_HEAD.VERSION_ID, DSL.excluded(VN_NODE_HEAD.VERSION_ID))
-            .set(VN_NODE_HEAD.UPDATED_AT, DSL.excluded(VN_NODE_HEAD.UPDATED_AT))
-            .set(VN_NODE_HEAD.FENCE_TOKEN, DSL.excluded(VN_NODE_HEAD.FENCE_TOKEN))
-            .where(VN_NODE_HEAD.FENCE_TOKEN.lt(DSL.excluded(VN_NODE_HEAD.FENCE_TOKEN)))
+            .set(VN_NODE_HEAD.VERSION_ID, excluded(VN_NODE_HEAD.VERSION_ID))
+            .set(VN_NODE_HEAD.UPDATED_AT, excluded(VN_NODE_HEAD.UPDATED_AT))
+            .set(VN_NODE_HEAD.FENCE_TOKEN, excluded(VN_NODE_HEAD.FENCE_TOKEN))
+            .where(VN_NODE_HEAD.FENCE_TOKEN.lt(excluded(VN_NODE_HEAD.FENCE_TOKEN)))
             .execute();
 
         // In the success case, every cloned inode row must publish exactly once.
@@ -120,8 +129,8 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
     
     private InsertOnDuplicateStep<VnNodeVersionRecord> cloneAndSetTransactionResult(String result, String txnId) {
     	Field<Long> nowMs =
-                DSL.floor(
-                    DSL.extract(DSL.currentTimestamp(), DatePart.EPOCH).mul(DSL.inline(1000))
+                floor(
+                    extract(currentTimestamp(), DatePart.EPOCH).mul(inline(1000))
                 ).cast(Long.class);
 
     	return dsl.insertInto(
@@ -142,7 +151,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
                 VN_NODE_VERSION.SIZE
             )
             .select(
-                DSL.select(
+                select(
                     VN_NODE_VERSION.INODE_ID,
                     nowMs,
                     VN_NODE_VERSION.PATH,
@@ -152,7 +161,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
                     VN_NODE_VERSION.WORKFLOW_ID,
                     VN_NODE_VERSION.CONTEXT_NAME,
                     VN_NODE_VERSION.TRANSACTION_ID,
-                    DSL.inline(result),
+                    inline(result),
                     VN_NODE_VERSION.HASH,
                     VN_NODE_VERSION.NAME,
                     VN_NODE_VERSION.MIME_TYPE,

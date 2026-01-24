@@ -1,16 +1,16 @@
 package util;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
+import static org.jooq.impl.DSL.field;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Result;
-import org.jooq.impl.DSL;
+import org.jooq.postgres.extensions.types.Ltree;
 
 import com.veritynow.core.store.db.PathKeyCodec;
-import com.veritynow.core.store.db.jooq.binding.LTree;
 
 
 public class DBUtil {
@@ -21,7 +21,7 @@ public class DBUtil {
         // Root is store-owned and identified by scope_key = PathKeyCodec.ROOT_LABEL.
         int cnt = dsl.fetchCount(
             VN_INODE,
-            VN_INODE.SCOPE_KEY.eq(LTree.of(PathKeyCodec.ROOT_LABEL))
+            VN_INODE.SCOPE_KEY.eq(Ltree.ltree(PathKeyCodec.ROOT_LABEL))
         );
 
         if (cnt == 0) {
@@ -32,9 +32,9 @@ public class DBUtil {
 
         // Fetch canonical text form (scope_key::text) for debug parity with JDBC version
         String rootScopeKey = dsl
-            .select(DSL.field("{0}::text", String.class, VN_INODE.SCOPE_KEY))
+            .select(field("{0}::text", String.class, VN_INODE.SCOPE_KEY))
             .from(VN_INODE)
-            .where(VN_INODE.SCOPE_KEY.eq(LTree.of(PathKeyCodec.ROOT_LABEL)))
+            .where(VN_INODE.SCOPE_KEY.eq(Ltree.ltree(PathKeyCodec.ROOT_LABEL)))
             .fetchOne(0, String.class);
 
         if (rootScopeKey == null) {

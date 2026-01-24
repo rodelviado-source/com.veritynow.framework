@@ -4,14 +4,14 @@
 package com.veritynow.core.store.persistence.jooq.tables.records;
 
 
-import com.veritynow.core.store.db.jooq.binding.LTree;
-import com.veritynow.core.store.persistence.jooq.tables.VnPathLock;
-
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
+import org.jooq.postgres.extensions.types.Ltree;
+
+import com.veritynow.core.store.persistence.jooq.tables.VnPathLock;
 
 
 /**
@@ -67,15 +67,15 @@ public class VnPathLockRecord extends UpdatableRecordImpl<VnPathLockRecord> {
     /**
      * Setter for <code>public.vn_path_lock.scope_key</code>.
      */
-    public void setScopeKey(LTree value) {
+    public void setScopeKey(Ltree value) {
         set(3, value);
     }
 
     /**
      * Getter for <code>public.vn_path_lock.scope_key</code>.
      */
-    public LTree getScopeKey() {
-        return (LTree) get(3);
+    public Ltree getScopeKey() {
+        return (Ltree) get(3);
     }
 
     /**
@@ -143,7 +143,7 @@ public class VnPathLockRecord extends UpdatableRecordImpl<VnPathLockRecord> {
     /**
      * Create a detached, initialised VnPathLockRecord
      */
-    public VnPathLockRecord(Long id, UUID lockGroupId, String ownerId, LTree scopeKey, Boolean active, OffsetDateTime acquiredAt, OffsetDateTime releasedAt) {
+    public VnPathLockRecord(Long id, UUID lockGroupId, String ownerId, Ltree scopeKey, Boolean active, OffsetDateTime acquiredAt, OffsetDateTime releasedAt) {
         super(VnPathLock.VN_PATH_LOCK);
 
         setId(id);
