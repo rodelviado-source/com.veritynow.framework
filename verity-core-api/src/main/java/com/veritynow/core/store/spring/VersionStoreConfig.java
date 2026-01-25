@@ -25,9 +25,9 @@ import com.veritynow.core.store.ImmutableBackingStore;
 import com.veritynow.core.store.VersionStore;
 import com.veritynow.core.store.base.DefaultHashingService;
 import com.veritynow.core.store.base.PK;
-import com.veritynow.core.store.db.JooqInodeRepository;
-import com.veritynow.core.store.db.JooqVersionMetaRepository;
-import com.veritynow.core.store.db.JooqVersionStore;
+import com.veritynow.core.store.db.InodeRepository;
+import com.veritynow.core.store.db.VersionMetaRepository;
+import com.veritynow.core.store.db.DBVersionStore;
 import com.veritynow.core.store.db.RepositoryManager;
 import com.veritynow.core.store.fs.ImmutableFSBackingStore;
 import com.veritynow.core.store.meta.BlobMeta;
@@ -108,17 +108,17 @@ public class VersionStoreConfig {
     
     
     @Bean
-    public JooqVersionMetaRepository jooqVersionMetaRepository(DSLContext dsl) {
-    	return new JooqVersionMetaRepository(dsl);
+    public VersionMetaRepository jooqVersionMetaRepository(DSLContext dsl) {
+    	return new VersionMetaRepository(dsl);
     }
     
     @Bean
-    JooqInodeRepository jooqInodeRepository(DSLContext dsl) {
-    	return new JooqInodeRepository(dsl);
+    InodeRepository jooqInodeRepository(DSLContext dsl) {
+    	return new InodeRepository(dsl);
     }
     
     @Bean
-    public RepositoryManager repositoryManager(JooqInodeRepository inodeRepo, JooqVersionMetaRepository verRepo) {
+    public RepositoryManager repositoryManager(InodeRepository inodeRepo, VersionMetaRepository verRepo) {
     	return new RepositoryManager(inodeRepo, verRepo);
     }
     
@@ -132,7 +132,7 @@ public class VersionStoreConfig {
             LockingService lockingService
             
     ) {
-		return new JooqVersionStore(backingStore, dsl, repositoryManager, txnManager, lockingService);
+		return new DBVersionStore(backingStore, dsl, repositoryManager, txnManager, lockingService);
     }
     
     @Bean

@@ -21,16 +21,6 @@ create index if not exists "ix_vn_path_lock_owner_active" on "public"."vn_path_l
 create index if not exists "ix_vn_path_lock_scope_key_gist" on "public"."vn_path_lock"("scope_key");
 create index if not exists "ix_vn_txn_epoch_status" on "public"."vn_txn_epoch"("status");
 create sequence if not exists "public"."vn_fence_token_seq" as bigint;
-do $$ begin alter table if exists "public"."vn_dir_entry" add constraint "vn_dir_entry_pkey" primary key ("id"); exception when duplicate_table then  when duplicate_object then null; end; $$;
-do $$ begin alter table if exists "public"."vn_dir_entry" add constraint "uq_dir_parent_name" unique ("parent_id", "name"); exception when duplicate_table then  when duplicate_object then null; end; $$;
-do $$ begin alter table if exists "public"."vn_inode" add constraint "vn_inode_pkey" primary key ("id"); exception when duplicate_table then  when duplicate_object then null; end; $$;
-do $$ begin alter table if exists "public"."vn_inode_path_segment" add constraint "vn_inode_path_segment_pkey" primary key ("id"); exception when duplicate_table then  when duplicate_object then null; end; $$;
-do $$ begin alter table if exists "public"."vn_inode_path_segment" add constraint "uq_inode_ord" unique ("inode_id", "ord"); exception when duplicate_table then  when duplicate_object then null; end; $$;
-do $$ begin alter table if exists "public"."vn_lock_group" add constraint "vn_lock_group_pkey" primary key ("lock_group_id"); exception when duplicate_table then  when duplicate_object then null; end; $$;
-do $$ begin alter table if exists "public"."vn_node_head" add constraint "vn_node_head_pkey" primary key ("inode_id"); exception when duplicate_table then  when duplicate_object then null; end; $$;
-do $$ begin alter table if exists "public"."vn_node_version" add constraint "vn_node_version_pkey" primary key ("id"); exception when duplicate_table then  when duplicate_object then null; end; $$;
-do $$ begin alter table if exists "public"."vn_path_lock" add constraint "vn_path_lock_pkey" primary key ("id"); exception when duplicate_table then  when duplicate_object then null; end; $$;
-do $$ begin alter table if exists "public"."vn_txn_epoch" add constraint "vn_txn_epoch_pkey" primary key ("txn_id"); exception when duplicate_table then  when duplicate_object then null; end; $$;
 do $$ begin alter table if exists "public"."vn_dir_entry" add constraint "vn_dir_entry_child_id_fk" foreign key ("child_id") references "public"."vn_inode" ("id"); exception when duplicate_table then  when duplicate_object then null; end; $$;
 do $$ begin alter table if exists "public"."vn_dir_entry" add constraint "vn_dir_entry_parent_id_fk" foreign key ("parent_id") references "public"."vn_inode" ("id"); exception when duplicate_table then  when duplicate_object then null; end; $$;
 do $$ begin alter table if exists "public"."vn_inode_path_segment" add constraint "vn_inode_path_segment_dir_entry_id_fk" foreign key ("dir_entry_id") references "public"."vn_dir_entry" ("id"); exception when duplicate_table then  when duplicate_object then null; end; $$;

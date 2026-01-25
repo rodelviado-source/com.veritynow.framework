@@ -41,7 +41,7 @@ import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRec
  * - Unfenced publish is "degraded mode": updates only if existing row is also unfenced.
  * - Retry classification is SQLSTATE-based.
  */
-public final class JooqPublisher {
+public final class Publisher {
   private static final Logger LOGGER = LogManager.getLogger();
 
   /**
@@ -61,7 +61,7 @@ public final class JooqPublisher {
   
   private final RepositoryManager repositoryManager;
 
-  public JooqPublisher(DSLContext dsl, LockingService lockingService, RepositoryManager repositoryManager) {
+  public Publisher(DSLContext dsl, LockingService lockingService, RepositoryManager repositoryManager) {
     this.dsl = Objects.requireNonNull(dsl, "dsl");
     this.lockingService = lockingService; // may be null if running without locking
     this.repositoryManager = Objects.requireNonNull(repositoryManager, "repositoryManager");
@@ -252,7 +252,7 @@ public final class JooqPublisher {
   private  InsertSetMoreStep<VnNodeVersionRecord> insertVersionMeta(VersionMeta vm, Long inodeId) {
 	  return dsl.insertInto(VN_NODE_VERSION).
           	set(VN_NODE_VERSION.INODE_ID, inodeId ).
-            set(VN_NODE_VERSION.TIMESTAMP, DbTime.nowEpochMs()).
+            set(VN_NODE_VERSION.TIMESTAMP, DBTime.nowEpochMs()).
             set(VN_NODE_VERSION.PATH, vm.path()).
             set(VN_NODE_VERSION.OPERATION, vm.operation()).
             set(VN_NODE_VERSION.PRINCIPAL, vm.principal()).

@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.jooq.Constraint;
-import org.jooq.DDLExportConfiguration;
 import org.jooq.DSLContext;
 import org.jooq.ForeignKey;
 import org.jooq.Index;
@@ -27,10 +25,10 @@ import org.jooq.impl.DSL;
  * <p>Generates deterministic DROP statements purely from the jOOQ-generated schema model
  * without parsing SQL strings.</p>
  */
-public final class SQLCreateToDropIfExist {
+public final class SQLDropIfExist {
 
   private static DSLContext dsl = DSL.using(SQLDialect.POSTGRES);	
-  private SQLCreateToDropIfExist() {}
+  private SQLDropIfExist() {}
 
   /**
    * Generate teardown DDL statements (no trailing semicolons) for the {@code public} schema.

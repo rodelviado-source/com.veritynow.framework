@@ -1,7 +1,5 @@
 package com.veritynow.core.store.spring;
 
-import static com.veritynow.core.store.persistence.jooq.Public.PUBLIC;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -15,13 +13,8 @@ import javax.sql.DataSource;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jooq.Constraint;
-import org.jooq.DDLExportConfiguration;
 import org.jooq.DSLContext;
-import org.jooq.ForeignKey;
 import org.jooq.SQLDialect;
-import org.jooq.Table;
-import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -51,7 +44,7 @@ public class EmbeddedPostgresConfig {
 	@Value("${verity.init.db.enabled:true}")
 	private Boolean initEnabled;
 
-	@Value("${verity.init.db.locations:schema/schema-create.sql}")
+	@Value("${verity.init.db.schema.locations:schema/schema-create.sql}")
 	private String locations;
 
 	@Bean

@@ -8,8 +8,8 @@ import static org.jooq.impl.DSL.inline;
 
 import org.jooq.Field;
 
-public final class DbTime {
-    private DbTime() {}
+public final class DBTime {
+    private DBTime() {}
 
     public static  Field<Long> nowEpochMs() {
     	return floor(

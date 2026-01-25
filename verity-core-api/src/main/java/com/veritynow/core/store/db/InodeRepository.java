@@ -32,11 +32,11 @@ import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
  * jOOQ-only replacement for the JPA.
  *
  */
-public final class JooqInodeRepository {
+public final class InodeRepository {
 
     private final DSLContext dsl;
 
-    public JooqInodeRepository(DSLContext dsl) {
+    public InodeRepository(DSLContext dsl) {
         this.dsl = Objects.requireNonNull(dsl, "dsl");
     }
 

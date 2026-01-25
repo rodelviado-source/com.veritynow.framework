@@ -29,7 +29,7 @@ import org.jooq.impl.DSL;
  * (Public, Keys, Indexes, Sequences) without parsing SQL strings.
  * </p>
  */
-public final class SQLCreateToCreatelfAbsent {
+public final class SQLCreatelfAbsent {
 
 	private static DSLContext dsl = DSL.using(SQLDialect.POSTGRES);
 
@@ -143,6 +143,8 @@ public final class SQLCreateToCreatelfAbsent {
 		});
 
 		for (UniqueKey<?> uk : PUBLIC.getUniqueKeys()) {
+			if (uk.isPrimary()) continue;
+			if (uk.enforced()) continue;
 			Table<?> table = uk.getTable();
 			Constraint cons = uk.constraint();
 			String o = dsl.begin(

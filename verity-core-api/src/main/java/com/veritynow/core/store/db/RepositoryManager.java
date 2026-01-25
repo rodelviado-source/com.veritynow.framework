@@ -18,10 +18,10 @@ import com.veritynow.core.store.meta.VersionMeta;
 
 public class RepositoryManager {
 	private static final Logger LOGGER = LogManager.getLogger();
-	private final JooqInodeRepository inodeRepo;
-	private final JooqVersionMetaRepository verRepo;
+	private final InodeRepository inodeRepo;
+	private final VersionMetaRepository verRepo;
 
-	public RepositoryManager(JooqInodeRepository inodeRepo,  JooqVersionMetaRepository verRepo) {
+	public RepositoryManager(InodeRepository inodeRepo,  VersionMetaRepository verRepo) {
 		Objects.requireNonNull(inodeRepo, "Inode Repository required");
 		Objects.requireNonNull(verRepo,    "Version Repository required");
 		this.inodeRepo = inodeRepo;

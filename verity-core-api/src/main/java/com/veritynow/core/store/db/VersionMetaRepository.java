@@ -13,11 +13,11 @@ import org.jooq.Record;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 
-public final class JooqVersionMetaRepository {
+public final class VersionMetaRepository {
 
     private final DSLContext dsl;
 
-    public JooqVersionMetaRepository(DSLContext dsl) {
+    public VersionMetaRepository(DSLContext dsl) {
         this.dsl = Objects.requireNonNull(dsl, "dsl");
     }
 
@@ -38,7 +38,7 @@ public final class JooqVersionMetaRepository {
         VnNodeVersionRecord inserted = dsl
         	    .insertInto(VN_NODE_VERSION)
         	    .set(VN_NODE_VERSION.INODE_ID, inodeId)
-        	    .set(VN_NODE_VERSION.TIMESTAMP, DbTime.nowEpochMs())
+        	    .set(VN_NODE_VERSION.TIMESTAMP, DBTime.nowEpochMs())
         	    .set(VN_NODE_VERSION.PATH, vm.path())
         	    .set(VN_NODE_VERSION.OPERATION, vm.operation())
         	    .set(VN_NODE_VERSION.PRINCIPAL, vm.principal())

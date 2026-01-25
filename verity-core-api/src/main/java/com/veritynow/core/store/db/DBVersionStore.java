@@ -34,7 +34,7 @@ import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;
 import util.DBUtil;
 
 
-public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta>, TransactionAware<ContextScope>, LockingAware {
+public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta>, TransactionAware<ContextScope>, LockingAware {
     
     private static final Logger LOGGER = LogManager.getLogger();
     
@@ -42,10 +42,10 @@ public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements Ver
     private final ContextAwareTransactionManager txnManager;
     LockingService lockingService;
     
-    private final JooqPublisher publisher;
+    private final Publisher publisher;
 	private final RepositoryManager repositoryManager;
 
-    public JooqVersionStore(
+    public DBVersionStore(
             ImmutableBackingStore<String, BlobMeta> backingStore,
 			DSLContext dsl,
 			RepositoryManager repositoryManager,
@@ -57,7 +57,7 @@ public class JooqVersionStore extends AbstractStore<PK, BlobMeta> implements Ver
         this.backingStore = backingStore;
         this.txnManager = txnManager;
 		this.lockingService = lockingService;
-		this.publisher  = new JooqPublisher(dsl, lockingService, repositoryManager);
+		this.publisher  = new Publisher(dsl, lockingService, repositoryManager);
 		this.repositoryManager = Objects.requireNonNull(repositoryManager, "repositoryManager required");
         
 		repositoryManager.ensureRootInode();

@@ -99,7 +99,7 @@ public class SchemaManager {
 	public static void generateCreateIfAbsentSchema(Path createIfAbsentPath, String prelude) {
 		//backup before write
 		try {
-			List<String> createIfAbsent = SQLCreateToCreatelfAbsent.generate();
+			List<String> createIfAbsent = SQLCreatelfAbsent.generate();
 			backupIfExists(createIfAbsentPath);
 			writeScript(createIfAbsentPath, createIfAbsent, prelude);
 			System.out.println("SCHEMA_DUMP_WRITTEN_CREATE_IF_ABSENT: " + createIfAbsentPath.toAbsolutePath());
@@ -113,7 +113,7 @@ public class SchemaManager {
 	public static void generateDropIfExistsSchema(Path dropIfExistsPath, String prelude) {
 		//backup before write
 		try {
-			List<String> dropIfExists = SQLCreateToDropIfExist.generate();
+			List<String> dropIfExists = SQLDropIfExist.generate();
 			backupIfExists(dropIfExistsPath);
 			writeScript(dropIfExistsPath, dropIfExists, prelude);
 			System.out.println("SCHEMA_DUMP_WRITTEN_DROP_IF_EXISTS: " + dropIfExistsPath.toAbsolutePath());

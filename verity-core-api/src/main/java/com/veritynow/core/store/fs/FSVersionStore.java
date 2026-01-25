@@ -49,11 +49,11 @@ import util.JSON;
  * This class intentionally does NOT persist "Meta" or embed Event into blob-meta.
  * Versions are first-class VersionMeta records.
  */
-public class VersionFSStore
+public class FSVersionStore
         extends AbstractStore<PK, BlobMeta>
         implements VersionStore<PK, BlobMeta, VersionMeta> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(VersionFSStore.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FSVersionStore.class);
 
     private static final String HEAD = "HEAD";
     private static final String VERSION_META_NAME = "version.json";
@@ -62,7 +62,7 @@ public class VersionFSStore
     private final Path pathIndexDirectory;
     private final ImmutableBackingStore<String, BlobMeta> backingStore;
 
-    public VersionFSStore(Path rootDirectory, ImmutableBackingStore<String, BlobMeta> backingStore) {
+    public FSVersionStore(Path rootDirectory, ImmutableBackingStore<String, BlobMeta> backingStore) {
     	super(backingStore.getHashingService());
         Objects.requireNonNull(rootDirectory, "rootDirectory");
         Objects.requireNonNull(backingStore, "backingStore");
