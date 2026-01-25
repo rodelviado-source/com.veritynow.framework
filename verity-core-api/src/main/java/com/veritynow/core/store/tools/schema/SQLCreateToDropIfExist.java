@@ -8,10 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.jooq.DSLContext;
 import org.jooq.ForeignKey;
 import org.jooq.Index;
 import org.jooq.Name;
 import org.jooq.Query;
+import org.jooq.SQLDialect;
 import org.jooq.Sequence;
 import org.jooq.Table;
 import org.jooq.UniqueKey;
@@ -25,6 +27,7 @@ import org.jooq.impl.DSL;
  */
 public final class SQLCreateToDropIfExist {
 
+  private static DSLContext dsl = DSL.using(SQLDialect.POSTGRES);	
   private SQLCreateToDropIfExist() {}
 
   /**
@@ -47,15 +50,15 @@ public final class SQLCreateToDropIfExist {
     tables.sort(Comparator.comparing(t -> t.getQualifiedName().toString()));
 
     Map<String, Index> indexes = new TreeMap<String, Index>();
-  
+     
     // 1) Constraints (drop)
     for (Table<?> t : tables) {
       t.getIndexes().stream().forEach(i -> indexes.put(i.getName(), i));	
       // Primary key and unique keys
       for (UniqueKey<?> uk : sortedUniqueKeys(t)) {
         if (uk.getName() != null) {
-          Query q = DSL.alterTableIfExists(t)
-              .dropConstraintIfExists(uk.constraint());
+          Query q = dsl.alterTableIfExists(t)
+              .dropConstraintIfExists(uk.constraint()).cascade();
           out.add(q.getSQL());
         }
       }
@@ -63,8 +66,8 @@ public final class SQLCreateToDropIfExist {
       // Foreign keys
       for (ForeignKey<?, ?> fk : sortedForeignKeys(t)) {
         if (fk.getName() != null) {
-          Query q = DSL.alterTableIfExists(t)
-              .dropConstraintIfExists(fk.constraint());
+          Query q = dsl.alterTableIfExists(t)
+              .dropConstraintIfExists(fk.constraint()).cascade();
           out.add(q.getSQL());
         }
       }
@@ -74,21 +77,21 @@ public final class SQLCreateToDropIfExist {
     for (Index idx : indexes.values()) {
       Name idxName = idx.getQualifiedName() != null ? idx.getQualifiedName() : idx.getUnqualifiedName();
       if (idxName == null) continue;
-      out.add(DSL.dropIndexIfExists(idx).getSQL());
+      out.add(dsl.dropIndexIfExists(idx).cascade().getSQL());
     }
 
     // 3) Tables (drop)
     // Reverse table order for teardown safety
     tables.sort(Comparator.comparing((Table<?> t) -> t.getQualifiedName().toString()).reversed());
     for (Table<?> t : tables) {
-      out.add(DSL.dropTableIfExists(t).getSQL());
+      out.add(dsl.dropTableIfExists(t).cascade().getSQL());
     }
 
-    // 4) Sequences (drop)
+ // 4) Sequences (drop)
     ArrayList<Sequence<?>> seqs = new ArrayList<Sequence<?>>(PUBLIC.getSequences());
     seqs.sort( Comparator.comparing((Sequence<?> s)  -> s.getQualifiedName().toString()).reversed());
     for (Sequence<?> seq : seqs) {
-      out.add(DSL.dropSequenceIfExists(seq).getSQL());
+      out.add(dsl.dropSequenceIfExists(seq).getSQL());
     }
 
     return out;

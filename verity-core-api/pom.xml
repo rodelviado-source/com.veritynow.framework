@@ -256,7 +256,6 @@
 					<include>**/project.properties</include>
 				</includes>
 				<filtering>true</filtering>
-
 			</resource>
 		</resources>
 		<plugins>
