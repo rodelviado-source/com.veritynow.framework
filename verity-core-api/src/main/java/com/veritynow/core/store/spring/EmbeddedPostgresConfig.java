@@ -1,5 +1,7 @@
 package com.veritynow.core.store.spring;
 
+import static com.veritynow.core.store.persistence.jooq.Public.PUBLIC;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -13,8 +15,13 @@ import javax.sql.DataSource;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jooq.Constraint;
+import org.jooq.DDLExportConfiguration;
 import org.jooq.DSLContext;
+import org.jooq.ForeignKey;
 import org.jooq.SQLDialect;
+import org.jooq.Table;
+import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -48,7 +55,8 @@ public class EmbeddedPostgresConfig {
 	private String locations;
 
 	@Bean
-	@ConfigurationProperties(prefix = "spring.datasource.hikari") //let spring configure as defined in properties
+	//let spring configure as defined in properties
+	@ConfigurationProperties(prefix = "spring.datasource.hikari") 
 	public HikariConfig hikariConfig() {
 		return new HikariConfig();
 	}
@@ -56,7 +64,7 @@ public class EmbeddedPostgresConfig {
 	@Bean
 	public DataSource dataSource(EmbeddedPostgres pg, HikariConfig config) throws IOException {
 		// Provides a ready JDBC DataSource to the embedded instance
-		LOGGER.info("\n\tUsing Postgres as Datasource");
+		LOGGER.info("\n\tUsing Embedded Postgres as Datasource");
 		config.setPoolName("embeddedPostgresHikariCP");
 		String url = null;
 		String username = null;
@@ -75,7 +83,7 @@ public class EmbeddedPostgresConfig {
 			config.setJdbcUrl(url);
 		if (username != null)
 			config.setUsername(username);
-		System.out.println(JSON.MAPPER_PRETTY.writeValueAsString(config));
+		LOGGER.debug("\n{}", JSON.MAPPER_PRETTY.writeValueAsString(config));
 		config.setDataSource(ds);
 		DataSource dataSource = new HikariDataSource(config);
 		
@@ -120,7 +128,7 @@ public class EmbeddedPostgresConfig {
 
 		EmbeddedPostgres ep;
 
-		ep = EmbeddedPostgres.builder().setDataDirectory(dataDir.toFile()).setPort(5432).setCleanDataDirectory(true)
+		ep = EmbeddedPostgres.builder().setDataDirectory(dataDir.toFile()).setCleanDataDirectory(true)
 				.start();
 
 		LOGGER.info("\n\tEmbedded Postgres Started");
@@ -128,20 +136,22 @@ public class EmbeddedPostgresConfig {
 		return ep;
 	}
 	
+		
 	private void initDB(DataSource ds) throws Exception {
 		String[] locs = locations.split("\\s*,\\s*");
+		
+		
 		try (Connection conn = ds.getConnection()) {
 
 			DSLContext dsl = DSL.using(conn, SQLDialect.POSTGRES);
-			for (String l : locs) {
-				if (l != null && !(l = l.trim()).isBlank()) {
-					System.out.println("Executing script : " + l);
+			for (String script : locs) {
+				if (script != null && !(script = script.trim()).isBlank()) {
+					LOGGER.info("Executing script : {}", script);
 					
-					if (!l.startsWith("/"))	l = "/" + l;
+					if (!script.startsWith("/"))	script = "/" + script;
 					
-					try (InputStream is = getClass().getResourceAsStream(l)) {
+					try (InputStream is = getClass().getResourceAsStream(script)) {
 						if (is == null) {
-							System.out.println("Script not found: " + l );
 							continue;
 						}
 						SchemaManager.executeScript(dsl, is);
@@ -149,7 +159,7 @@ public class EmbeddedPostgresConfig {
 				}
 			}
 		} catch (Exception e) {
-			System.out.println("Acquisition of DB connection failed");
+			LOGGER.error("Acquisition of DB connection failed", e);
 			throw e;
 		}
 	}
@@ -181,31 +191,31 @@ public class EmbeddedPostgresConfig {
 						if (p != null) {
 							try {
 								ProcessHandle targetProcess = p;
-								System.out.println("Found process: pid= " + targetProcess.pid() + " - "
-										+ targetProcess.info().command().orElse("N/A"));
+								LOGGER.info("Found process: pid= {} - {}",
+										 targetProcess.info().command().orElse("N/A"),  
+										 targetProcess.pid() );
+								
 								targetProcess.destroy(); // Graceful termination
 
-								System.out.println(
-										"Attempted to gracefully terminate process with pid = " + targetProcess.pid());
+								LOGGER.info("Attempted to gracefully terminate process with pid = {}", targetProcess.pid());
 								waitForTemination(targetProcess, 60, Duration.ofSeconds(1));
 								if (targetProcess.isAlive()) {
-									System.out.println("Graceful termination of process with pid = "
-											+ targetProcess.pid() + " failed");
+									LOGGER.info("Graceful termination of process with pid = {} failed",	 targetProcess.pid() );
 									targetProcess.destroyForcibly();
-									System.out.println("Attempted to forcibly terminate process with pid = "
-											+ targetProcess.pid());
+									LOGGER.info("Attempted to forcibly terminate process with pid = {}",
+											 targetProcess.pid());
 									waitForTemination(targetProcess, 60, Duration.ofSeconds(1));
 								}
 								if (targetProcess.isAlive()) {
-									System.err.println("Unable to terminate process with pid = " + targetProcess.pid());
+									LOGGER.error("Unable to terminate process with pid = {}" , targetProcess.pid());
 								} else {
-									System.out.println("Process with pid = " + targetProcess.pid() + " terminated");
+									LOGGER.info("Process with pid = {} terminated",  + targetProcess.pid());
 								}
 							} catch (Throwable e) {
 								e.printStackTrace();
 							}
 						} else {
-							System.out.println("Process '" + processName + "' not found.");
+							LOGGER.info("Process '{}' not found.",  processName);
 						}
 					});
 		} catch (Throwable e) {

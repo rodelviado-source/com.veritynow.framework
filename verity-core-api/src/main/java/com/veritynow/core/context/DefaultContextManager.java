@@ -96,7 +96,8 @@ final class DefaultContextManager implements ContextManager {
         ContextSnapshot captured = snapshot();
         return () -> {
             try (
-            ContextScope scope = scope(captured)) {
+            @SuppressWarnings("unused")
+			ContextScope scope = scope(captured)) {
                 runnable.run();
             }
         };
@@ -108,7 +109,8 @@ final class DefaultContextManager implements ContextManager {
         ContextSnapshot captured = snapshot();
         return () -> {
             try (
-            ContextScope scope = scope(captured)) {
+            @SuppressWarnings("unused")
+			ContextScope scope = scope(captured)) {
                 return callable.call();
             }
         };

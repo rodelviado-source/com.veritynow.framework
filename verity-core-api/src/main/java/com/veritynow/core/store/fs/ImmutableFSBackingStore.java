@@ -116,7 +116,8 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 			// delete the cache
 			Optional<InputStream> isOpt = getHashingService().getInputStream(true);
 			if (isOpt.isPresent())
-				try (InputStream is = isOpt.get()) {
+				try (@SuppressWarnings("unused")
+				InputStream is = isOpt.get()) {
 				} catch (Exception e) {
 				}
 			;

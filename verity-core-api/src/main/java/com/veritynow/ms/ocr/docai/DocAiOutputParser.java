@@ -233,6 +233,7 @@ public class DocAiOutputParser {
 	 * Builds a map of normalizedName -> originalFieldId from the template's zone
 	 * keys.
 	 */
+	@SuppressWarnings("unused")
 	private static Map<String, String> buildNormalizedFieldIdMap(FormTemplate t) {
 		Map<String, String> map = new TreeMap<>();
 		if (t.fields() == null)
@@ -242,7 +243,7 @@ public class DocAiOutputParser {
 		
 		System.out.println(fields.size() + " FIELDS SIZE ====================");
 		
-		fields.forEach((k, fi) -> {
+		fields.forEach((k,f) -> {
 			String norm = normalize(k);
 			map.put(norm, k);
 		}); 

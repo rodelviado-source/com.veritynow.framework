@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.jooq.Constraint;
+import org.jooq.DDLExportConfiguration;
 import org.jooq.DSLContext;
 import org.jooq.ForeignKey;
 import org.jooq.Index;
@@ -122,4 +124,9 @@ public final class SQLCreateToDropIfExist {
   private static String safeName(String s) {
     return s == null ? "" : s;
   }
+  
+  
+  
+
+ 
 }
