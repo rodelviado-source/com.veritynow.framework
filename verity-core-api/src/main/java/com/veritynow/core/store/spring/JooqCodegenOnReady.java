@@ -1,4 +1,4 @@
-package com.veritynow.core.store.tools.pg;
+package com.veritynow.core.store.spring;
 
 import java.nio.file.Path;
 

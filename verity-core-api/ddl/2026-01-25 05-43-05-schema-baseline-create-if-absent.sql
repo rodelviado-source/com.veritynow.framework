@@ -1,6 +1,7 @@
 create schema if not exists "public";
 create extension if not exists ltree;
 
+create sequence if not exists "public"."vn_fence_token_seq";
 create table if not exists "public"."vn_dir_entry" ("child_id" bigint not null, "created_at" timestamp(6) with time zone not null, "id" bigint not null, "parent_id" bigint not null, "name" varchar(255) not null);
 create table if not exists "public"."vn_inode" ("created_at" timestamp(6) with time zone not null, "id" bigint not null, "scope_key" "public"."ltree");
 create table if not exists "public"."vn_inode_path_segment" ("ord" integer not null, "created_at" timestamp(6) with time zone not null, "dir_entry_id" bigint not null, "id" bigint not null, "inode_id" bigint not null);
@@ -38,4 +39,3 @@ create index if not exists "ix_vn_path_lock_group" on "public"."vn_path_lock"();
 create index if not exists "ix_vn_path_lock_owner_active" on "public"."vn_path_lock"();
 create index if not exists "ix_vn_path_lock_scope_key_gist" on "public"."vn_path_lock"();
 create index if not exists "ix_vn_txn_epoch_status" on "public"."vn_txn_epoch"();
-create sequence if not exists "public"."vn_fence_token_seq";

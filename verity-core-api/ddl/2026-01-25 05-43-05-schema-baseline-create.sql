@@ -97,4 +97,4 @@ alter table "public"."vn_node_head" add constraint "vn_node_head_inode_id_fk" fo
 alter table "public"."vn_node_head" add constraint "vn_node_head_version_id_fk" foreign key ("version_id") references "public"."vn_node_version" ("id");
 alter table "public"."vn_node_version" add constraint "vn_node_version_inode_id_fk" foreign key ("inode_id") references "public"."vn_inode" ("id");
 alter table "public"."vn_path_lock" add constraint "vn_path_lock_lock_group_id_fk" foreign key ("lock_group_id") references "public"."vn_lock_group" ("lock_group_id");
-create sequence "public"."vn_fence_token_seq";
+create sequence "public"."vn_fence_token_seq" as bigint;

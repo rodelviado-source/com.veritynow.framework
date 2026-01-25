@@ -44,6 +44,7 @@ import com.veritynow.core.store.txn.jooq.JooqTransactionService;
 public class VersionStoreConfig {
 	final static Logger  LOGGER = LogManager.getLogger(); 
 	
+		
 	  @Bean
 	public DSLContext dsl(DataSource ds) {
 	   return DSL.using(new TransactionAwareDataSourceProxy(ds), SQLDialect.POSTGRES);
