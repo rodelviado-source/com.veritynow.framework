@@ -44,7 +44,7 @@ public class DocAIClient {
 	public ProcessResponse callDocAI(MultipartFile file) throws IOException {
 		byte[] bs = file.getBytes();
 		
-		LOGGER.info("\n\tPerforming OCR on {} with size = {}", file.getName(), bs.length);
+		LOGGER.info("Performing OCR on {} with size = {}", file.getName(), bs.length);
 		return callDocAI(bs, file.getName(), file.getContentType());
 	}
 	

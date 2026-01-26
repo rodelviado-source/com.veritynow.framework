@@ -4,12 +4,12 @@
 package com.veritynow.core.store.persistence.jooq.tables.records;
 
 
+import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
+
 import java.time.OffsetDateTime;
 
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
-
-import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
 
 
 /**
@@ -121,6 +121,6 @@ public class VnDirEntryRecord extends UpdatableRecordImpl<VnDirEntryRecord> {
         setId(id);
         setParentId(parentId);
         setName(name);
-        resetChangedOnNotNull();
+        resetTouchedOnNotNull();
     }
 }

@@ -18,10 +18,10 @@ public class SchemaManager {
 	private static final Pattern CREATE_SCHEMA = Pattern.compile("^\\s*create\\s+schema\\s+", Pattern.CASE_INSENSITIVE);
 	
 	
-	public static void executeScript(DSLContext dsl,   InputStream is) {
+	public static boolean executeScript(DSLContext dsl,   InputStream is) {
 		try  {
             
-			if (is == null) return;
+			if (is == null) return false;
             // Read the SQL script file into a String
 			byte[] bytes = is.readAllBytes();
             String sqlScript = new String(bytes, StandardCharsets.UTF_8);
@@ -31,12 +31,11 @@ public class SchemaManager {
             // or simply fetch() if it's a single statement.
             // For simple DDL/DML, the execute() method works well.
             dsl.execute(sqlScript);
-            System.out.println("SQL script executed successfully.");
-
-            
+            return true;
 
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
 	}
 	
@@ -85,7 +84,7 @@ public class SchemaManager {
 	public static void generateCreateSchema(Path createPath, String prelude) throws Throwable {
 		//backup before write
 		try {
-			List<String> create = SQLCreate.generate();
+			List<String> create = DDLCreate.generate();
 			backupIfExists(createPath);
 			writeScript(createPath, create, prelude);
 			System.out.println("SCHEMA_DUMP_WRITTEN_CREATE: " + createPath.toAbsolutePath());
@@ -99,7 +98,7 @@ public class SchemaManager {
 	public static void generateCreateIfAbsentSchema(Path createIfAbsentPath, String prelude) {
 		//backup before write
 		try {
-			List<String> createIfAbsent = SQLCreatelfAbsent.generate();
+			List<String> createIfAbsent = DDLCreatelfAbsent.generate();
 			backupIfExists(createIfAbsentPath);
 			writeScript(createIfAbsentPath, createIfAbsent, prelude);
 			System.out.println("SCHEMA_DUMP_WRITTEN_CREATE_IF_ABSENT: " + createIfAbsentPath.toAbsolutePath());
@@ -113,7 +112,7 @@ public class SchemaManager {
 	public static void generateDropIfExistsSchema(Path dropIfExistsPath, String prelude) {
 		//backup before write
 		try {
-			List<String> dropIfExists = SQLDropIfExist.generate();
+			List<String> dropIfExists = DDLDropIfExist.generate();
 			backupIfExists(dropIfExistsPath);
 			writeScript(dropIfExistsPath, dropIfExists, prelude);
 			System.out.println("SCHEMA_DUMP_WRITTEN_DROP_IF_EXISTS: " + dropIfExistsPath.toAbsolutePath());

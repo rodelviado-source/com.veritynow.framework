@@ -26,5 +26,7 @@ public interface HashingService {
 	
 	void setBufferSize(int bs);
 	int getBufferSize();
+	
+	String getAlgorithm();
 
 }

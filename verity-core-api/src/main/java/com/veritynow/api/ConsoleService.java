@@ -24,10 +24,14 @@ public class ConsoleService {
 	private final VersionStore<PK, BlobMeta, VersionMeta> versionStore;
 	private static final Logger LOGGER = LogManager.getLogger();
 	
+	
 	public ConsoleService(VersionStore<PK, BlobMeta, VersionMeta> versionStore) {
 		this.versionStore = versionStore;
-		LOGGER.info("\n\tConsole Service using " + versionStore.getClass().getName());
+		LOGGER.info("Console Service using " + versionStore.getClass().getName());
+		
 	}
+	
+	
 
 	public Optional<PathMeta> getPathMeta(String merklePath) {
 		try {
@@ -58,7 +62,6 @@ public class ConsoleService {
 		return p.isEmpty() ? "/" : p;
 	}
 
-		
 
 	public Optional<List<VersionMeta>> listAllVersions(String nodePath) {
 		try {

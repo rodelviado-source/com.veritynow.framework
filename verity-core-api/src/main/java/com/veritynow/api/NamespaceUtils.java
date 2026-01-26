@@ -133,7 +133,7 @@ public class NamespaceUtils {
 		String path = vm.path();
 		String clientPath = NamespaceUtils.removeNamespace(path, namespace);
 		return new VersionMeta(
-
+				vm.hashAlgorithm(),
 				vm.hash(), vm.name(), vm.mimeType(), vm.size(),
 
 				clientPath, vm.timestamp(), vm.operation(), vm.principal(), vm.correlationId(), vm.workflowId(), vm.contextName(), vm.transactionId(), vm.transactionResult());

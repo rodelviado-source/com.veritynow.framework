@@ -26,14 +26,14 @@ public class APIService {
 	
 	public APIService(VersionStore<PK, BlobMeta, VersionMeta> versionStore) {
 		this.versionStore = versionStore;
-		LOGGER.info("\n\tAPI Service using " + versionStore.getClass().getName());
+		LOGGER.info("API Service using " + versionStore.getClass().getName());
 	}
 
 	@Transactional
 	public Optional<VersionMeta> create(String parentPath, InputStream is, String mimeType, String name) {
 		 try {
 			 
-			Optional<BlobMeta> opt = versionStore.create(new PK(parentPath,  null), new BlobMeta(null, name, mimeType,  0), is);
+			Optional<BlobMeta> opt = versionStore.create(new PK(parentPath,  null), new BlobMeta(name, mimeType,  0), is);
 			if (opt.isPresent()) 
 				return versionStore.getLatestVersion(parentPath);
 			
@@ -49,7 +49,7 @@ public class APIService {
 			String parent = path.substring(0,path.lastIndexOf("/"));
 			String lastSegment = lastSegment(path) ;
 			
-			Optional<BlobMeta> opt = versionStore.create(new PK(parent,  null), new BlobMeta(null, name, mimeType,  0), is, lastSegment);
+			Optional<BlobMeta> opt = versionStore.create(new PK(parent,  null), new BlobMeta(name, mimeType,  0), is, lastSegment);
 			
 			if (opt.isPresent()) {
 				return versionStore.getLatestVersion(path);

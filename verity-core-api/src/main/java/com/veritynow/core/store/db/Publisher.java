@@ -261,6 +261,7 @@ public final class Publisher {
             set(VN_NODE_VERSION.CONTEXT_NAME, vm.contextName()).
             set(VN_NODE_VERSION.TRANSACTION_ID, vm.transactionId()).
             set(VN_NODE_VERSION.TRANSACTION_RESULT, vm.transactionResult()).
+            set(VN_NODE_VERSION.HASHALGORITHM, vm.hashAlgorithm()).
             set(VN_NODE_VERSION.HASH, vm.hash()).
             set(VN_NODE_VERSION.NAME, vm.name()).
             set( VN_NODE_VERSION.MIME_TYPE, vm.mimeType()).

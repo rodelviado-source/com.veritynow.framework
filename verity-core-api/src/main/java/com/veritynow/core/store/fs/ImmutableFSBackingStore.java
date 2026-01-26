@@ -25,7 +25,7 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 		implements ImmutableBackingStore<String, BlobMeta> {
 
 	private final Path blobDirectory;
-
+	private final String algo;
 	private static final Logger LOGGER = LogManager.getLogger();
 
 	Tika tika = new Tika();
@@ -33,7 +33,13 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 	public ImmutableFSBackingStore(Path rootDirectory, HashingService hs) {
 		super(hs);
 		this.blobDirectory = rootDirectory.resolve("Blobs");
-		LOGGER.info("\n\tImmutable Filesystem backed Store started\n\tRoot Directory at " + blobDirectory);
+		this.algo = hs.getAlgorithm();
+		LOGGER.info(
+				"""
+				Immutable Filesystem({}) backed Store started
+				Root Directory at {}
+				""", algo, blobDirectory
+				);
 	}
 
 	@Override
@@ -45,7 +51,7 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 
 	@Override
 	public Optional<BlobMeta> save(String name, String mimetype, InputStream is) throws IOException {
-		return create(null, new BlobMeta(null, name, mimetype, 0l), is);
+		return create(null, new BlobMeta(name, mimetype, 0l), is);
 	}
 
 	// ----------------------------
@@ -71,9 +77,9 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 
 			// Returns a sharded path with hash as the filename
 			// Set createParentDir to true
-			Path blobPath = getBlobPath(hash, true);
+			Path blobPath = getBlobPath(hash,  true);
 			// Create a path for our json meta, lives alongside glob
-			Path metaPath = getBlobPath(hash + JSON_EXTENSION, false);
+			Path metaPath = getBlobMetaPath(hash, false);
 
 			// just return the stored meta if it exist
 			if (Files.exists(metaPath)) {
@@ -92,9 +98,10 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 			String mimeType = meta.mimeType() != null ? meta.mimeType()
 					: header.isPresent() ? tika.detect(header.get()) : "application/octet-stream";
 			String name = meta.name() != null ? meta.name() : storeId;
+			
 
 			// all ready to create a new versions meta
-			BlobMeta blobMeta = new BlobMeta(hash, name, mimeType, size);
+			BlobMeta blobMeta = new BlobMeta(algo, hash, name, mimeType, size);
 
 			byte[] metaAsBytes = JSON.MAPPER.writeValueAsBytes(blobMeta);
 
@@ -170,7 +177,7 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 
 	@Override
 	public Optional<InputStream> retrieve(String hash) throws IOException {
-		InputStream b = getBlob(hash);
+		InputStream b = getBlob(hash, algo);
 		if (b != null)
 			return Optional.of(b);
 		return Optional.empty();
@@ -185,11 +192,21 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 		if (createParentDir && !Files.exists(shardDir)) {
 			Files.createDirectories(shardDir);
 		}
-		return shardDir.resolve(hash);
+		return shardDir.resolve(hash + "-" + algo);
+	}
+	
+	private Path getBlobMetaPath(String hash, boolean createParentDir) throws IOException {
+		// git-like sharding: /ab/<hash>
+		String shard = hash.substring(0, 2);
+		Path shardDir = blobDirectory.resolve(shard);
+		if (createParentDir && !Files.exists(shardDir)) {
+			Files.createDirectories(shardDir);
+		}
+		return shardDir.resolve(hash + "-" + algo + JSON_EXTENSION);
 
 	}
 
-	private InputStream getBlob(String hash) throws IOException {
+	private InputStream getBlob(String hash, String algo) throws IOException {
 		Path p = getBlobPath(hash, false);
 		if (!Files.exists(p))
 			return null;
@@ -208,7 +225,7 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 			return Optional.empty();
 
 		// Create a path for our json meta
-		Path metaPath = getBlobPath(hash + JSON_EXTENSION, false);
+		Path metaPath = getBlobMetaPath(hash, false);
 
 		// just return the stored meta if it exist
 		if (Files.exists(metaPath)) {

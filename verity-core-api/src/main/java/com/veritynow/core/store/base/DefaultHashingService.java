@@ -56,6 +56,7 @@ public class DefaultHashingService implements HashingService {
 	private final ThreadLocal<byte[]> header = ThreadLocal.withInitial(() -> null);
 
 	private final ThreadLocal<Path> tempPath = new ThreadLocal<>();
+	private final ThreadLocal<String> algorithm = new ThreadLocal<>();
 	private final ThreadLocal<Boolean> cacheContent = ThreadLocal.withInitial(() -> false);
 	private final ThreadLocal<Integer> bufferSize = ThreadLocal.withInitial(() -> BUFFER_SIZE);
 
@@ -97,7 +98,8 @@ public class DefaultHashingService implements HashingService {
 			throw new NoSuchAlgorithmException(algo);
 		}
 
-		LOGGER.info("\n\tDefault hashing service using {} algorithm started ", algo);
+		LOGGER.info("Default hashing service using {} algorithm started ", algo);
+		algorithm.set(algo.toLowerCase().trim());
 	}
 
 	@Override
@@ -296,9 +298,16 @@ public class DefaultHashingService implements HashingService {
 		return bufferSize.get();
 	}
 
+	
+	
 	// ----------------------------
 	// Temp file helpers
 	// ----------------------------
+
+	@Override
+	public String getAlgorithm() {
+		return algorithm.get();
+	}
 
 	private void prepareTempFile() {
 		try {

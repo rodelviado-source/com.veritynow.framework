@@ -42,6 +42,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
     private final ContextAwareTransactionManager txnManager;
     LockingService lockingService;
     
+    
     private final Publisher publisher;
 	private final RepositoryManager repositoryManager;
 
@@ -59,15 +60,15 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
 		this.lockingService = lockingService;
 		this.publisher  = new Publisher(dsl, lockingService, repositoryManager);
 		this.repositoryManager = Objects.requireNonNull(repositoryManager, "repositoryManager required");
-        
-		repositoryManager.ensureRootInode();
+    	repositoryManager.ensureRootInode();
         
         if (publisher.isLockingCapable()) {
         	DBUtil.ensureProjectionReady(dsl);
         }	
         
-        LOGGER.info("\n\tJPA Inode-backed Versioning Store started\n\t" + 
-    			"Using " + backingStore.getClass().getName() + " for Immutable Storage");
+        LOGGER.info(
+        		"Inode-backed Versioning Store started. Using {} for Immutable Storage", backingStore.getClass().getName()
+      	);
     }
     
  
@@ -334,12 +335,9 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
         Long inodeId = inodeIdOpt.get();
 
         return repositoryManager.findAllByInodeIdOrderByTimestampDescIdDesc(inodeId);
-        
-   
-        
     
     }
-
+  
     private Optional<BlobMeta> createNewVersion(
             PK key,
             BlobMeta meta,
@@ -395,7 +393,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
             case Deleted:
             case Undeleted:
             case Restored:
-                // no payload change (FS keeps hash/attr) :contentReference[oaicite:15]{index=15}
+                // no payload change (FS keeps hash/attr)
                 break;
             default:
                 throw new IOException("Invalid Store Operation " + operation.name());
@@ -435,6 +433,9 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
     private static boolean isDeleted(VersionMeta m ) {
     	return StoreOperation.Deleted().equals(m.operation());
     }
+
+
+	
 	
    
 }

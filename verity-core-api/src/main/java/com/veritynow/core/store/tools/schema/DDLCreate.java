@@ -16,7 +16,7 @@ import org.jooq.SQLDialect;
  * deterministic DDL purely from the jOOQ-generated schema model (Public, Keys, Indexes,
  * Sequences) without parsing SQL strings.</p>
  */
-public final class SQLCreate {
+public final class DDLCreate {
   
   /**
    * Generate idempotent DDL statements (no trailing semicolons) for the {@code public}

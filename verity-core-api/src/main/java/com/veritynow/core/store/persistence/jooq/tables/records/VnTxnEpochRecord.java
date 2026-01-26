@@ -4,13 +4,13 @@
 package com.veritynow.core.store.persistence.jooq.tables.records;
 
 
+import com.veritynow.core.store.persistence.jooq.tables.VnTxnEpoch;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
-
-import com.veritynow.core.store.persistence.jooq.tables.VnTxnEpoch;
 
 
 /**
@@ -122,6 +122,6 @@ public class VnTxnEpochRecord extends UpdatableRecordImpl<VnTxnEpochRecord> {
         setFenceToken(fenceToken);
         setStatus(status);
         setUpdatedAt(updatedAt);
-        resetChangedOnNotNull();
+        resetTouchedOnNotNull();
     }
 }

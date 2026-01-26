@@ -61,6 +61,7 @@ public class FSVersionStore
 
     private final Path pathIndexDirectory;
     private final ImmutableBackingStore<String, BlobMeta> backingStore;
+    private final String algo;
 
     public FSVersionStore(Path rootDirectory, ImmutableBackingStore<String, BlobMeta> backingStore) {
     	super(backingStore.getHashingService());
@@ -76,8 +77,14 @@ public class FSVersionStore
             throw new UncheckedIOException(e);
         }
 
+        this.algo = getHashingService().getAlgorithm();
+        
         LOGGER.info(
-                "\n\tFilesystem-backed Versioning Store started.\n\tIndexDir={}\n\tImmutableStore={}",
+        		""" 
+        		Filesystem-backed Versioning Store started.
+        		IndexDir={}
+        		ImmutableStore={}
+        		""",
                 this.pathIndexDirectory,
                 backingStore.getClass().getName()
         );
@@ -292,6 +299,7 @@ public class FSVersionStore
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
         Objects.requireNonNull(content, "content");
+        
 
         String nodePath = normalizePath(key.path());
 
@@ -308,7 +316,7 @@ public class FSVersionStore
 
         // Reuse the existing blob meta attributes (name/mime), only content changes.
         BlobMeta prev = latest.blobMeta();
-        BlobMeta nextAttr = new BlobMeta(null, prev.name(), prev.mimeType(), 0L);
+        BlobMeta nextAttr = new BlobMeta(prev.name(), prev.mimeType(), 0L);
 
         return appendVersion(nodePath, nextAttr, content, StoreOperation.Updated());
     }
@@ -318,7 +326,7 @@ public class FSVersionStore
     public Optional<BlobMeta> delete(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
-
+        
         String nodePath = normalizePath(key.path());
 
         Optional<VersionMeta> opt = getLatestVersion(nodePath);
@@ -334,8 +342,8 @@ public class FSVersionStore
         // Tombstone version: keep last blob meta (or zero-size marker), record delete event.
         BlobMeta prev = latest.blobMeta();
         BlobMeta tombstone = (prev == null)
-                ? new BlobMeta(null, null, null, 0L)
-                : new BlobMeta(prev.hash(), prev.name(), prev.mimeType(), prev.size());
+                ? BlobMeta.empty()
+                : new BlobMeta(prev.hashAlgorithm(), prev.hash(), prev.name(), prev.mimeType(), prev.size());
 
         // No payload write needed on delete; we only add a VersionMeta record.
         appendVersionMetaOnly(nodePath, tombstone, StoreOperation.Deleted());
@@ -347,7 +355,8 @@ public class FSVersionStore
     public Optional<BlobMeta> undelete(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
-
+        
+        
         String nodePath = normalizePath(key.path());
 
         Optional<VersionMeta> opt = getLatestVersion(nodePath);
@@ -473,8 +482,7 @@ public class FSVersionStore
     private String persistVersionMeta(VersionMeta vm) throws IOException {
         byte[] bytes = JSON.MAPPER.writeValueAsBytes(vm);
 
-        BlobMeta meta = new BlobMeta(
-                null,
+        BlobMeta meta = new BlobMeta(                
                 VERSION_META_NAME,
                 VERSION_META_MIME,
                 bytes.length
@@ -592,4 +600,6 @@ public class FSVersionStore
     private static boolean isDeleted(VersionMeta m) {
         return StoreOperation.Deleted().equals(m.pathEvent().operation());
     }
+
+
 }

@@ -4,10 +4,10 @@
 package com.veritynow.core.store.persistence.jooq.tables.records;
 
 
+import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion;
+
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
-
-import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion;
 
 
 /**
@@ -103,129 +103,143 @@ public class VnNodeVersionRecord extends UpdatableRecordImpl<VnNodeVersionRecord
     }
 
     /**
+     * Setter for <code>public.vn_node_version.hashAlgorithm</code>.
+     */
+    public void setHashalgorithm(String value) {
+        set(6, value);
+    }
+
+    /**
+     * Getter for <code>public.vn_node_version.hashAlgorithm</code>.
+     */
+    public String getHashalgorithm() {
+        return (String) get(6);
+    }
+
+    /**
      * Setter for <code>public.vn_node_version.hash</code>.
      */
     public void setHash(String value) {
-        set(6, value);
+        set(7, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.hash</code>.
      */
     public String getHash() {
-        return (String) get(6);
+        return (String) get(7);
     }
 
     /**
      * Setter for <code>public.vn_node_version.mime_type</code>.
      */
     public void setMimeType(String value) {
-        set(7, value);
+        set(8, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.mime_type</code>.
      */
     public String getMimeType() {
-        return (String) get(7);
+        return (String) get(8);
     }
 
     /**
      * Setter for <code>public.vn_node_version.name</code>.
      */
     public void setName(String value) {
-        set(8, value);
+        set(9, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.name</code>.
      */
     public String getName() {
-        return (String) get(8);
+        return (String) get(9);
     }
 
     /**
      * Setter for <code>public.vn_node_version.operation</code>.
      */
     public void setOperation(String value) {
-        set(9, value);
+        set(10, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.operation</code>.
      */
     public String getOperation() {
-        return (String) get(9);
+        return (String) get(10);
     }
 
     /**
      * Setter for <code>public.vn_node_version.path</code>.
      */
     public void setPath(String value) {
-        set(10, value);
+        set(11, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.path</code>.
      */
     public String getPath() {
-        return (String) get(10);
+        return (String) get(11);
     }
 
     /**
      * Setter for <code>public.vn_node_version.principal</code>.
      */
     public void setPrincipal(String value) {
-        set(11, value);
+        set(12, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.principal</code>.
      */
     public String getPrincipal() {
-        return (String) get(11);
+        return (String) get(12);
     }
 
     /**
      * Setter for <code>public.vn_node_version.transaction_id</code>.
      */
     public void setTransactionId(String value) {
-        set(12, value);
+        set(13, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.transaction_id</code>.
      */
     public String getTransactionId() {
-        return (String) get(12);
+        return (String) get(13);
     }
 
     /**
      * Setter for <code>public.vn_node_version.transaction_result</code>.
      */
     public void setTransactionResult(String value) {
-        set(13, value);
+        set(14, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.transaction_result</code>.
      */
     public String getTransactionResult() {
-        return (String) get(13);
+        return (String) get(14);
     }
 
     /**
      * Setter for <code>public.vn_node_version.workflow_id</code>.
      */
     public void setWorkflowId(String value) {
-        set(14, value);
+        set(15, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.workflow_id</code>.
      */
     public String getWorkflowId() {
-        return (String) get(14);
+        return (String) get(15);
     }
 
     // -------------------------------------------------------------------------
@@ -251,7 +265,7 @@ public class VnNodeVersionRecord extends UpdatableRecordImpl<VnNodeVersionRecord
     /**
      * Create a detached, initialised VnNodeVersionRecord
      */
-    public VnNodeVersionRecord(Long id, Long inodeId, Long size, Long timestamp, String contextName, String correlationId, String hash, String mimeType, String name, String operation, String path, String principal, String transactionId, String transactionResult, String workflowId) {
+    public VnNodeVersionRecord(Long id, Long inodeId, Long size, Long timestamp, String contextName, String correlationId, String hashalgorithm, String hash, String mimeType, String name, String operation, String path, String principal, String transactionId, String transactionResult, String workflowId) {
         super(VnNodeVersion.VN_NODE_VERSION);
 
         setId(id);
@@ -260,6 +274,7 @@ public class VnNodeVersionRecord extends UpdatableRecordImpl<VnNodeVersionRecord
         setTimestamp(timestamp);
         setContextName(contextName);
         setCorrelationId(correlationId);
+        setHashalgorithm(hashalgorithm);
         setHash(hash);
         setMimeType(mimeType);
         setName(name);
@@ -269,6 +284,6 @@ public class VnNodeVersionRecord extends UpdatableRecordImpl<VnNodeVersionRecord
         setTransactionId(transactionId);
         setTransactionResult(transactionResult);
         setWorkflowId(workflowId);
-        resetChangedOnNotNull();
+        resetTouchedOnNotNull();
     }
 }

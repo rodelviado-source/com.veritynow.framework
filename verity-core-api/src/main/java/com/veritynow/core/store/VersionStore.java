@@ -20,5 +20,4 @@ public interface  VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOB
 	
 	Optional<InputStream> getContent(PK key);
 	
-	
 }

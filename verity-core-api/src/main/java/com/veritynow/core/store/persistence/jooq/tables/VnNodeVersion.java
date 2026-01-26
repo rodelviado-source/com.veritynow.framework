@@ -4,6 +4,13 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
+import com.veritynow.core.store.persistence.jooq.Indexes;
+import com.veritynow.core.store.persistence.jooq.Keys;
+import com.veritynow.core.store.persistence.jooq.Public;
+import com.veritynow.core.store.persistence.jooq.tables.VnInode.VnInodePath;
+import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead.VnNodeHeadPath;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -30,13 +37,6 @@ import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
-
-import com.veritynow.core.store.persistence.jooq.Indexes;
-import com.veritynow.core.store.persistence.jooq.Keys;
-import com.veritynow.core.store.persistence.jooq.Public;
-import com.veritynow.core.store.persistence.jooq.tables.VnInode.VnInodePath;
-import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead.VnNodeHeadPath;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 
 
 /**
@@ -89,6 +89,11 @@ public class VnNodeVersion extends TableImpl<VnNodeVersionRecord> {
      * The column <code>public.vn_node_version.correlation_id</code>.
      */
     public final TableField<VnNodeVersionRecord, String> CORRELATION_ID = createField(DSL.name("correlation_id"), SQLDataType.VARCHAR(255), this, "");
+
+    /**
+     * The column <code>public.vn_node_version.hashAlgorithm</code>.
+     */
+    public final TableField<VnNodeVersionRecord, String> HASHALGORITHM = createField(DSL.name("hashAlgorithm"), SQLDataType.VARCHAR(255), this, "");
 
     /**
      * The column <code>public.vn_node_version.hash</code>.

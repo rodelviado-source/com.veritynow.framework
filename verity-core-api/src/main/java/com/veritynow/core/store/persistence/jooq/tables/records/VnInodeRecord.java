@@ -4,13 +4,13 @@
 package com.veritynow.core.store.persistence.jooq.tables.records;
 
 
+import com.veritynow.core.store.persistence.jooq.tables.VnInode;
+
 import java.time.OffsetDateTime;
 
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
 import org.jooq.postgres.extensions.types.Ltree;
-
-import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 
 
 /**
@@ -92,6 +92,6 @@ public class VnInodeRecord extends UpdatableRecordImpl<VnInodeRecord> {
         setCreatedAt(createdAt);
         setId(id);
         setScopeKey(scopeKey);
-        resetChangedOnNotNull();
+        resetTouchedOnNotNull();
     }
 }

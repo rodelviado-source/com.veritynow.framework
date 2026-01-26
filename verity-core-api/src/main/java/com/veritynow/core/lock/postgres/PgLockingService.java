@@ -69,7 +69,7 @@ public class PgLockingService implements LockingService {
         this.dsl = Objects.requireNonNull(dsl, "dsl required");
         this.ttlMs = ttlMs;
 
-        LOGGER.info("\n\tPostgres Locking Service started ttl = {}", ttlMs);
+        LOGGER.info("Postgres Locking Service started ttl = {}", ttlMs);
 
         if (ttlMs > 0) {
             this.renewEveryMs = Math.max(250L, ttlMs / 3L);

@@ -25,10 +25,10 @@ import org.jooq.impl.DSL;
  * <p>Generates deterministic DROP statements purely from the jOOQ-generated schema model
  * without parsing SQL strings.</p>
  */
-public final class SQLDropIfExist {
+public final class DDLDropIfExist {
 
   private static DSLContext dsl = DSL.using(SQLDialect.POSTGRES);	
-  private SQLDropIfExist() {}
+  private DDLDropIfExist() {}
 
   /**
    * Generate teardown DDL statements (no trailing semicolons) for the {@code public} schema.

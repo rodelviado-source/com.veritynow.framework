@@ -140,10 +140,10 @@ public class VersionStoreConfig {
       return () -> {
     	 
         if (ctx.containsBeanDefinition("contextAwareTransactionManager")) {
-        	LOGGER.info("\n\tTransaction support detected");
+        	LOGGER.info("Transaction support detected");
         }
         if (ctx.containsBeanDefinition("lockingService")) {
-        	LOGGER.info("\n\tLocking support detected");
+        	LOGGER.info("Locking support detected");
         }
       };
     }

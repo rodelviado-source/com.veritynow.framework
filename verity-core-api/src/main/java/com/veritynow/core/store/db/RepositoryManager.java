@@ -27,7 +27,7 @@ public class RepositoryManager {
 		this.inodeRepo = inodeRepo;
 		this.verRepo = verRepo;
 		
-		LOGGER.info("\n\tInode Manger started");
+		LOGGER.info("Inode Manger started");
 		
 	}
 

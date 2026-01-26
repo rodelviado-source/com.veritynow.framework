@@ -36,13 +36,13 @@ public final class DBPostgresTransactionSupport extends AbstractAuxiliaryDatabas
 	
 	@Override
 	public String[] sqlCreateStrings(SqlStringGenerationContext context) {
-		LOGGER.info("\n\tAdding fence_token in vn_inode_head for Transaction Support");
+		LOGGER.info("Adding fence_token in vn_inode_head for Transaction Support");
 		return CREATE_STRINGS;
 	}
 
 	@Override
 	public String[] sqlDropStrings(SqlStringGenerationContext context) {
-		LOGGER.info("\n\tDROPPING fence_token in  vn_inode_head created by Transaction Support");
+		LOGGER.info("DROPPING fence_token in  vn_inode_head created by Transaction Support");
 		return DROP_STRINGS;
 	}
 

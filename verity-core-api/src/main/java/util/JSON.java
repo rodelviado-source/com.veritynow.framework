@@ -1,5 +1,6 @@
 package util;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -21,4 +22,6 @@ public class JSON {
             //.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true)
             //.configure(MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES, false)
             .build();
+
 }
+

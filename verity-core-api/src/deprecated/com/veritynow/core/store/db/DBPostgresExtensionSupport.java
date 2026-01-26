@@ -16,7 +16,7 @@ public class DBPostgresExtensionSupport extends AbstractAuxiliaryDatabaseObject{
 	
 	@Override
 	public String[] sqlCreateStrings(SqlStringGenerationContext context) {
-		LOGGER.info("\n\tCreating postgres ltree extension");
+		LOGGER.info("Creating postgres ltree extension");
 		return new String[] {
 			"CREATE EXTENSION IF NOT EXISTS ltree",
 		}; 
@@ -24,7 +24,7 @@ public class DBPostgresExtensionSupport extends AbstractAuxiliaryDatabaseObject{
 
 	@Override
 	public String[] sqlDropStrings(SqlStringGenerationContext context) {
-		LOGGER.info("\n\tDropping postgres ltree extension");
+		LOGGER.info("Dropping postgres ltree extension");
 		return new String[] {
 			"DROP EXTENSION IF EXISTS ltree",
 		}; 

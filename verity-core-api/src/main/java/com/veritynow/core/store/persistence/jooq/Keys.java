@@ -4,12 +4,6 @@
 package com.veritynow.core.store.persistence.jooq;
 
 
-import org.jooq.ForeignKey;
-import org.jooq.TableField;
-import org.jooq.UniqueKey;
-import org.jooq.impl.DSL;
-import org.jooq.impl.Internal;
-
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
@@ -26,6 +20,13 @@ import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeHeadRecord
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnPathLockRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnTxnEpochRecord;
+
+import org.jooq.ForeignKey;
+import org.jooq.TableField;
+import org.jooq.UniqueKey;
+import org.jooq.impl.DSL;
+import org.jooq.impl.Internal;
+import org.jooq.impl.QOM.ForeignKeyRule;
 
 
 /**
@@ -54,12 +55,12 @@ public class Keys {
     // FOREIGN KEY definitions
     // -------------------------------------------------------------------------
 
-    public static final ForeignKey<VnDirEntryRecord, VnInodeRecord> VN_DIR_ENTRY__VN_DIR_ENTRY_CHILD_ID_FK = Internal.createForeignKey(VnDirEntry.VN_DIR_ENTRY, DSL.name("vn_dir_entry_child_id_fk"), new TableField[] { VnDirEntry.VN_DIR_ENTRY.CHILD_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true);
-    public static final ForeignKey<VnDirEntryRecord, VnInodeRecord> VN_DIR_ENTRY__VN_DIR_ENTRY_PARENT_ID_FK = Internal.createForeignKey(VnDirEntry.VN_DIR_ENTRY, DSL.name("vn_dir_entry_parent_id_fk"), new TableField[] { VnDirEntry.VN_DIR_ENTRY.PARENT_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true);
-    public static final ForeignKey<VnInodePathSegmentRecord, VnDirEntryRecord> VN_INODE_PATH_SEGMENT__VN_INODE_PATH_SEGMENT_DIR_ENTRY_ID_FK = Internal.createForeignKey(VnInodePathSegment.VN_INODE_PATH_SEGMENT, DSL.name("vn_inode_path_segment_dir_entry_id_fk"), new TableField[] { VnInodePathSegment.VN_INODE_PATH_SEGMENT.DIR_ENTRY_ID }, Keys.VN_DIR_ENTRY_PKEY, new TableField[] { VnDirEntry.VN_DIR_ENTRY.ID }, true);
-    public static final ForeignKey<VnInodePathSegmentRecord, VnInodeRecord> VN_INODE_PATH_SEGMENT__VN_INODE_PATH_SEGMENT_INODE_ID_FK = Internal.createForeignKey(VnInodePathSegment.VN_INODE_PATH_SEGMENT, DSL.name("vn_inode_path_segment_inode_id_fk"), new TableField[] { VnInodePathSegment.VN_INODE_PATH_SEGMENT.INODE_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true);
-    public static final ForeignKey<VnNodeHeadRecord, VnInodeRecord> VN_NODE_HEAD__VN_NODE_HEAD_INODE_ID_FK = Internal.createForeignKey(VnNodeHead.VN_NODE_HEAD, DSL.name("vn_node_head_inode_id_fk"), new TableField[] { VnNodeHead.VN_NODE_HEAD.INODE_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true);
-    public static final ForeignKey<VnNodeHeadRecord, VnNodeVersionRecord> VN_NODE_HEAD__VN_NODE_HEAD_VERSION_ID_FK = Internal.createForeignKey(VnNodeHead.VN_NODE_HEAD, DSL.name("vn_node_head_version_id_fk"), new TableField[] { VnNodeHead.VN_NODE_HEAD.VERSION_ID }, Keys.VN_NODE_VERSION_PKEY, new TableField[] { VnNodeVersion.VN_NODE_VERSION.ID }, true);
-    public static final ForeignKey<VnNodeVersionRecord, VnInodeRecord> VN_NODE_VERSION__VN_NODE_VERSION_INODE_ID_FK = Internal.createForeignKey(VnNodeVersion.VN_NODE_VERSION, DSL.name("vn_node_version_inode_id_fk"), new TableField[] { VnNodeVersion.VN_NODE_VERSION.INODE_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true);
-    public static final ForeignKey<VnPathLockRecord, VnLockGroupRecord> VN_PATH_LOCK__VN_PATH_LOCK_LOCK_GROUP_ID_FK = Internal.createForeignKey(VnPathLock.VN_PATH_LOCK, DSL.name("vn_path_lock_lock_group_id_fk"), new TableField[] { VnPathLock.VN_PATH_LOCK.LOCK_GROUP_ID }, Keys.VN_LOCK_GROUP_PKEY, new TableField[] { VnLockGroup.VN_LOCK_GROUP.LOCK_GROUP_ID }, true);
+    public static final ForeignKey<VnDirEntryRecord, VnInodeRecord> VN_DIR_ENTRY__VN_DIR_ENTRY_CHILD_ID_FK = Internal.createForeignKey(VnDirEntry.VN_DIR_ENTRY, DSL.name("vn_dir_entry_child_id_fk"), new TableField[] { VnDirEntry.VN_DIR_ENTRY.CHILD_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<VnDirEntryRecord, VnInodeRecord> VN_DIR_ENTRY__VN_DIR_ENTRY_PARENT_ID_FK = Internal.createForeignKey(VnDirEntry.VN_DIR_ENTRY, DSL.name("vn_dir_entry_parent_id_fk"), new TableField[] { VnDirEntry.VN_DIR_ENTRY.PARENT_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<VnInodePathSegmentRecord, VnDirEntryRecord> VN_INODE_PATH_SEGMENT__VN_INODE_PATH_SEGMENT_DIR_ENTRY_ID_FK = Internal.createForeignKey(VnInodePathSegment.VN_INODE_PATH_SEGMENT, DSL.name("vn_inode_path_segment_dir_entry_id_fk"), new TableField[] { VnInodePathSegment.VN_INODE_PATH_SEGMENT.DIR_ENTRY_ID }, Keys.VN_DIR_ENTRY_PKEY, new TableField[] { VnDirEntry.VN_DIR_ENTRY.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<VnInodePathSegmentRecord, VnInodeRecord> VN_INODE_PATH_SEGMENT__VN_INODE_PATH_SEGMENT_INODE_ID_FK = Internal.createForeignKey(VnInodePathSegment.VN_INODE_PATH_SEGMENT, DSL.name("vn_inode_path_segment_inode_id_fk"), new TableField[] { VnInodePathSegment.VN_INODE_PATH_SEGMENT.INODE_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<VnNodeHeadRecord, VnInodeRecord> VN_NODE_HEAD__VN_NODE_HEAD_INODE_ID_FK = Internal.createForeignKey(VnNodeHead.VN_NODE_HEAD, DSL.name("vn_node_head_inode_id_fk"), new TableField[] { VnNodeHead.VN_NODE_HEAD.INODE_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<VnNodeHeadRecord, VnNodeVersionRecord> VN_NODE_HEAD__VN_NODE_HEAD_VERSION_ID_FK = Internal.createForeignKey(VnNodeHead.VN_NODE_HEAD, DSL.name("vn_node_head_version_id_fk"), new TableField[] { VnNodeHead.VN_NODE_HEAD.VERSION_ID }, Keys.VN_NODE_VERSION_PKEY, new TableField[] { VnNodeVersion.VN_NODE_VERSION.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<VnNodeVersionRecord, VnInodeRecord> VN_NODE_VERSION__VN_NODE_VERSION_INODE_ID_FK = Internal.createForeignKey(VnNodeVersion.VN_NODE_VERSION, DSL.name("vn_node_version_inode_id_fk"), new TableField[] { VnNodeVersion.VN_NODE_VERSION.INODE_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
+    public static final ForeignKey<VnPathLockRecord, VnLockGroupRecord> VN_PATH_LOCK__VN_PATH_LOCK_LOCK_GROUP_ID_FK = Internal.createForeignKey(VnPathLock.VN_PATH_LOCK, DSL.name("vn_path_lock_lock_group_id_fk"), new TableField[] { VnPathLock.VN_PATH_LOCK.LOCK_GROUP_ID }, Keys.VN_LOCK_GROUP_PKEY, new TableField[] { VnLockGroup.VN_LOCK_GROUP.LOCK_GROUP_ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
 }
