@@ -1,6 +1,8 @@
 package com.veritynow.core.store.txn.jooq;
 
+import static com.veritynow.core.store.persistence.jooq.Tables.VN_LOCK_GROUP;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_TXN_EPOCH;
+import static org.jooq.impl.DSL.condition;
 import static org.jooq.impl.DSL.currentOffsetDateTime;
 
 import java.util.Objects;
@@ -65,9 +67,14 @@ public class JooqTransactionService implements TransactionService {
     public void commit(String txnId) {
         Objects.requireNonNull(txnId, "txnId");
 
-        Epoch e = readEpoch(txnId).orElseThrow(() ->
+        Epoch e0 = readEpoch(txnId).orElseThrow(() ->
             new IllegalStateException("Missing vn_txn_epoch row for txnId=" + txnId)
         );
+
+        // Resolve lock metadata lazily (turnkey commit): if epoch does not yet have
+        // (lock_group_id, fence_token), derive it from the active lock group owned
+        // by this txnId.
+        Epoch e = resolveLockIfMissing(txnId, e0);
 
         if (!"IN_FLIGHT".equals(e.status)) {
             if ("COMMITTED".equals(e.status)) return; // idempotent
@@ -75,7 +82,9 @@ public class JooqTransactionService implements TransactionService {
         }
 
         if (e.lockGroupId == null || e.fenceToken < 0) {
-            throw new IllegalStateException("Commit requires bound lock (lock_group_id + fence_token) for txnId=" + txnId);
+            throw new IllegalStateException(
+                "Commit requires an active lock group (lock_group_id + fence_token) owned by txnId=" + txnId
+            );
         }
 
         coordinator.onCommit(txnId, e.lockGroupId, e.fenceToken);
@@ -95,7 +104,9 @@ public class JooqTransactionService implements TransactionService {
         Optional<Epoch> opt = readEpoch(txnId);
         if (opt.isEmpty()) return; // idempotent rollback
 
-        Epoch e = opt.get();
+        // Best-effort: if we can resolve a held lock group for this txn, stamp it
+        // into vn_txn_epoch for auditability. Rollback itself does not require a lock.
+        Epoch e = resolveLockIfMissing(txnId, opt.get());
         if (!"IN_FLIGHT".equals(e.status)) {
             if ("ROLLED_BACK".equals(e.status)) return;
             throw new IllegalStateException("Txn not IN_FLIGHT: " + e.status);
@@ -128,6 +139,61 @@ public class JooqTransactionService implements TransactionService {
             lockGroupId,
             fenceToken == null ? -1L : fenceToken
         ));
+    }
+
+    /**
+     * Turnkey behavior: derive (lock_group_id, fence_token) for this transaction from
+     * the locking kernel, if they have not been stamped into vn_txn_epoch yet.
+     */
+    private Epoch resolveLockIfMissing(String txnId, Epoch e) {
+        if (e.lockGroupId != null && e.fenceToken >= 0) return e;
+
+        Optional<LockHandle> opt = findActiveLockGroupOwnedBy(txnId);
+        if (opt.isEmpty()) return e;
+
+        LockHandle h = opt.get();
+        dsl.update(VN_TXN_EPOCH)
+           .set(VN_TXN_EPOCH.LOCK_GROUP_ID, h.lockGroupId())
+           .set(VN_TXN_EPOCH.FENCE_TOKEN, h.fenceToken())
+           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
+           .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
+           .execute();
+
+        return new Epoch(e.status, h.lockGroupId(), h.fenceToken());
+    }
+
+    /**
+     * Returns the single active lock group owned by {@code ownerId} (txnId), if any.
+     *
+     * Enforces the invariant that a transaction must hold at most one active lock group.
+     */
+    private Optional<LockHandle> findActiveLockGroupOwnedBy(String ownerId) {
+        var rows = dsl
+            .select(VN_LOCK_GROUP.LOCK_GROUP_ID, VN_LOCK_GROUP.FENCE_TOKEN)
+            .from(VN_LOCK_GROUP)
+            .where(VN_LOCK_GROUP.OWNER_ID.eq(ownerId))
+            .and(VN_LOCK_GROUP.ACTIVE.eq(true))
+            .and(condition("( {0} is null OR {0} > now() )", VN_LOCK_GROUP.EXPIRES_AT))
+            .limit(2)
+            .fetch();
+
+        if (rows.isEmpty()) return Optional.empty();
+        if (rows.size() > 1) {
+            throw new IllegalStateException(
+                "Multiple active lock groups owned by ownerId=" + ownerId + ". Expected a single lock group per txn."
+            );
+        }
+
+        UUID lockGroupId = rows.get(0).value1();
+        Long fenceToken = rows.get(0).value2();
+        if (lockGroupId == null || fenceToken == null) {
+            throw new IllegalStateException(
+                "Active lock group missing lock_group_id/fence_token for ownerId=" + ownerId
+            );
+        }
+
+        // Minimal handle: ownerId is the transaction id.
+        return Optional.of(new LockHandle(ownerId, lockGroupId, fenceToken));
     }
 
     private record Epoch(String status, UUID lockGroupId, long fenceToken) {}

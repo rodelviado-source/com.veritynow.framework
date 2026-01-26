@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.veritynow.core.store.VersionStore;
 import com.veritynow.core.store.base.PK;
@@ -15,8 +16,7 @@ import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.PathMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 
-import jakarta.transaction.Transactional;
-
+ 
 
 @Service
 public class ConsoleService {

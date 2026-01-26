@@ -420,7 +420,13 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
                 publisher.publish(vm);
             }
         } else {
-            // Transaction layer handles IN_FLIGHT -> COMMITTED/ROLLED_BACK and HEAD movement.
+        	if ("IN_FLIGHT".equals(sc.transactionResult())) {
+        		// Transaction layer handles IN_FLIGHT -> COMMITTED/ROLLED_BACK and HEAD movement.
+        		repositoryManager.saveVersionMeta(vm);
+        	} else {
+        		throw new IllegalStateException("Expecting IN_FLIGHT got " + sc.transactionResult() + " instead");
+        	}
+            
         }
     }
  

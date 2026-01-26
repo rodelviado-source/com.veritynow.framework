@@ -15,7 +15,7 @@ import com.veritynow.core.store.base.PK;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import util.JSON;
 
 @Service
