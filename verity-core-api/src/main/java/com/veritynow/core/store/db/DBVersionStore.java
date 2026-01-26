@@ -27,6 +27,7 @@ import com.veritynow.core.store.base.PK;
 import com.veritynow.core.store.base.PathEvent;
 import com.veritynow.core.store.base.StoreContext;
 import com.veritynow.core.store.db.model.DirEntry;
+import com.veritynow.core.store.db.repo.RepositoryManager;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;

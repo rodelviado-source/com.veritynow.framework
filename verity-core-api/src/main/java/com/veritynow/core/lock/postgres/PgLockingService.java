@@ -38,8 +38,8 @@ import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextSnapshot;
 import com.veritynow.core.lock.LockHandle;
 import com.veritynow.core.lock.LockingService;
-import com.veritynow.core.store.db.PathKeyCodec;
 import com.veritynow.core.store.db.PathUtils;
+import com.veritynow.core.store.db.repo.PathKeyCodec;
 
 /**
  * Postgres locking kernel: exclusive subtree locking using ltree scope keys.
@@ -65,14 +65,14 @@ public class PgLockingService implements LockingService {
     private final ScheduledExecutorService renewScheduler;
     private final ConcurrentMap<UUID, ScheduledFuture<?>> renewTasks = new ConcurrentHashMap<>();
 
-    public PgLockingService(DSLContext dsl, long ttlMs) {
+    public PgLockingService(DSLContext dsl, long ttlMs, float lockRenewFraction) {
         this.dsl = Objects.requireNonNull(dsl, "dsl required");
         this.ttlMs = ttlMs;
 
         LOGGER.info("Postgres Locking Service started ttl = {}", ttlMs);
 
         if (ttlMs > 0) {
-            this.renewEveryMs = Math.max(250L, ttlMs / 3L);
+            this.renewEveryMs = Math.max(250L, Float.valueOf(ttlMs * lockRenewFraction).longValue());
             this.renewScheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
                 @Override public Thread newThread(Runnable r) {
                     Thread t = new Thread(r, "verity-lock-lease-renewer");
@@ -88,7 +88,7 @@ public class PgLockingService implements LockingService {
 
     /** Backwards-compatible: TTL disabled. */
     public PgLockingService(DSLContext dsl) {
-        this(dsl, -1L);
+        this(dsl, -1L, 1);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db;
+package com.veritynow.core.store.db.repo;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_HEAD;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_VERSION;
@@ -10,6 +10,7 @@ import java.util.Optional;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
+import com.veritynow.core.store.db.DBTime;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 

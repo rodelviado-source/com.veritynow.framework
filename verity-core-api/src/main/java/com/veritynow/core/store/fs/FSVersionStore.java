@@ -61,7 +61,6 @@ public class FSVersionStore
 
     private final Path pathIndexDirectory;
     private final ImmutableBackingStore<String, BlobMeta> backingStore;
-    private final String algo;
 
     public FSVersionStore(Path rootDirectory, ImmutableBackingStore<String, BlobMeta> backingStore) {
     	super(backingStore.getHashingService());
@@ -77,7 +76,6 @@ public class FSVersionStore
             throw new UncheckedIOException(e);
         }
 
-        this.algo = getHashingService().getAlgorithm();
         
         LOGGER.info(
         		""" 

@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db;
+package com.veritynow.core.store.db.repo;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -9,6 +9,7 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.veritynow.core.store.db.PathUtils;
 import com.veritynow.core.store.db.model.DirEntry;
 import com.veritynow.core.store.db.model.Inode;
 import com.veritynow.core.store.db.model.InodePathSegment;

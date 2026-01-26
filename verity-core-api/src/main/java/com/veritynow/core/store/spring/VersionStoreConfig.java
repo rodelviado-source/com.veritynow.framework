@@ -25,10 +25,10 @@ import com.veritynow.core.store.ImmutableBackingStore;
 import com.veritynow.core.store.VersionStore;
 import com.veritynow.core.store.base.DefaultHashingService;
 import com.veritynow.core.store.base.PK;
-import com.veritynow.core.store.db.InodeRepository;
-import com.veritynow.core.store.db.VersionMetaRepository;
 import com.veritynow.core.store.db.DBVersionStore;
-import com.veritynow.core.store.db.RepositoryManager;
+import com.veritynow.core.store.db.repo.InodeRepository;
+import com.veritynow.core.store.db.repo.RepositoryManager;
+import com.veritynow.core.store.db.repo.VersionMetaRepository;
 import com.veritynow.core.store.fs.ImmutableFSBackingStore;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
@@ -68,9 +68,10 @@ public class VersionStoreConfig {
 	@Bean
 	LockingService lockingService(
 			DSLContext dsl,
-			@Value("${verity.lock.ttl-ms:-1}") long lockTtlMs
+			@Value("${verity.lock.ttl-ms:-1}") long lockTtlMs,
+			@Value("${verity.lock.renew-fraction:0.33}") float lockRenewFraction
 	)  {
-		return new PgLockingService(dsl, lockTtlMs);
+		return new PgLockingService(dsl, lockTtlMs, lockRenewFraction);
 	}
 	
 	

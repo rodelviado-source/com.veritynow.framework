@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db;
+package com.veritynow.core.store.db.repo;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_DIR_ENTRY;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
