@@ -35,11 +35,8 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 		this.blobDirectory = rootDirectory.resolve("Blobs");
 		this.algo = hs.getAlgorithm();
 		LOGGER.info(
-				"""
-				Immutable Filesystem({}) backed Store started
-				Root Directory at {}
-				""", algo, blobDirectory
-				);
+			"Immutable Filesystem({}) backed Store started.	Root Directory at {}", algo, blobDirectory
+		);
 	}
 
 	@Override

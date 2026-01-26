@@ -3,7 +3,7 @@ package com.veritynow.core.store;
 import java.util.List;
 import java.util.Optional;
 
-import com.veritynow.core.lock.LockHandle;
+import com.veritynow.core.store.lock.LockHandle;
 
 public interface LockingAware {
 	

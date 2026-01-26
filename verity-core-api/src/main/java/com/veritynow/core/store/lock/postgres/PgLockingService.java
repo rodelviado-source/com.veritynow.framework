@@ -1,4 +1,4 @@
-package com.veritynow.core.lock.postgres;
+package com.veritynow.core.store.lock.postgres;
 
 import static com.veritynow.core.store.persistence.jooq.Sequences.VN_FENCE_TOKEN_SEQ;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_LOCK_GROUP;
@@ -36,10 +36,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextSnapshot;
-import com.veritynow.core.lock.LockHandle;
-import com.veritynow.core.lock.LockingService;
 import com.veritynow.core.store.db.PathUtils;
 import com.veritynow.core.store.db.repo.PathKeyCodec;
+import com.veritynow.core.store.lock.LockHandle;
+import com.veritynow.core.store.lock.LockingService;
 
 /**
  * Postgres locking kernel: exclusive subtree locking using ltree scope keys.

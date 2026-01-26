@@ -15,8 +15,6 @@ import org.jooq.DSLContext;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.veritynow.core.context.ContextScope;
-import com.veritynow.core.lock.LockHandle;
-import com.veritynow.core.lock.LockingService;
 import com.veritynow.core.store.ImmutableBackingStore;
 import com.veritynow.core.store.LockingAware;
 import com.veritynow.core.store.StoreOperation;
@@ -28,6 +26,8 @@ import com.veritynow.core.store.base.PathEvent;
 import com.veritynow.core.store.base.StoreContext;
 import com.veritynow.core.store.db.model.DirEntry;
 import com.veritynow.core.store.db.repo.RepositoryManager;
+import com.veritynow.core.store.lock.LockHandle;
+import com.veritynow.core.store.lock.LockingService;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;

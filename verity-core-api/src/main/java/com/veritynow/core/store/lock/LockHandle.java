@@ -1,4 +1,4 @@
-package com.veritynow.core.lock;
+package com.veritynow.core.store.lock;
 
 import java.util.UUID;
 

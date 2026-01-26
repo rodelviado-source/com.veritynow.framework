@@ -13,7 +13,7 @@ import org.jooq.DSLContext;
 import org.jooq.Record3;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.veritynow.core.lock.LockHandle;
+import com.veritynow.core.store.lock.LockHandle;
 import com.veritynow.core.store.txn.PublishCoordinator;
 import com.veritynow.core.store.txn.TransactionService;
 

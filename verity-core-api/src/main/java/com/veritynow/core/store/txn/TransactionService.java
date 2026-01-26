@@ -1,6 +1,6 @@
 package com.veritynow.core.store.txn;
 
-import com.veritynow.core.lock.LockHandle;
+import com.veritynow.core.store.lock.LockHandle;
 
 /**
  * Minimal transaction lifecycle kernel.

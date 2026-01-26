@@ -28,9 +28,9 @@ import org.jooq.InsertSetMoreStep;
 import org.jooq.Record2;
 import org.springframework.dao.DataAccessException;
 
-import com.veritynow.core.lock.LockHandle;
-import com.veritynow.core.lock.LockingService;
 import com.veritynow.core.store.db.repo.RepositoryManager;
+import com.veritynow.core.store.lock.LockHandle;
+import com.veritynow.core.store.lock.LockingService;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 

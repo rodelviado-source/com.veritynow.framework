@@ -18,8 +18,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 
-import com.veritynow.core.lock.LockingService;
-import com.veritynow.core.lock.postgres.PgLockingService;
 import com.veritynow.core.store.HashingService;
 import com.veritynow.core.store.ImmutableBackingStore;
 import com.veritynow.core.store.VersionStore;
@@ -30,6 +28,8 @@ import com.veritynow.core.store.db.repo.InodeRepository;
 import com.veritynow.core.store.db.repo.RepositoryManager;
 import com.veritynow.core.store.db.repo.VersionMetaRepository;
 import com.veritynow.core.store.fs.ImmutableFSBackingStore;
+import com.veritynow.core.store.lock.LockingService;
+import com.veritynow.core.store.lock.postgres.PgLockingService;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.txn.PublishCoordinator;
