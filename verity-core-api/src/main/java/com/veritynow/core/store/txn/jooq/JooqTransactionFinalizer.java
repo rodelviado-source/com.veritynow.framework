@@ -2,11 +2,11 @@ package com.veritynow.core.store.txn.jooq;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_HEAD;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_VERSION;
-import static org.jooq.impl.DSL.currentTimestamp;
+import static com.veritynow.core.store.txn.TransactionResult.COMMITTED;
+import static com.veritynow.core.store.txn.TransactionResult.IN_FLIGHT;
+import static com.veritynow.core.store.txn.TransactionResult.ROLLED_BACK;
 import static org.jooq.impl.DSL.excluded;
-import static org.jooq.impl.DSL.extract;
 import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.floor;
 import static org.jooq.impl.DSL.inline;
 import static org.jooq.impl.DSL.name;
 import static org.jooq.impl.DSL.select;
@@ -19,11 +19,11 @@ import java.util.UUID;
 
 import org.jooq.CommonTableExpression;
 import org.jooq.DSLContext;
-import org.jooq.DatePart;
 import org.jooq.Field;
 import org.jooq.InsertOnDuplicateStep;
 import org.jooq.Record2;
 
+import com.veritynow.core.store.db.DBTime;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 import com.veritynow.core.store.txn.TransactionFinalizer;
 
@@ -54,7 +54,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
         long expected = dsl.fetchCount(
             VN_NODE_VERSION,
             VN_NODE_VERSION.TRANSACTION_ID.eq(txnId)
-                .and(VN_NODE_VERSION.TRANSACTION_RESULT.eq("IN_FLIGHT"))
+                .and(VN_NODE_VERSION.TRANSACTION_RESULT.eq(IN_FLIGHT))
         );
 
         // Idempotent commit
@@ -67,7 +67,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
         	    name("cloned")
         	       .fields("inode_id", "version_id")
         	       .as(
-        	    		cloneAndSetTransactionResult("COMMITTED", txnId)
+        	    		cloneAndSetTransactionResult(COMMITTED, txnId)
         	            // IMPORTANT: returningResult gives Record2<Long,Long> (inode_id, version_id)
         	           .returningResult(VN_NODE_VERSION.INODE_ID, VN_NODE_VERSION.ID)
         	       );
@@ -122,16 +122,13 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
         
 
         // Single statement: clone IN_FLIGHT -> ROLLED_BACK. No head movement.
-        cloneAndSetTransactionResult("ROLLED_BACK", txnId).execute();
+        cloneAndSetTransactionResult(ROLLED_BACK, txnId).execute();
     }
     
     
     
     private InsertOnDuplicateStep<VnNodeVersionRecord> cloneAndSetTransactionResult(String result, String txnId) {
-    	Field<Long> nowMs =
-                floor(
-                    extract(currentTimestamp(), DatePart.EPOCH).mul(inline(1000))
-                ).cast(Long.class);
+    	Field<Long> nowMs = DBTime.nowEpochMs();
 
     	return dsl.insertInto(
                 VN_NODE_VERSION,
@@ -172,7 +169,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
                 .from(VN_NODE_VERSION)
                 .where(
                     VN_NODE_VERSION.TRANSACTION_ID.eq(txnId)
-                        .and(VN_NODE_VERSION.TRANSACTION_RESULT.eq("IN_FLIGHT"))
+                        .and(VN_NODE_VERSION.TRANSACTION_RESULT.eq(IN_FLIGHT))
                 )
            	);
     }

@@ -31,6 +31,7 @@ import com.veritynow.core.store.lock.LockingService;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;
+import static com.veritynow.core.store.txn.TransactionResult.*;
 
 import util.DBUtil;
 
@@ -215,7 +216,6 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
         VersionMeta mx = opt.get();
         if (isDeleted(mx)) {
         	LOGGER.info("Attempt to delete an already deleted  path {}" , nodePath);
-            // FS returns Optional.empty() if already deleted :contentReference[oaicite:8]{index=8}
             return Optional.empty();
         }
         return appendVersion(null, StoreOperation.Deleted, mx, key);
@@ -394,7 +394,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
             case Deleted:
             case Undeleted:
             case Restored:
-                // no payload change (FS keeps hash/attr)
+                // no payload change (keep hash/attr)
                 break;
             default:
                 throw new IOException("Invalid Store Operation " + operation.name());
@@ -413,7 +413,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
         // This keeps inode/version ids entirely within the persistence layer.
         VersionMeta vm = new VersionMeta(blobMeta, pe);
 
-        if (StoreContext.AUTO_COMMITTED.equals(sc.transactionResult())) {
+        if (AUTO_COMMITTED.equals(sc.transactionResult())) {
             if (publisher.isLockingCapable()) {
                 publisher.acquireLockAndPublish(vm);
             } else {
@@ -421,11 +421,11 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
                 publisher.publish(vm);
             }
         } else {
-        	if ("IN_FLIGHT".equals(sc.transactionResult())) {
+        	if (IN_FLIGHT.equals(sc.transactionResult())) {
         		// Transaction layer handles IN_FLIGHT -> COMMITTED/ROLLED_BACK and HEAD movement.
         		repositoryManager.saveVersionMeta(vm);
         	} else {
-        		throw new IllegalStateException("Expecting IN_FLIGHT got " + sc.transactionResult() + " instead");
+        		throw new IllegalStateException("Expecting " + IN_FLIGHT + "  got " + sc.transactionResult() + " instead");
         	}
             
         }
@@ -440,9 +440,5 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
     private static boolean isDeleted(VersionMeta m ) {
     	return StoreOperation.Deleted().equals(m.operation());
     }
-
-
-	
-	
    
 }

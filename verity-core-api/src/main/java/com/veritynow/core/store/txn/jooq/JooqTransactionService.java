@@ -2,6 +2,9 @@ package com.veritynow.core.store.txn.jooq;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_LOCK_GROUP;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_TXN_EPOCH;
+import static com.veritynow.core.store.txn.TransactionResult.COMMITTED;
+import static com.veritynow.core.store.txn.TransactionResult.IN_FLIGHT;
+import static com.veritynow.core.store.txn.TransactionResult.ROLLED_BACK;
 import static org.jooq.impl.DSL.condition;
 import static org.jooq.impl.DSL.currentOffsetDateTime;
 
@@ -39,11 +42,11 @@ public class JooqTransactionService implements TransactionService {
 
         dsl.insertInto(VN_TXN_EPOCH)
            .set(VN_TXN_EPOCH.TXN_ID, txnId)
-           .set(VN_TXN_EPOCH.STATUS, "IN_FLIGHT")
+           .set(VN_TXN_EPOCH.STATUS, IN_FLIGHT)
            .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .onConflict(VN_TXN_EPOCH.TXN_ID)
            .doUpdate()
-           .set(VN_TXN_EPOCH.STATUS, "IN_FLIGHT")
+           .set(VN_TXN_EPOCH.STATUS, IN_FLIGHT)
            .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .execute();
     }
@@ -76,9 +79,9 @@ public class JooqTransactionService implements TransactionService {
         // by this txnId.
         Epoch e = resolveLockIfMissing(txnId, e0);
 
-        if (!"IN_FLIGHT".equals(e.status)) {
-            if ("COMMITTED".equals(e.status)) return; // idempotent
-            throw new IllegalStateException("Txn not IN_FLIGHT: " + e.status);
+        if (!IN_FLIGHT.equals(e.status)) {
+            if (COMMITTED.equals(e.status)) return; // idempotent
+            throw new IllegalStateException("Txn not " + IN_FLIGHT + " : " + e.status);
         }
 
         if (e.lockGroupId == null || e.fenceToken < 0) {
@@ -90,7 +93,7 @@ public class JooqTransactionService implements TransactionService {
         coordinator.onCommit(txnId, e.lockGroupId, e.fenceToken);
 
         dsl.update(VN_TXN_EPOCH)
-           .set(VN_TXN_EPOCH.STATUS, "COMMITTED")
+           .set(VN_TXN_EPOCH.STATUS, COMMITTED)
            .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
            .execute();
@@ -107,15 +110,15 @@ public class JooqTransactionService implements TransactionService {
         // Best-effort: if we can resolve a held lock group for this txn, stamp it
         // into vn_txn_epoch for auditability. Rollback itself does not require a lock.
         Epoch e = resolveLockIfMissing(txnId, opt.get());
-        if (!"IN_FLIGHT".equals(e.status)) {
-            if ("ROLLED_BACK".equals(e.status)) return;
-            throw new IllegalStateException("Txn not IN_FLIGHT: " + e.status);
+        if (!IN_FLIGHT.equals(e.status)) {
+            if (ROLLED_BACK.equals(e.status)) return;
+            throw new IllegalStateException("Txn not " + IN_FLIGHT + " : " + e.status);
         }
 
         coordinator.onRollback(txnId);
 
         dsl.update(VN_TXN_EPOCH)
-           .set(VN_TXN_EPOCH.STATUS, "ROLLED_BACK")
+           .set(VN_TXN_EPOCH.STATUS, ROLLED_BACK)
            .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
            .execute();

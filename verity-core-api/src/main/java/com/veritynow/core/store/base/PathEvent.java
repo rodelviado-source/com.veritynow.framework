@@ -1,7 +1,9 @@
 package com.veritynow.core.store.base;
 
+import static com.veritynow.core.store.txn.TransactionResult.AUTO_COMMITTED;
+
 import org.apache.tika.utils.StringUtils;
-import org.threeten.bp.Instant;
+import org.threeten.bp.Instant;;
 
 
 /**
@@ -49,7 +51,7 @@ public record PathEvent(
 		StoreUtils.enforceRequired(workflowId, "workflowId");
 		StoreUtils.enforceRequired(contextName, "contextName");
 		
-		if (!StringUtils.isEmpty(transactionId) && !"AUTO COMMITTED".equals(transactionResult)) {
+		if (!StringUtils.isEmpty(transactionId) && !AUTO_COMMITTED.equals(transactionResult)) {
 			throw new IllegalArgumentException("transactionId and transactionResult is out of sync " + transactionId + ":" + transactionResult );
 		}
 	}

@@ -1,5 +1,8 @@
 package com.veritynow.core.store.base;
 
+import static com.veritynow.core.store.txn.TransactionResult.AUTO_COMMITTED;
+import static com.veritynow.core.store.txn.TransactionResult.IN_FLIGHT;
+
 import java.util.UUID;
 
 import com.veritynow.core.context.Context;
@@ -13,8 +16,7 @@ public record StoreContext(
 
 ) {
 
-	public final static String AUTO_COMMITTED = "AUTO_COMMITTED";
-	public static final String IN_FLIGHT = "IN_FLIGHT";
+
 	
 	public final static String ANONYMOUS = "anonymous";
 		
@@ -33,7 +35,7 @@ public record StoreContext(
 	    }
 	} else {
 	    if (AUTO_COMMITTED.equals(transactionResult)) {
-	        throw new IllegalArgumentException("transactionId present but transactionResult=AUTO_COMMITTED");
+	        throw new IllegalArgumentException("transactionId present but transactionResult=" + AUTO_COMMITTED);
 	    }
 	}
 	
