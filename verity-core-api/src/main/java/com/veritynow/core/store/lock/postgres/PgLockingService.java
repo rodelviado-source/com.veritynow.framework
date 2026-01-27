@@ -55,6 +55,8 @@ public class PgLockingService implements LockingService {
     private static final Logger LOGGER = LogManager.getLogger();
 
     private final DSLContext dsl;
+    
+    
 
     /** Lease TTL in milliseconds. When <= 0, leases disabled. */
     private final long ttlMs;
@@ -68,11 +70,16 @@ public class PgLockingService implements LockingService {
     public PgLockingService(DSLContext dsl, long ttlMs, float lockRenewFraction) {
         this.dsl = Objects.requireNonNull(dsl, "dsl required");
         this.ttlMs = ttlMs;
+        long fraction = Float.valueOf(ttlMs * lockRenewFraction).longValue();
+        
+        if (ttlMs <= 0)
+        	LOGGER.info("Postgres Locking Service started,  ttl is disabled");
+        
 
-        LOGGER.info("Postgres Locking Service started ttl = {}", ttlMs);
-
+        
         if (ttlMs > 0) {
-            this.renewEveryMs = Math.max(250L, Float.valueOf(ttlMs * lockRenewFraction).longValue());
+            this.renewEveryMs = Math.max(250L, fraction);
+            LOGGER.info("Postgres Locking Service started. [ttl({}), renew-every({})]", ttlMs, renewEveryMs);
             this.renewScheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
                 @Override public Thread newThread(Runnable r) {
                     Thread t = new Thread(r, "verity-lock-lease-renewer");

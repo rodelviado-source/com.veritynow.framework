@@ -72,10 +72,13 @@ public class ConsoleService {
 		return Optional.empty();
 	}
 
-	public Optional<InputStream> loadBytesByHash(String hash) {
-		Optional<InputStream> opt = versionStore.getContent(new PK(null,hash));
-		if (opt.isPresent()) {
-			return opt;
+	public Optional<InputStream> loadBytesByHash(String hash)  {
+		try {
+			Optional<InputStream> opt = versionStore.getContent(new PK(null,hash));
+			if (opt.isPresent()) return opt;
+		}
+		catch (IOException e) {
+			LOGGER.error("Unable to load content with hash {}",hash,  e);
 		}
 		return Optional.empty();
 	}
