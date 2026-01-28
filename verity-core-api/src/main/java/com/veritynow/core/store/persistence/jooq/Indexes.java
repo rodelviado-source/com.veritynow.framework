@@ -5,7 +5,6 @@ package com.veritynow.core.store.persistence.jooq;
 
 
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
-import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
 import com.veritynow.core.store.persistence.jooq.tables.VnLockGroup;
 import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion;
@@ -30,13 +29,24 @@ public class Indexes {
 
     public static final Index IX_DIR_CHILD = Internal.createIndex(DSL.name("ix_dir_child"), VnDirEntry.VN_DIR_ENTRY, new OrderField[] { VnDirEntry.VN_DIR_ENTRY.CHILD_ID }, false);
     public static final Index IX_DIR_PARENT = Internal.createIndex(DSL.name("ix_dir_parent"), VnDirEntry.VN_DIR_ENTRY, new OrderField[] { VnDirEntry.VN_DIR_ENTRY.PARENT_ID }, false);
+    public static final Index IX_INODE_PATH_DIR_ENTRY = Internal.createIndex(DSL.name("ix_inode_path_dir_entry"), VnInodePathSegment.VN_INODE_PATH_SEGMENT, new OrderField[] { VnInodePathSegment.VN_INODE_PATH_SEGMENT.DIR_ENTRY_ID }, false);
     public static final Index IX_INODE_PATH_INODE = Internal.createIndex(DSL.name("ix_inode_path_inode"), VnInodePathSegment.VN_INODE_PATH_SEGMENT, new OrderField[] { VnInodePathSegment.VN_INODE_PATH_SEGMENT.INODE_ID }, false);
+    public static final Index IX_VER_CORRELATION = Internal.createIndex(DSL.name("ix_ver_correlation"), VnNodeVersion.VN_NODE_VERSION, new OrderField[] { VnNodeVersion.VN_NODE_VERSION.CORRELATION_ID, VnNodeVersion.VN_NODE_VERSION.ID }, false);
+    public static final Index IX_VER_HASH_ALG = Internal.createIndex(DSL.name("ix_ver_hash_alg"), VnNodeVersion.VN_NODE_VERSION, new OrderField[] { VnNodeVersion.VN_NODE_VERSION.HASH, VnNodeVersion.VN_NODE_VERSION.HASH_ALGORITHM }, false);
     public static final Index IX_VER_INODE_TIMESTAMP = Internal.createIndex(DSL.name("ix_ver_inode_timestamp"), VnNodeVersion.VN_NODE_VERSION, new OrderField[] { VnNodeVersion.VN_NODE_VERSION.INODE_ID, VnNodeVersion.VN_NODE_VERSION.TIMESTAMP.desc(), VnNodeVersion.VN_NODE_VERSION.ID.desc() }, false);
+    public static final Index IX_VER_TXN_INODE = Internal.createIndex(DSL.name("ix_ver_txn_inode"), VnNodeVersion.VN_NODE_VERSION, new OrderField[] { VnNodeVersion.VN_NODE_VERSION.TRANSACTION_ID, VnNodeVersion.VN_NODE_VERSION.INODE_ID, VnNodeVersion.VN_NODE_VERSION.ID }, false);
+    public static final Index IX_VER_TXN_RESULT = Internal.createIndex(DSL.name("ix_ver_txn_result"), VnNodeVersion.VN_NODE_VERSION, new OrderField[] { VnNodeVersion.VN_NODE_VERSION.TRANSACTION_ID, VnNodeVersion.VN_NODE_VERSION.TRANSACTION_RESULT, VnNodeVersion.VN_NODE_VERSION.ID }, false);
+    public static final Index IX_VER_WORKFLOW = Internal.createIndex(DSL.name("ix_ver_workflow"), VnNodeVersion.VN_NODE_VERSION, new OrderField[] { VnNodeVersion.VN_NODE_VERSION.WORKFLOW_ID, VnNodeVersion.VN_NODE_VERSION.ID }, false);
     public static final Index IX_VN_LOCK_GROUP_ACTIVE_EXPIRES = Internal.createIndex(DSL.name("ix_vn_lock_group_active_expires"), VnLockGroup.VN_LOCK_GROUP, new OrderField[] { VnLockGroup.VN_LOCK_GROUP.ACTIVE, VnLockGroup.VN_LOCK_GROUP.EXPIRES_AT }, false);
+    public static final Index IX_VN_LOCK_GROUP_ACTIVE_EXPIRES_PARTIAL = Internal.createIndex(DSL.name("ix_vn_lock_group_active_expires_partial"), VnLockGroup.VN_LOCK_GROUP, new OrderField[] { VnLockGroup.VN_LOCK_GROUP.EXPIRES_AT }, false);
+    public static final Index IX_VN_LOCK_GROUP_ACTIVE_OWNER_PARTIAL = Internal.createIndex(DSL.name("ix_vn_lock_group_active_owner_partial"), VnLockGroup.VN_LOCK_GROUP, new OrderField[] { VnLockGroup.VN_LOCK_GROUP.OWNER_ID }, false);
     public static final Index IX_VN_LOCK_GROUP_OWNER_ACTIVE = Internal.createIndex(DSL.name("ix_vn_lock_group_owner_active"), VnLockGroup.VN_LOCK_GROUP, new OrderField[] { VnLockGroup.VN_LOCK_GROUP.OWNER_ID, VnLockGroup.VN_LOCK_GROUP.ACTIVE }, false);
+    public static final Index IX_VN_PATH_LOCK_ACTIVE_GROUP_PARTIAL = Internal.createIndex(DSL.name("ix_vn_path_lock_active_group_partial"), VnPathLock.VN_PATH_LOCK, new OrderField[] { VnPathLock.VN_PATH_LOCK.LOCK_GROUP_ID }, false);
+    public static final Index IX_VN_PATH_LOCK_ACTIVE_OWNER_PARTIAL = Internal.createIndex(DSL.name("ix_vn_path_lock_active_owner_partial"), VnPathLock.VN_PATH_LOCK, new OrderField[] { VnPathLock.VN_PATH_LOCK.OWNER_ID }, false);
+    public static final Index IX_VN_PATH_LOCK_ACTIVE_SCOPE_KEY_GIST = Internal.createIndex(DSL.name("ix_vn_path_lock_active_scope_key_gist"), VnPathLock.VN_PATH_LOCK, new OrderField[] { VnPathLock.VN_PATH_LOCK.SCOPE_KEY }, false);
     public static final Index IX_VN_PATH_LOCK_GROUP = Internal.createIndex(DSL.name("ix_vn_path_lock_group"), VnPathLock.VN_PATH_LOCK, new OrderField[] { VnPathLock.VN_PATH_LOCK.LOCK_GROUP_ID }, false);
     public static final Index IX_VN_PATH_LOCK_OWNER_ACTIVE = Internal.createIndex(DSL.name("ix_vn_path_lock_owner_active"), VnPathLock.VN_PATH_LOCK, new OrderField[] { VnPathLock.VN_PATH_LOCK.OWNER_ID, VnPathLock.VN_PATH_LOCK.ACTIVE }, false);
-    public static final Index IX_VN_PATH_LOCK_SCOPE_KEY_GIST = Internal.createIndex(DSL.name("ix_vn_path_lock_scope_key_gist"), VnPathLock.VN_PATH_LOCK, new OrderField[] { VnPathLock.VN_PATH_LOCK.SCOPE_KEY }, false);
+    public static final Index IX_VN_TXN_EPOCH_LOCK_GROUP = Internal.createIndex(DSL.name("ix_vn_txn_epoch_lock_group"), VnTxnEpoch.VN_TXN_EPOCH, new OrderField[] { VnTxnEpoch.VN_TXN_EPOCH.LOCK_GROUP_ID }, false);
     public static final Index IX_VN_TXN_EPOCH_STATUS = Internal.createIndex(DSL.name("ix_vn_txn_epoch_status"), VnTxnEpoch.VN_TXN_EPOCH, new OrderField[] { VnTxnEpoch.VN_TXN_EPOCH.STATUS }, false);
-    public static final Index UQ_VN_INODE_SCOPE_KEY = Internal.createIndex(DSL.name("uq_vn_inode_scope_key"), VnInode.VN_INODE, new OrderField[] { VnInode.VN_INODE.SCOPE_KEY }, true);
+    public static final Index UQ_VN_PATH_LOCK_ACTIVE_GROUP_SCOPE = Internal.createIndex(DSL.name("uq_vn_path_lock_active_group_scope"), VnPathLock.VN_PATH_LOCK, new OrderField[] { VnPathLock.VN_PATH_LOCK.LOCK_GROUP_ID, VnPathLock.VN_PATH_LOCK.SCOPE_KEY }, true);
 }

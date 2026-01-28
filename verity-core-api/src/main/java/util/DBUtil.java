@@ -10,7 +10,7 @@ import org.jooq.Record;
 import org.jooq.Result;
 import org.jooq.postgres.extensions.types.Ltree;
 
-import com.veritynow.core.store.db.repo.PathKeyCodec;
+import com.veritynow.core.store.versionstore.repo.PathKeyCodec;
 
 
 public class DBUtil {

@@ -69,7 +69,7 @@ public class VnInodePathSegment extends TableImpl<VnInodePathSegmentRecord> {
     /**
      * The column <code>public.vn_inode_path_segment.created_at</code>.
      */
-    public final TableField<VnInodePathSegmentRecord, OffsetDateTime> CREATED_AT = createField(DSL.name("created_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).nullable(false), this, "");
+    public final TableField<VnInodePathSegmentRecord, OffsetDateTime> CREATED_AT = createField(DSL.name("created_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).nullable(false).defaultValue(DSL.field(DSL.raw("now()"), SQLDataType.TIMESTAMPWITHTIMEZONE)), this, "");
 
     /**
      * The column <code>public.vn_inode_path_segment.dir_entry_id</code>.
@@ -157,7 +157,7 @@ public class VnInodePathSegment extends TableImpl<VnInodePathSegmentRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_INODE_PATH_INODE);
+        return Arrays.asList(Indexes.IX_INODE_PATH_DIR_ENTRY, Indexes.IX_INODE_PATH_INODE);
     }
 
     @Override

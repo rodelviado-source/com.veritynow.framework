@@ -8,53 +8,65 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.store.StoreOperation;
-import com.veritynow.core.store.VersionStore;
+import com.veritynow.core.store.TransactionAndLockingAware;
 import com.veritynow.core.store.base.PK;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 
-import org.springframework.transaction.annotation.Transactional;
 import util.JSON;
 
 @Service
 public class APIService {
 
-	private final VersionStore<PK, BlobMeta, VersionMeta> versionStore;
+	private final TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope> versionStore;
 	private static final Logger LOGGER = LogManager.getLogger();
 	
-	public APIService(VersionStore<PK, BlobMeta, VersionMeta> versionStore) {
+	public APIService(TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope> versionStore) {
 		this.versionStore = versionStore;
 		LOGGER.info("API Service using " + versionStore.getClass().getName());
 	}
 
 	@Transactional
 	public Optional<VersionMeta> create(String parentPath, InputStream is, String mimeType, String name) {
+		
+		 
 		 try {
-			 
+			versionStore.begin(); 
 			Optional<BlobMeta> opt = versionStore.create(new PK(parentPath,  null), new BlobMeta(name, mimeType,  0), is);
-			if (opt.isPresent()) 
-				return versionStore.getLatestVersion(parentPath);
+			if (opt.isPresent()) {
+				Optional<VersionMeta> latest = versionStore.getLatestVersion(parentPath);
+				versionStore.commit();
+				return latest;
+			}	
 			
 		} catch (IOException e) {
+			versionStore.rollback();
 			LOGGER.error("Unable to create {} {}", parentPath, e);
 		}
+		  
 		return Optional.empty(); 
 	}
 	
 	@Transactional
 	public Optional<VersionMeta> createExactPath(String path, InputStream is, String mimeType, String name) {
+		
 		 try {
 			String parent = path.substring(0,path.lastIndexOf("/"));
 			String lastSegment = lastSegment(path) ;
 			
+			versionStore.begin();
 			Optional<BlobMeta> opt = versionStore.create(new PK(parent,  null), new BlobMeta(name, mimeType,  0), is, lastSegment);
 			
 			if (opt.isPresent()) {
+				versionStore.commit();
 				return versionStore.getLatestVersion(path);
 			}	
 		} catch (IOException e) {
+			versionStore.rollback();
 			LOGGER.error("Unable to create {} {}", path, e);
 		}
 		return Optional.empty(); 

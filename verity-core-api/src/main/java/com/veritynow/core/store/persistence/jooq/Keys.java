@@ -4,6 +4,7 @@
 package com.veritynow.core.store.persistence.jooq;
 
 
+import com.veritynow.core.store.persistence.jooq.tables.VnBlob;
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
@@ -12,6 +13,7 @@ import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead;
 import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion;
 import com.veritynow.core.store.persistence.jooq.tables.VnPathLock;
 import com.veritynow.core.store.persistence.jooq.tables.VnTxnEpoch;
+import com.veritynow.core.store.persistence.jooq.tables.records.VnBlobRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnDirEntryRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnInodePathSegmentRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
@@ -40,8 +42,10 @@ public class Keys {
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
+    public static final UniqueKey<VnBlobRecord> VN_BLOB_PKEY = Internal.createUniqueKey(VnBlob.VN_BLOB, DSL.name("vn_blob_pkey"), new TableField[] { VnBlob.VN_BLOB.HASH, VnBlob.VN_BLOB.HASH_ALGORITHM }, true);
     public static final UniqueKey<VnDirEntryRecord> UQ_DIR_PARENT_NAME = Internal.createUniqueKey(VnDirEntry.VN_DIR_ENTRY, DSL.name("uq_dir_parent_name"), new TableField[] { VnDirEntry.VN_DIR_ENTRY.PARENT_ID, VnDirEntry.VN_DIR_ENTRY.NAME }, true);
     public static final UniqueKey<VnDirEntryRecord> VN_DIR_ENTRY_PKEY = Internal.createUniqueKey(VnDirEntry.VN_DIR_ENTRY, DSL.name("vn_dir_entry_pkey"), new TableField[] { VnDirEntry.VN_DIR_ENTRY.ID }, true);
+    public static final UniqueKey<VnInodeRecord> UQ_VN_INODE_SCOPE_KEY = Internal.createUniqueKey(VnInode.VN_INODE, DSL.name("uq_vn_inode_scope_key"), new TableField[] { VnInode.VN_INODE.SCOPE_KEY }, true);
     public static final UniqueKey<VnInodeRecord> VN_INODE_PKEY = Internal.createUniqueKey(VnInode.VN_INODE, DSL.name("vn_inode_pkey"), new TableField[] { VnInode.VN_INODE.ID }, true);
     public static final UniqueKey<VnInodePathSegmentRecord> UQ_INODE_ORD = Internal.createUniqueKey(VnInodePathSegment.VN_INODE_PATH_SEGMENT, DSL.name("uq_inode_ord"), new TableField[] { VnInodePathSegment.VN_INODE_PATH_SEGMENT.INODE_ID, VnInodePathSegment.VN_INODE_PATH_SEGMENT.ORD }, true);
     public static final UniqueKey<VnInodePathSegmentRecord> VN_INODE_PATH_SEGMENT_PKEY = Internal.createUniqueKey(VnInodePathSegment.VN_INODE_PATH_SEGMENT, DSL.name("vn_inode_path_segment_pkey"), new TableField[] { VnInodePathSegment.VN_INODE_PATH_SEGMENT.ID }, true);

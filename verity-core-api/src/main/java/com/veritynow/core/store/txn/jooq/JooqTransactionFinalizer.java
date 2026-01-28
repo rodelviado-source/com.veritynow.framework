@@ -23,7 +23,6 @@ import org.jooq.Field;
 import org.jooq.InsertOnDuplicateStep;
 import org.jooq.Record2;
 
-import com.veritynow.core.store.db.DBTime;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 import com.veritynow.core.store.txn.TransactionFinalizer;
 
@@ -128,12 +127,12 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
     
     
     private InsertOnDuplicateStep<VnNodeVersionRecord> cloneAndSetTransactionResult(String result, String txnId) {
-    	Field<Long> nowMs = DBTime.nowEpochMs();
+    	//Field<Long> nowMs = DBTime.nowEpochMs();
 
     	return dsl.insertInto(
                 VN_NODE_VERSION,
                 VN_NODE_VERSION.INODE_ID,
-                VN_NODE_VERSION.TIMESTAMP,
+               // VN_NODE_VERSION.TIMESTAMP, //set by DB
                 VN_NODE_VERSION.PATH,
                 VN_NODE_VERSION.OPERATION,
                 VN_NODE_VERSION.PRINCIPAL,
@@ -142,7 +141,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
                 VN_NODE_VERSION.CONTEXT_NAME,
                 VN_NODE_VERSION.TRANSACTION_ID,
                 VN_NODE_VERSION.TRANSACTION_RESULT,
-                VN_NODE_VERSION.HASHALGORITHM,
+                VN_NODE_VERSION.HASH_ALGORITHM,
                 VN_NODE_VERSION.HASH,
                 VN_NODE_VERSION.NAME,
                 VN_NODE_VERSION.MIME_TYPE,
@@ -151,7 +150,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
             .select(
                 select(
                     VN_NODE_VERSION.INODE_ID,
-                    nowMs,
+                   // nowMs,  //set by DB
                     VN_NODE_VERSION.PATH,
                     VN_NODE_VERSION.OPERATION,
                     VN_NODE_VERSION.PRINCIPAL,
@@ -160,7 +159,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
                     VN_NODE_VERSION.CONTEXT_NAME,
                     VN_NODE_VERSION.TRANSACTION_ID,
                     inline(result),
-                    VN_NODE_VERSION.HASHALGORITHM,
+                    VN_NODE_VERSION.HASH_ALGORITHM,
                     VN_NODE_VERSION.HASH,
                     VN_NODE_VERSION.NAME,
                     VN_NODE_VERSION.MIME_TYPE,

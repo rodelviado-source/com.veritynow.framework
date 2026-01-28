@@ -164,7 +164,7 @@ public class VnLockGroup extends TableImpl<VnLockGroupRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_VN_LOCK_GROUP_ACTIVE_EXPIRES, Indexes.IX_VN_LOCK_GROUP_OWNER_ACTIVE);
+        return Arrays.asList(Indexes.IX_VN_LOCK_GROUP_ACTIVE_EXPIRES, Indexes.IX_VN_LOCK_GROUP_ACTIVE_EXPIRES_PARTIAL, Indexes.IX_VN_LOCK_GROUP_ACTIVE_OWNER_PARTIAL, Indexes.IX_VN_LOCK_GROUP_OWNER_ACTIVE);
     }
 
     @Override

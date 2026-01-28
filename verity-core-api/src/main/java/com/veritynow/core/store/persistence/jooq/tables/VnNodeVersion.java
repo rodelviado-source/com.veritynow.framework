@@ -78,7 +78,7 @@ public class VnNodeVersion extends TableImpl<VnNodeVersionRecord> {
     /**
      * The column <code>public.vn_node_version.timestamp</code>.
      */
-    public final TableField<VnNodeVersionRecord, Long> TIMESTAMP = createField(DSL.name("timestamp"), SQLDataType.BIGINT.nullable(false), this, "");
+    public final TableField<VnNodeVersionRecord, Long> TIMESTAMP = createField(DSL.name("timestamp"), SQLDataType.BIGINT.nullable(false).defaultValue(DSL.field(DSL.raw("((EXTRACT(epoch FROM CURRENT_TIMESTAMP) * (1000)::numeric))::bigint"), SQLDataType.BIGINT)), this, "");
 
     /**
      * The column <code>public.vn_node_version.context_name</code>.
@@ -91,9 +91,9 @@ public class VnNodeVersion extends TableImpl<VnNodeVersionRecord> {
     public final TableField<VnNodeVersionRecord, String> CORRELATION_ID = createField(DSL.name("correlation_id"), SQLDataType.VARCHAR(255), this, "");
 
     /**
-     * The column <code>public.vn_node_version.hashAlgorithm</code>.
+     * The column <code>public.vn_node_version.hash_algorithm</code>.
      */
-    public final TableField<VnNodeVersionRecord, String> HASHALGORITHM = createField(DSL.name("hashAlgorithm"), SQLDataType.VARCHAR(255), this, "");
+    public final TableField<VnNodeVersionRecord, String> HASH_ALGORITHM = createField(DSL.name("hash_algorithm"), SQLDataType.VARCHAR(255), this, "");
 
     /**
      * The column <code>public.vn_node_version.hash</code>.
@@ -209,7 +209,7 @@ public class VnNodeVersion extends TableImpl<VnNodeVersionRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_VER_INODE_TIMESTAMP);
+        return Arrays.asList(Indexes.IX_VER_CORRELATION, Indexes.IX_VER_HASH_ALG, Indexes.IX_VER_INODE_TIMESTAMP, Indexes.IX_VER_TXN_INODE, Indexes.IX_VER_TXN_RESULT, Indexes.IX_VER_WORKFLOW);
     }
 
     @Override

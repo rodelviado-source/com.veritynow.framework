@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db;
+package com.veritynow.core.store.versionstore;
 
 import java.util.Arrays;
 import java.util.List;

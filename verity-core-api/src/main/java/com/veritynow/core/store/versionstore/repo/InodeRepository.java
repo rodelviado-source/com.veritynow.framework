@@ -1,15 +1,11 @@
-package com.veritynow.core.store.db.repo;
+package com.veritynow.core.store.versionstore.repo;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_DIR_ENTRY;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE_PATH_SEGMENT;
 import static org.jooq.impl.DSL.condition;
-import static org.jooq.impl.DSL.currentOffsetDateTime;
 import static org.jooq.impl.DSL.val;
 
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -21,12 +17,11 @@ import org.jooq.Record1;
 import org.jooq.Result;
 import org.jooq.postgres.extensions.types.Ltree;
 
-import com.veritynow.core.store.db.model.DirEntry;
-import com.veritynow.core.store.db.model.Inode;
-import com.veritynow.core.store.db.model.InodePathSegment;
-import com.veritynow.core.store.persistence.jooq.Indexes;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
+import com.veritynow.core.store.versionstore.model.DirEntry;
+import com.veritynow.core.store.versionstore.model.Inode;
+import com.veritynow.core.store.versionstore.model.InodePathSegment;
 
 /**
  * jOOQ-only replacement for the JPA.
@@ -72,14 +67,10 @@ public final class InodeRepository {
      */
     public Inode save(Inode entity) {
         Objects.requireNonNull(entity, "entity");
-        Objects.requireNonNull(entity.createdAt(), "entity.createdAt");
-
-        OffsetDateTime createdAt = OffsetDateTime.ofInstant(entity.createdAt(), ZoneOffset.UTC);
+ 
         Ltree scope = entity.scopeKey() == null ? null :   Ltree.ltree(entity.scopeKey());
-
         VnInodeRecord inserted = dsl
             .insertInto(VN_INODE)
-            .set(VN_INODE.CREATED_AT, createdAt)
             .set(VN_INODE.SCOPE_KEY, scope)
             .returning(VN_INODE.ID, VN_INODE.CREATED_AT, VN_INODE.SCOPE_KEY)
             .fetchOneInto(VnInodeRecord.class);
@@ -98,13 +89,6 @@ public final class InodeRepository {
     }
 
 
-    public void ensureScopeKeyUniqueIndex() {
-        dsl.createUniqueIndexIfNotExists(Indexes.UQ_VN_INODE_SCOPE_KEY.getName())
-           .on(VN_INODE, VN_INODE.SCOPE_KEY)
-           .execute();
-    }
-    
-    
     public List<InodePathSegment> findAllByInodeIdOrderByOrdAsc(Long inodeId) {
         Objects.requireNonNull(inodeId, "inodeId");
 
@@ -144,15 +128,11 @@ public final class InodeRepository {
             Objects.requireNonNull(e.inode().id(), "entity.inode.id");
             Objects.requireNonNull(e.dirEntry(), "entity.dirEntry");
             Objects.requireNonNull(e.dirEntry().id(), "entity.dirEntry.id");
-            Objects.requireNonNull(e.createdAt(), "entity.createdAt");
-
-            OffsetDateTime createdAt = OffsetDateTime.ofInstant(e.createdAt(), ZoneOffset.UTC);
 
             dsl.insertInto(VN_INODE_PATH_SEGMENT)
                 .set(VN_INODE_PATH_SEGMENT.INODE_ID, e.inode().id())
                 .set(VN_INODE_PATH_SEGMENT.ORD, e.ord())
                 .set(VN_INODE_PATH_SEGMENT.DIR_ENTRY_ID, e.dirEntry().id())
-                .set(VN_INODE_PATH_SEGMENT.CREATED_AT, createdAt)
                 .execute();
 
             list.add(e);
@@ -213,7 +193,6 @@ public final class InodeRepository {
             .set(VN_DIR_ENTRY.PARENT_ID, dir.parent().id())
             .set(VN_DIR_ENTRY.NAME, dir.name())
             .set(VN_DIR_ENTRY.CHILD_ID, dir.child().id())
-            .set(VN_DIR_ENTRY.CREATED_AT, currentOffsetDateTime())
             .returning(VN_DIR_ENTRY.ID, VN_DIR_ENTRY.CREATED_AT)
             .fetchOne();
 
@@ -233,20 +212,12 @@ public final class InodeRepository {
     private DirEntry toDirEntity(Record r,
                                    VnInode P,
                                    VnInode C) {
-
-        if (r.get(P.CREATED_AT) == null || r.get(C.CREATED_AT) == null) {
-            throw new IllegalStateException("vn_inode.created_at is NULL (violates schema invariant)");
-        }
-
+        
         String pScope = r.get(P.SCOPE_KEY) == null ? null : r.get(P.SCOPE_KEY).toString();
         String cScope = r.get(C.SCOPE_KEY) == null ? null : r.get(C.SCOPE_KEY).toString();
 
         Inode parent = new Inode(r.get(P.ID), r.get(P.CREATED_AT).toInstant(), pScope);
         Inode child  = new Inode(r.get(C.ID), r.get(C.CREATED_AT).toInstant(), cScope);
-
-        if (r.get(VN_DIR_ENTRY.CREATED_AT) == null) {
-            throw new IllegalStateException("vn_dir_entry.created_at is NULL (violates schema invariant)");
-        }
 
         return new DirEntry(
             r.get(VN_DIR_ENTRY.ID),
@@ -265,16 +236,7 @@ public final class InodeRepository {
         VnInode C
     ) {
 
-        if (r.get(I.CREATED_AT) == null || r.get(P.CREATED_AT) == null || r.get(C.CREATED_AT) == null) {
-            throw new IllegalStateException("vn_inode.created_at is NULL (violates schema invariant)");
-        }
-        if (r.get(VN_DIR_ENTRY.CREATED_AT) == null) {
-            throw new IllegalStateException("vn_dir_entry.created_at is NULL (violates schema invariant)");
-        }
-        if (r.get(VN_INODE_PATH_SEGMENT.CREATED_AT) == null) {
-            throw new IllegalStateException("vn_inode_path_segment.created_at is NULL (violates schema invariant)");
-        }
-
+  
         String iScope = r.get(I.SCOPE_KEY) == null ? null : r.get(I.SCOPE_KEY).toString();
         String pScope = r.get(P.SCOPE_KEY) == null ? null : r.get(P.SCOPE_KEY).toString();
         String cScope = r.get(C.SCOPE_KEY) == null ? null : r.get(C.SCOPE_KEY).toString();
@@ -291,23 +253,18 @@ public final class InodeRepository {
             r.get(VN_DIR_ENTRY.CREATED_AT).toInstant()
         );
 
-        Instant segCreatedAt = r.get(VN_INODE_PATH_SEGMENT.CREATED_AT).toInstant();
-
         return new InodePathSegment(
             r.get(VN_INODE_PATH_SEGMENT.ID),
             inode,
             r.get(VN_INODE_PATH_SEGMENT.ORD),
             dirEntry,
-            segCreatedAt
+            r.get(VN_INODE_PATH_SEGMENT.CREATED_AT).toInstant()
         );
     }
     
         private static Inode toInode(VnInodeRecord r) {
-        if (r.getCreatedAt() == null) {
-            throw new IllegalStateException("vn_inode.created_at is NULL (violates schema invariant)");
-        }
-        Instant createdAt = r.getCreatedAt().toInstant();
+        
         String scopeKey = r.getScopeKey() == null ? null : r.getScopeKey().toString();
-        return new Inode(r.getId(), createdAt, scopeKey);
+        return new Inode(r.getId(), r.getCreatedAt().toInstant(), scopeKey);
     }
 }

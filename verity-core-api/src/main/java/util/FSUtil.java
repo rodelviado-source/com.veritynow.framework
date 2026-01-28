@@ -4,6 +4,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -41,8 +42,12 @@ public class FSUtil {
 	        	b = is.readNBytes(1024);
 	        } 
         }
-        
-        Files.move(tmp, out, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        try {
+            Files.move(tmp, out, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            // Fallback must be explicit overwrite — bytes are non-authoritative until meta exists
+            Files.move(tmp, out, StandardCopyOption.REPLACE_EXISTING);
+        }
 	}
 	
 	public static void safeWrite(Path dir, String name, String s) throws IOException {

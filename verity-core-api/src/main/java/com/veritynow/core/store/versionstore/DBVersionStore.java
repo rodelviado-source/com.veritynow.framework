@@ -1,4 +1,7 @@
-package com.veritynow.core.store.db;
+package com.veritynow.core.store.versionstore;
+
+import static com.veritynow.core.store.txn.TransactionResult.AUTO_COMMITTED;
+import static com.veritynow.core.store.txn.TransactionResult.IN_FLIGHT;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,29 +17,27 @@ import org.apache.logging.log4j.Logger;
 import org.jooq.DSLContext;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.store.ImmutableBackingStore;
-import com.veritynow.core.store.LockingAware;
 import com.veritynow.core.store.StoreOperation;
-import com.veritynow.core.store.TransactionAware;
-import com.veritynow.core.store.VersionStore;
+import com.veritynow.core.store.TransactionAndLockingAware;
 import com.veritynow.core.store.base.AbstractStore;
 import com.veritynow.core.store.base.PK;
 import com.veritynow.core.store.base.PathEvent;
 import com.veritynow.core.store.base.StoreContext;
-import com.veritynow.core.store.db.model.DirEntry;
-import com.veritynow.core.store.db.repo.RepositoryManager;
 import com.veritynow.core.store.lock.LockHandle;
 import com.veritynow.core.store.lock.LockingService;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;
-import static com.veritynow.core.store.txn.TransactionResult.*;
+import com.veritynow.core.store.versionstore.model.DirEntry;
+import com.veritynow.core.store.versionstore.repo.RepositoryManager;
 
 import util.DBUtil;
 
 
-public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements VersionStore<PK, BlobMeta, VersionMeta>, TransactionAware<ContextScope>, LockingAware {
+public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope>  {
     
     private static final Logger LOGGER = LogManager.getLogger();
     
@@ -84,13 +85,13 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements Versi
 
     @Override
 	public void commit() {
-    	if (txnManager != null)
+    	if (txnManager != null && Context.isActive())
     		txnManager.commit();
 	}
 
 	@Override
 	public void rollback() {
-		if (txnManager != null)
+		if (txnManager != null && Context.isActive())
 			txnManager.rollback();
 	}
 

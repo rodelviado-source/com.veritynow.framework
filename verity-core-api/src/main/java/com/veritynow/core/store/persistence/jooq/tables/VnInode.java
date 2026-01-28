@@ -4,7 +4,6 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
-import com.veritynow.core.store.persistence.jooq.Indexes;
 import com.veritynow.core.store.persistence.jooq.Keys;
 import com.veritynow.core.store.persistence.jooq.Public;
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry.VnDirEntryPath;
@@ -22,7 +21,6 @@ import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
 import org.jooq.Identity;
-import org.jooq.Index;
 import org.jooq.InverseForeignKey;
 import org.jooq.Name;
 import org.jooq.Path;
@@ -69,7 +67,7 @@ public class VnInode extends TableImpl<VnInodeRecord> {
     /**
      * The column <code>public.vn_inode.created_at</code>.
      */
-    public final TableField<VnInodeRecord, OffsetDateTime> CREATED_AT = createField(DSL.name("created_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).nullable(false), this, "");
+    public final TableField<VnInodeRecord, OffsetDateTime> CREATED_AT = createField(DSL.name("created_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).nullable(false).defaultValue(DSL.field(DSL.raw("now()"), SQLDataType.TIMESTAMPWITHTIMEZONE)), this, "");
 
     /**
      * The column <code>public.vn_inode.id</code>.
@@ -149,11 +147,6 @@ public class VnInode extends TableImpl<VnInodeRecord> {
     }
 
     @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.UQ_VN_INODE_SCOPE_KEY);
-    }
-
-    @Override
     public Identity<VnInodeRecord, Long> getIdentity() {
         return (Identity<VnInodeRecord, Long>) super.getIdentity();
     }
@@ -161,6 +154,11 @@ public class VnInode extends TableImpl<VnInodeRecord> {
     @Override
     public UniqueKey<VnInodeRecord> getPrimaryKey() {
         return Keys.VN_INODE_PKEY;
+    }
+
+    @Override
+    public List<UniqueKey<VnInodeRecord>> getUniqueKeys() {
+        return Arrays.asList(Keys.UQ_VN_INODE_SCOPE_KEY);
     }
 
     private transient VnDirEntryPath _vnDirEntryChildIdFk;

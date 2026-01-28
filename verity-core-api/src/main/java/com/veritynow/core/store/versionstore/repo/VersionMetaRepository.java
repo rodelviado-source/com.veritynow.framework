@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db.repo;
+package com.veritynow.core.store.versionstore.repo;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_HEAD;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_VERSION;
@@ -10,7 +10,6 @@ import java.util.Optional;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 
-import com.veritynow.core.store.db.DBTime;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 
@@ -39,7 +38,7 @@ public final class VersionMetaRepository {
         VnNodeVersionRecord inserted = dsl
         	    .insertInto(VN_NODE_VERSION)
         	    .set(VN_NODE_VERSION.INODE_ID, inodeId)
-        	    .set(VN_NODE_VERSION.TIMESTAMP, DBTime.nowEpochMs())
+        	    //.set(VN_NODE_VERSION.TIMESTAMP, DBTime.nowEpochMs()) set by DB
         	    .set(VN_NODE_VERSION.PATH, vm.path())
         	    .set(VN_NODE_VERSION.OPERATION, vm.operation())
         	    .set(VN_NODE_VERSION.PRINCIPAL, vm.principal())
@@ -48,7 +47,7 @@ public final class VersionMetaRepository {
         	    .set(VN_NODE_VERSION.CONTEXT_NAME, vm.contextName())
         	    .set(VN_NODE_VERSION.TRANSACTION_ID, vm.transactionId())
         	    .set(VN_NODE_VERSION.TRANSACTION_RESULT, vm.transactionResult())
-        	    .set(VN_NODE_VERSION.HASHALGORITHM, vm.hashAlgorithm())
+        	    .set(VN_NODE_VERSION.HASH_ALGORITHM, vm.hashAlgorithm())
         	    .set(VN_NODE_VERSION.HASH, vm.hash())
         	    .set(VN_NODE_VERSION.NAME, vm.name())
         	    .set(VN_NODE_VERSION.MIME_TYPE, vm.mimeType())
@@ -81,7 +80,7 @@ public final class VersionMetaRepository {
     private VersionMeta fromHeadVersiontoVersionMeta(Record r) {
         Long size = r.get(VN_NODE_VERSION.SIZE);
         return new VersionMeta(
-        	r.get(VN_NODE_VERSION.HASHALGORITHM),	
+        	r.get(VN_NODE_VERSION.HASH_ALGORITHM),	
             r.get(VN_NODE_VERSION.HASH),
             r.get(VN_NODE_VERSION.NAME),
             r.get(VN_NODE_VERSION.MIME_TYPE),
@@ -101,7 +100,7 @@ public final class VersionMetaRepository {
     private VersionMeta nodeVersionToVersionMeta(VnNodeVersionRecord r) {
         Long size = r.getSize();
         return new VersionMeta(
-        	r.getHashalgorithm(),	
+        	r.getHashAlgorithm(),	
             r.getHash(),
             r.getName(),
             r.getMimeType(),

@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db.model;
+package com.veritynow.core.store.versionstore.model;
 
 import java.time.Instant;
 
@@ -11,7 +11,7 @@ public record DirEntry (
   )  {
 
 	public DirEntry(Inode parent, String name, Inode child) {
-		this(null, name, parent, child, Instant.now());
+		this(null, name, parent, child, null);
 	}
     
 }

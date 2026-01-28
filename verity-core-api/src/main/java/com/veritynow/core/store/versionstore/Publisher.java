@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db;
+package com.veritynow.core.store.versionstore;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_HEAD;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_VERSION;
@@ -28,11 +28,11 @@ import org.jooq.InsertSetMoreStep;
 import org.jooq.Record2;
 import org.springframework.dao.DataAccessException;
 
-import com.veritynow.core.store.db.repo.RepositoryManager;
 import com.veritynow.core.store.lock.LockHandle;
 import com.veritynow.core.store.lock.LockingService;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
+import com.veritynow.core.store.versionstore.repo.RepositoryManager;
 
 /**
  * Publisher that moves HEAD rows using jOOQ generated tables.
@@ -253,7 +253,7 @@ public final class Publisher {
   private  InsertSetMoreStep<VnNodeVersionRecord> insertVersionMeta(VersionMeta vm, Long inodeId) {
 	  return dsl.insertInto(VN_NODE_VERSION).
           	set(VN_NODE_VERSION.INODE_ID, inodeId ).
-            set(VN_NODE_VERSION.TIMESTAMP, DBTime.nowEpochMs()).
+            //set(VN_NODE_VERSION.TIMESTAMP, DBTime.nowEpochMs()). set by DB
             set(VN_NODE_VERSION.PATH, vm.path()).
             set(VN_NODE_VERSION.OPERATION, vm.operation()).
             set(VN_NODE_VERSION.PRINCIPAL, vm.principal()).
@@ -262,7 +262,7 @@ public final class Publisher {
             set(VN_NODE_VERSION.CONTEXT_NAME, vm.contextName()).
             set(VN_NODE_VERSION.TRANSACTION_ID, vm.transactionId()).
             set(VN_NODE_VERSION.TRANSACTION_RESULT, vm.transactionResult()).
-            set(VN_NODE_VERSION.HASHALGORITHM, vm.hashAlgorithm()).
+            set(VN_NODE_VERSION.HASH_ALGORITHM, vm.hashAlgorithm()).
             set(VN_NODE_VERSION.HASH, vm.hash()).
             set(VN_NODE_VERSION.NAME, vm.name()).
             set( VN_NODE_VERSION.MIME_TYPE, vm.mimeType()).

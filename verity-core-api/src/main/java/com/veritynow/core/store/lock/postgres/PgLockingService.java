@@ -36,10 +36,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextSnapshot;
-import com.veritynow.core.store.db.PathUtils;
-import com.veritynow.core.store.db.repo.PathKeyCodec;
 import com.veritynow.core.store.lock.LockHandle;
 import com.veritynow.core.store.lock.LockingService;
+import com.veritynow.core.store.versionstore.PathUtils;
+import com.veritynow.core.store.versionstore.repo.PathKeyCodec;
 
 /**
  * Postgres locking kernel: exclusive subtree locking using ltree scope keys.

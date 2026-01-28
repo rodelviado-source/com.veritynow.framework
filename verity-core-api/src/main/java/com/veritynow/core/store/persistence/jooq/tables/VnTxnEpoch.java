@@ -116,7 +116,7 @@ public class VnTxnEpoch extends TableImpl<VnTxnEpochRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_VN_TXN_EPOCH_STATUS);
+        return Arrays.asList(Indexes.IX_VN_TXN_EPOCH_LOCK_GROUP, Indexes.IX_VN_TXN_EPOCH_STATUS);
     }
 
     @Override

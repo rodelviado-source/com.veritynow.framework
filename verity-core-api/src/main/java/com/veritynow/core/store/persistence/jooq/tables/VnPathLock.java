@@ -168,7 +168,7 @@ public class VnPathLock extends TableImpl<VnPathLockRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IX_VN_PATH_LOCK_GROUP, Indexes.IX_VN_PATH_LOCK_OWNER_ACTIVE, Indexes.IX_VN_PATH_LOCK_SCOPE_KEY_GIST);
+        return Arrays.asList(Indexes.IX_VN_PATH_LOCK_ACTIVE_GROUP_PARTIAL, Indexes.IX_VN_PATH_LOCK_ACTIVE_OWNER_PARTIAL, Indexes.IX_VN_PATH_LOCK_ACTIVE_SCOPE_KEY_GIST, Indexes.IX_VN_PATH_LOCK_GROUP, Indexes.IX_VN_PATH_LOCK_OWNER_ACTIVE, Indexes.UQ_VN_PATH_LOCK_ACTIVE_GROUP_SCOPE);
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.veritynow.core.store.txn.jooq;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_LOCK_GROUP;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_TXN_EPOCH;
+import static com.veritynow.core.store.persistence.jooq.Sequences.VN_FENCE_TOKEN_SEQ;
 import static com.veritynow.core.store.txn.TransactionResult.COMMITTED;
 import static com.veritynow.core.store.txn.TransactionResult.IN_FLIGHT;
 import static com.veritynow.core.store.txn.TransactionResult.ROLLED_BACK;
@@ -17,6 +18,7 @@ import org.jooq.Record3;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.veritynow.core.store.lock.LockHandle;
+import com.veritynow.core.store.lock.LockingService;
 import com.veritynow.core.store.txn.PublishCoordinator;
 import com.veritynow.core.store.txn.TransactionService;
 
@@ -29,10 +31,12 @@ public class JooqTransactionService implements TransactionService {
 
     private final DSLContext dsl;
     private final PublishCoordinator coordinator;
+    private final LockingService lockingService;
 
-    public JooqTransactionService(DSLContext dsl, PublishCoordinator coordinator) {
+    public JooqTransactionService(DSLContext dsl, PublishCoordinator coordinator, LockingService lockingService) {
         this.dsl = Objects.requireNonNull(dsl, "dsl");
         this.coordinator = Objects.requireNonNull(coordinator, "coordinator");
+        this.lockingService = Objects.requireNonNull(lockingService, "lockingService");
     }
 
     @Override
@@ -97,6 +101,10 @@ public class JooqTransactionService implements TransactionService {
            .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
            .execute();
+
+        // Policy A: txn-controlled lock group is released on terminalization.
+        // User-level release during IN_FLIGHT is a no-op.
+        releaseTxnControlledLockGroup(txnId, e);
     }
 
     @Override
@@ -122,6 +130,21 @@ public class JooqTransactionService implements TransactionService {
            .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
            .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
            .execute();
+
+        // Policy A: release txn-controlled lock group on rollback if present.
+        releaseTxnControlledLockGroup(txnId, e);
+    }
+
+    private void releaseTxnControlledLockGroup(String txnId, Epoch e) {
+        if (e == null) return;
+        if (e.lockGroupId == null || e.fenceToken < 0) return;
+        // Best-effort release (locking kernel is authoritative).
+        try {
+            lockingService.release(new LockHandle(txnId, e.lockGroupId, e.fenceToken));
+        } catch (Exception ex) {
+            // Do not fail commit/rollback if release fails; correctness is enforced
+            // by fencing at publish time.
+        }
     }
 
     private Optional<Epoch> readEpoch(String txnId) {
@@ -152,7 +175,19 @@ public class JooqTransactionService implements TransactionService {
         if (e.lockGroupId != null && e.fenceToken >= 0) return e;
 
         Optional<LockHandle> opt = findActiveLockGroupOwnedBy(txnId);
-        if (opt.isEmpty()) return e;
+        // Turnkey behavior: if no explicit lock group exists yet, mint an implicit
+        // lock group for fencing. This satisfies commit semantics without forcing
+        // callers to acquire a path lock up-front.
+        if (opt.isEmpty()) {
+            LockHandle implicit = createImplicitLockGroup(txnId);
+            dsl.update(VN_TXN_EPOCH)
+               .set(VN_TXN_EPOCH.LOCK_GROUP_ID, implicit.lockGroupId())
+               .set(VN_TXN_EPOCH.FENCE_TOKEN, implicit.fenceToken())
+               .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
+               .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
+               .execute();
+            return new Epoch(e.status, implicit.lockGroupId(), implicit.fenceToken());
+        }
 
         LockHandle h = opt.get();
         dsl.update(VN_TXN_EPOCH)
@@ -163,6 +198,30 @@ public class JooqTransactionService implements TransactionService {
            .execute();
 
         return new Epoch(e.status, h.lockGroupId(), h.fenceToken());
+    }
+
+    /**
+     * Creates an implicit lock group for fencing only (no vn_path_lock rows).
+     * This keeps commit semantics turnkey: if a transaction has staged IN_FLIGHT
+     * versions but never explicitly acquired a lock, commit still obtains a
+     * monotonic fence token and publishes under that token.
+     */
+    private LockHandle createImplicitLockGroup(String ownerId) {
+        UUID lockGroupId = UUID.randomUUID();
+        Long fenceToken = dsl.nextval(VN_FENCE_TOKEN_SEQ);
+        if (fenceToken == null) {
+            throw new IllegalStateException("Unable to allocate fence token");
+        }
+
+        dsl.insertInto(VN_LOCK_GROUP)
+           .set(VN_LOCK_GROUP.LOCK_GROUP_ID, lockGroupId)
+           .set(VN_LOCK_GROUP.OWNER_ID, ownerId)
+           .set(VN_LOCK_GROUP.FENCE_TOKEN, fenceToken)
+           .set(VN_LOCK_GROUP.ACTIVE, true)
+           .set(VN_LOCK_GROUP.ACQUIRED_AT, currentOffsetDateTime())
+           .execute();
+
+        return new LockHandle(ownerId, lockGroupId, fenceToken);
     }
 
     /**

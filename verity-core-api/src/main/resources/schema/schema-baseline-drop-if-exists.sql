@@ -1,10 +1,12 @@
 create schema if not exists "public";
 create extension if not exists ltree;
 
+alter table if exists "public"."vn_blob" drop constraint if exists "vn_blob_pkey" cascade;
 alter table if exists "public"."vn_dir_entry" drop constraint if exists "uq_dir_parent_name" cascade;
 alter table if exists "public"."vn_dir_entry" drop constraint if exists "vn_dir_entry_pkey" cascade;
 alter table if exists "public"."vn_dir_entry" drop constraint if exists "vn_dir_entry_child_id_fk" cascade;
 alter table if exists "public"."vn_dir_entry" drop constraint if exists "vn_dir_entry_parent_id_fk" cascade;
+alter table if exists "public"."vn_inode" drop constraint if exists "uq_vn_inode_scope_key" cascade;
 alter table if exists "public"."vn_inode" drop constraint if exists "vn_inode_pkey" cascade;
 alter table if exists "public"."vn_inode_path_segment" drop constraint if exists "uq_inode_ord" cascade;
 alter table if exists "public"."vn_inode_path_segment" drop constraint if exists "vn_inode_path_segment_pkey" cascade;
@@ -29,7 +31,6 @@ drop index if exists "ix_vn_path_lock_group" cascade;
 drop index if exists "ix_vn_path_lock_owner_active" cascade;
 drop index if exists "ix_vn_path_lock_scope_key_gist" cascade;
 drop index if exists "ix_vn_txn_epoch_status" cascade;
-drop index if exists "uq_vn_inode_scope_key" cascade;
 drop table if exists "public"."vn_txn_epoch" cascade;
 drop table if exists "public"."vn_path_lock" cascade;
 drop table if exists "public"."vn_node_version" cascade;
@@ -38,4 +39,5 @@ drop table if exists "public"."vn_lock_group" cascade;
 drop table if exists "public"."vn_inode_path_segment" cascade;
 drop table if exists "public"."vn_inode" cascade;
 drop table if exists "public"."vn_dir_entry" cascade;
+drop table if exists "public"."vn_blob" cascade;
 drop sequence if exists "public"."vn_fence_token_seq";

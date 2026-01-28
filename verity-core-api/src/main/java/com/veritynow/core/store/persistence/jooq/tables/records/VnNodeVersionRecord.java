@@ -103,16 +103,16 @@ public class VnNodeVersionRecord extends UpdatableRecordImpl<VnNodeVersionRecord
     }
 
     /**
-     * Setter for <code>public.vn_node_version.hashAlgorithm</code>.
+     * Setter for <code>public.vn_node_version.hash_algorithm</code>.
      */
-    public void setHashalgorithm(String value) {
+    public void setHashAlgorithm(String value) {
         set(6, value);
     }
 
     /**
-     * Getter for <code>public.vn_node_version.hashAlgorithm</code>.
+     * Getter for <code>public.vn_node_version.hash_algorithm</code>.
      */
-    public String getHashalgorithm() {
+    public String getHashAlgorithm() {
         return (String) get(6);
     }
 
@@ -265,7 +265,7 @@ public class VnNodeVersionRecord extends UpdatableRecordImpl<VnNodeVersionRecord
     /**
      * Create a detached, initialised VnNodeVersionRecord
      */
-    public VnNodeVersionRecord(Long id, Long inodeId, Long size, Long timestamp, String contextName, String correlationId, String hashalgorithm, String hash, String mimeType, String name, String operation, String path, String principal, String transactionId, String transactionResult, String workflowId) {
+    public VnNodeVersionRecord(Long id, Long inodeId, Long size, Long timestamp, String contextName, String correlationId, String hashAlgorithm, String hash, String mimeType, String name, String operation, String path, String principal, String transactionId, String transactionResult, String workflowId) {
         super(VnNodeVersion.VN_NODE_VERSION);
 
         setId(id);
@@ -274,7 +274,7 @@ public class VnNodeVersionRecord extends UpdatableRecordImpl<VnNodeVersionRecord
         setTimestamp(timestamp);
         setContextName(contextName);
         setCorrelationId(correlationId);
-        setHashalgorithm(hashalgorithm);
+        setHashAlgorithm(hashAlgorithm);
         setHash(hash);
         setMimeType(mimeType);
         setName(name);

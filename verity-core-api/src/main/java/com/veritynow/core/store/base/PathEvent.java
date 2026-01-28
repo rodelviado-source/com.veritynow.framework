@@ -3,7 +3,7 @@ package com.veritynow.core.store.base;
 import static com.veritynow.core.store.txn.TransactionResult.AUTO_COMMITTED;
 
 import org.apache.tika.utils.StringUtils;
-import org.threeten.bp.Instant;;
+
 
 
 /**
@@ -18,8 +18,11 @@ public record PathEvent(
 		// What path was affected (absolute, namespace-qualified)
 		String path,
 
-		// When (epoch millis)
-		long timestamp,
+		//When (epoch millis)
+		//We consiously chosed epoch, since this is the most unambigous
+		//representation of time
+		//no timezone,dst etc.. common ambiguities present in other formats
+		Long timestamp,
 
 		// How Operation (store-level verb, "updated/created/updated/deleted/restored/")
 		String operation,
@@ -51,7 +54,7 @@ public record PathEvent(
 		StoreUtils.enforceRequired(workflowId, "workflowId");
 		StoreUtils.enforceRequired(contextName, "contextName");
 		
-		if (!StringUtils.isEmpty(transactionId) && !AUTO_COMMITTED.equals(transactionResult)) {
+		if (!StringUtils.isEmpty(transactionId) && AUTO_COMMITTED.equals(transactionResult)) {
 			throw new IllegalArgumentException("transactionId and transactionResult is out of sync " + transactionId + ":" + transactionResult );
 		}
 	}
@@ -59,8 +62,9 @@ public record PathEvent(
 	
 	public PathEvent(String path, StoreContext sc) {
 		this(
-			StoreUtils.setRequired(path, "path"),	
-			Instant.now().toEpochMilli(),
+			StoreUtils.setRequired(path, "path"),
+			//This is now set by DB during persistence,
+			null,
 			//Store context already validated upon creation
 			sc.operation(), sc.principal(), sc.correlationId(), 
 			sc.workflowId(), sc.contextName(), sc.transactionId(), sc.transactionResult() );

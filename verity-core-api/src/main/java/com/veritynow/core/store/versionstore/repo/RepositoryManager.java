@@ -1,6 +1,5 @@
-package com.veritynow.core.store.db.repo;
+package com.veritynow.core.store.versionstore.repo;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -9,11 +8,11 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.veritynow.core.store.db.PathUtils;
-import com.veritynow.core.store.db.model.DirEntry;
-import com.veritynow.core.store.db.model.Inode;
-import com.veritynow.core.store.db.model.InodePathSegment;
 import com.veritynow.core.store.meta.VersionMeta;
+import com.veritynow.core.store.versionstore.PathUtils;
+import com.veritynow.core.store.versionstore.model.DirEntry;
+import com.veritynow.core.store.versionstore.model.Inode;
+import com.veritynow.core.store.versionstore.model.InodePathSegment;
 
 
 
@@ -111,10 +110,9 @@ public class RepositoryManager {
             }
             String childScopeKey = PathKeyCodec.appendSegLabel(cur.scopeKey(), PathKeyCodec.label(seg));
             
-            Inode child = inodeRepo.save(new Inode(Instant.now(), childScopeKey));
+            Inode child = inodeRepo.save(new Inode(childScopeKey));
 			DirEntry entry = inodeRepo.save(new DirEntry(cur, seg, child));
 			
-			// Store-owned projection (Phase-1): inode -> ordered direntry chain
 			List<InodePathSegment> parentSegs = inodeRepo.findAllByInodeIdOrderByOrdAsc(cur.id());
 			List<InodePathSegment> childSegs = new ArrayList<>(parentSegs.size() + 1);
 			for (InodePathSegment ps : parentSegs) {
@@ -131,11 +129,10 @@ public class RepositoryManager {
     public void ensureRootInode() {
         // Store-owned bootstrap: root inode is the unique inode with scope_key = PathKeyCodec.ROOT_LABEL.
         // Also ensure the store-level invariant index exists (equality lookup by scope_key).
-        inodeRepo.ensureScopeKeyUniqueIndex();
         if (inodeRepo.findIdByScopeKey(PathKeyCodec.ROOT_LABEL).isPresent()) {
             return;
         }
-        inodeRepo.save(new Inode(Instant.now(), PathKeyCodec.ROOT_LABEL));
+        inodeRepo.save(new Inode(PathKeyCodec.ROOT_LABEL));
     }
 
 

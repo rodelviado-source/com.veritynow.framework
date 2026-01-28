@@ -18,16 +18,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 
+import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.store.HashingService;
 import com.veritynow.core.store.ImmutableBackingStore;
-import com.veritynow.core.store.VersionStore;
+import com.veritynow.core.store.TransactionAndLockingAware;
 import com.veritynow.core.store.base.DefaultHashingService;
 import com.veritynow.core.store.base.PK;
-import com.veritynow.core.store.db.DBVersionStore;
-import com.veritynow.core.store.db.repo.InodeRepository;
-import com.veritynow.core.store.db.repo.RepositoryManager;
-import com.veritynow.core.store.db.repo.VersionMetaRepository;
-import com.veritynow.core.store.fs.ImmutableFSBackingStore;
+import com.veritynow.core.store.immutablestore.ImmutableFSBackingStore;
+import com.veritynow.core.store.immutablestore.ImmutableRepository;
 import com.veritynow.core.store.lock.LockingService;
 import com.veritynow.core.store.lock.postgres.PgLockingService;
 import com.veritynow.core.store.meta.BlobMeta;
@@ -39,20 +37,29 @@ import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;
 import com.veritynow.core.store.txn.jooq.JooqPublishCoordinator;
 import com.veritynow.core.store.txn.jooq.JooqTransactionFinalizer;
 import com.veritynow.core.store.txn.jooq.JooqTransactionService;
+import com.veritynow.core.store.versionstore.DBVersionStore;
+import com.veritynow.core.store.versionstore.repo.InodeRepository;
+import com.veritynow.core.store.versionstore.repo.RepositoryManager;
+import com.veritynow.core.store.versionstore.repo.VersionMetaRepository;
 
 @Configuration
 public class VersionStoreConfig {
 	final static Logger  LOGGER = LogManager.getLogger(); 
 	
 		
-	  @Bean
+	 @Bean
 	public DSLContext dsl(DataSource ds) {
 	   return DSL.using(new TransactionAwareDataSourceProxy(ds), SQLDialect.POSTGRES);
 	}
 	
+	
 	@Bean 
 	HashingService hashingService(@Value("${verity.store.hash.algo:SHA-1}") String algo) throws NoSuchAlgorithmException {
 		return new DefaultHashingService(algo);
+	}
+	
+	@Bean ImmutableRepository immutableRepository(DSLContext dsl) {
+		return new ImmutableRepository(dsl);
 	}
 	
 	@Bean 
@@ -76,8 +83,8 @@ public class VersionStoreConfig {
 	
 	
 	@Bean 
-	TransactionService transactionService(DSLContext dsl, PublishCoordinator coordinator)  {
-		return new JooqTransactionService(dsl, coordinator);
+	TransactionService transactionService(DSLContext dsl, PublishCoordinator coordinator,  LockingService lockingService)  {
+		return new JooqTransactionService(dsl, coordinator, lockingService);
 	}
 	
 	@Bean 
@@ -91,22 +98,11 @@ public class VersionStoreConfig {
     @Bean
     public ImmutableBackingStore<String, BlobMeta> immutableBackingStore(
             @Value("${verity.immutable.blobs.fs-root:./data}") String rootDir,
-            HashingService hs
+            HashingService hs, ImmutableRepository repo
     ) {
         Path root = Path.of(rootDir).toAbsolutePath().normalize();
-        return new ImmutableFSBackingStore(root, hs);
+        return new ImmutableFSBackingStore(root, repo, hs);
     }
-    
-//    @Bean
-//    public VersionStore<PK, BlobMeta, VersionMeta> versionFSStore(
-//            @Value("${verity.version.index.fs-root:./data}") String rootDir,
-//            ImmutableBackingStore<String, BlobMeta> backingStore
-//            
-//    ) {
-//        Path root = Path.of(rootDir).toAbsolutePath().normalize();
-//        return new VersionFSStore(root, backingStore);
-//    }
-    
     
     @Bean
     public VersionMetaRepository jooqVersionMetaRepository(DSLContext dsl) {
@@ -125,7 +121,7 @@ public class VersionStoreConfig {
     
     @Bean
     @Primary
-    public VersionStore<PK, BlobMeta, VersionMeta> versionStore(
+    public TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope> versionStore(
     		ImmutableBackingStore<String, BlobMeta> backingStore,
     		DSLContext dsl,
 			RepositoryManager repositoryManager,

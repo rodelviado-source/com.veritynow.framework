@@ -1,9 +1,9 @@
-package com.veritynow.core.store.db.repo;
+package com.veritynow.core.store.versionstore.repo;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.veritynow.core.store.db.PathUtils;
+import com.veritynow.core.store.versionstore.PathUtils;
 
 import net.openhft.hashing.LongHashFunction;
 

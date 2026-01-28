@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db.model;
+package com.veritynow.core.store.versionstore.model;
 
 import java.time.Instant;
 
@@ -14,6 +14,6 @@ public record InodePathSegment (
 {
 
 	public InodePathSegment(Inode inode, int ord, DirEntry dirEntry) {
-		this(null, inode, ord, dirEntry, Instant.now());
+		this(null, inode, ord, dirEntry, null);
 	}
 }

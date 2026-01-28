@@ -4,6 +4,7 @@
 package com.veritynow.core.store.persistence.jooq;
 
 
+import com.veritynow.core.store.persistence.jooq.tables.VnBlob;
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
@@ -19,6 +20,11 @@ import com.veritynow.core.store.persistence.jooq.tables.VnTxnEpoch;
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
+
+    /**
+     * The table <code>public.vn_blob</code>.
+     */
+    public static final VnBlob VN_BLOB = VnBlob.VN_BLOB;
 
     /**
      * The table <code>public.vn_dir_entry</code>.

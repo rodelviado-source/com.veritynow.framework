@@ -4,6 +4,7 @@
 package com.veritynow.core.store.persistence.jooq;
 
 
+import com.veritynow.core.store.persistence.jooq.tables.VnBlob;
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
@@ -35,6 +36,11 @@ public class Public extends SchemaImpl {
      * The reference instance of <code>public</code>
      */
     public static final Public PUBLIC = new Public();
+
+    /**
+     * The table <code>public.vn_blob</code>.
+     */
+    public final VnBlob VN_BLOB = VnBlob.VN_BLOB;
 
     /**
      * The table <code>public.vn_dir_entry</code>.
@@ -99,6 +105,7 @@ public class Public extends SchemaImpl {
     @Override
     public final List<Table<?>> getTables() {
         return Arrays.asList(
+            VnBlob.VN_BLOB,
             VnDirEntry.VN_DIR_ENTRY,
             VnInode.VN_INODE,
             VnInodePathSegment.VN_INODE_PATH_SEGMENT,

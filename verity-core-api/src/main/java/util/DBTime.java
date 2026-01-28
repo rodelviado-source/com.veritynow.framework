@@ -1,4 +1,4 @@
-package com.veritynow.core.store.db;
+package util;
 
 import static org.jooq.impl.DSL.currentOffsetDateTime;
 import static org.jooq.impl.DSL.currentTimestamp;

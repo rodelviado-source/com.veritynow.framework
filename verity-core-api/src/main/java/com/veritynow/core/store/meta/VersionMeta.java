@@ -13,7 +13,7 @@ public record VersionMeta(
         String path,
 
         // When (epoch millis)
-        long timestamp,
+        Long timestamp,
         
         //How Operation (domain-level verb; not necessarily an HTTP verb)
         String operation,
