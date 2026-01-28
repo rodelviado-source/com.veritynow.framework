@@ -3,6 +3,7 @@ package com.veritynow.core.store.lock.postgres;
 import static com.veritynow.core.store.persistence.jooq.Sequences.VN_FENCE_TOKEN_SEQ;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_LOCK_GROUP;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_PATH_LOCK;
+import static com.veritynow.core.store.persistence.jooq.Tables.VN_TXN_EPOCH;
 import static org.jooq.impl.DSL.condition;
 import static org.jooq.impl.DSL.currentOffsetDateTime;
 import static org.jooq.impl.DSL.field;
@@ -14,6 +15,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -38,6 +40,8 @@ import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextSnapshot;
 import com.veritynow.core.store.lock.LockHandle;
 import com.veritynow.core.store.lock.LockingService;
+import com.veritynow.core.store.persistence.jooq.tables.VnLockGroup;
+import com.veritynow.core.store.txn.TransactionResult;
 import com.veritynow.core.store.versionstore.PathUtils;
 import com.veritynow.core.store.versionstore.repo.PathKeyCodec;
 
@@ -124,6 +128,17 @@ public class PgLockingService implements LockingService {
             .map(PathKeyCodec::toLTree)
             .toList();
 
+        // Single lock-group per ownerId (txnId) invariant:
+        // If the caller already has an active lock group, extend that group instead
+        // of creating a new one.
+        var existing = findActiveLockGroupOwnedBy(ownerId);
+        if (existing.isPresent()) {
+            LockHandle handle = existing.get();
+            extendLockGroup(handle, scopeKeyStrings);
+            startLeaseRenewal(handle);
+            return handle;
+        }
+
         // 1) conflict check
         if (existsConflicts(ownerId, scopeKeyStrings)) {
             throw new IllegalStateException("Lock conflict");
@@ -149,6 +164,12 @@ public class PgLockingService implements LockingService {
     public void release(LockHandle handle) {
         if (handle == null) return;
 
+        // Policy A: if this lock group is txn-controlled and the transaction is still
+        // IN_FLIGHT, user-level release is a no-op. Release occurs on commit/rollback.
+        if (isTxnControlledLockGroup(handle)) {
+            return;
+        }
+
         stopLeaseRenewal(handle.lockGroupId());
 
         dsl.update(VN_PATH_LOCK)
@@ -164,6 +185,115 @@ public class PgLockingService implements LockingService {
            .where(VN_LOCK_GROUP.LOCK_GROUP_ID.eq(handle.lockGroupId())
                .and(VN_LOCK_GROUP.ACTIVE.eq(true)))
            .execute();
+    }
+
+    private boolean isTxnControlledLockGroup(LockHandle handle) {
+    	 // handle.ownerId is the txn id for txn-scoped operations in this store.
+        if (handle == null) return false;
+        if (handle.ownerId() == null || handle.ownerId().isBlank()) return false;
+        if (handle.lockGroupId() == null) return false;
+        
+
+        // DB is authoritative: if vn_txn_epoch says this (txn_id -> lock_group_id/fence_token)
+        // is IN_FLIGHT, treat it as txn-controlled.
+        return dsl.fetchExists(
+            dsl.selectOne()
+               .from(VN_TXN_EPOCH)
+               .where(VN_TXN_EPOCH.TXN_ID.eq(handle.ownerId()))
+               .and(VN_TXN_EPOCH.STATUS.eq(TransactionResult.IN_FLIGHT))
+               .and(VN_TXN_EPOCH.LOCK_GROUP_ID.eq(handle.lockGroupId()))
+               .and(VN_TXN_EPOCH.FENCE_TOKEN.eq(handle.fenceToken()))
+        );
+    }
+
+    /**
+     * Extends an existing lock group by adding new scope keys that are not yet covered.
+     *
+     * Coverage rule:
+     * - if any existing lock scope @> requested, the requested scope is already covered.
+     * - otherwise, the requested scope is added to the group.
+     *
+     * Minimality optimization:
+     * - if adding a broader scope, drop existing descendant scopes in the same group.
+     */
+    private void extendLockGroup(LockHandle handle, List<String> requestedScopeKeyStrings) {
+        if (requestedScopeKeyStrings == null || requestedScopeKeyStrings.isEmpty()) return;
+
+        // Load existing active scopes for this group.
+        List<Ltree> existingScopes = dsl
+            .select(VN_PATH_LOCK.SCOPE_KEY)
+            .from(VN_PATH_LOCK)
+            .where(VN_PATH_LOCK.LOCK_GROUP_ID.eq(handle.lockGroupId()))
+            .and(VN_PATH_LOCK.ACTIVE.eq(true))
+            .fetch(VN_PATH_LOCK.SCOPE_KEY);
+
+        // Determine which scopes are not covered by existing ones.
+        // NOTE: ltree ancestor is a simple prefix relation over the dot-delimited labels.
+        List<String> toAdd = new ArrayList<>();
+        for (String reqStr : requestedScopeKeyStrings) {
+            boolean covered = false;
+            for (Ltree ex : existingScopes) {
+                if (ex == null) continue;
+                String exStr = ex.toString();
+                if (isAncestorOrSameLtree(exStr, reqStr)) { covered = true; break; }
+            }
+            if (!covered) toAdd.add(reqStr);
+        }
+
+        if (toAdd.isEmpty()) return;
+
+        // Conflict check only for new scopes.
+        if (existsConflicts(handle.ownerId(), toAdd)) {
+            throw new IllegalStateException("Lock conflict");
+        }
+
+        // Minimality: if adding a broader scope, remove existing descendant scopes.
+        // Delete where newScope @> existingScope.
+        for (String s : toAdd) {
+            dsl.deleteFrom(VN_PATH_LOCK)
+               .where(VN_PATH_LOCK.LOCK_GROUP_ID.eq(handle.lockGroupId()))
+               .and(VN_PATH_LOCK.ACTIVE.eq(true))
+               .and(condition("{0} @> {1}", val(Ltree.ltree(s)), VN_PATH_LOCK.SCOPE_KEY))
+               .execute();
+        }
+
+        insertPathLocks(handle.lockGroupId(), handle.ownerId(), toAdd);
+    }
+
+    private static boolean isAncestorOrSameLtree(String ancestor, String child) {
+        if (ancestor == null || child == null) return false;
+        if (ancestor.equals(child)) return true;
+        return child.startsWith(ancestor + ".");
+    }
+
+    
+
+    private Optional<LockHandle> findActiveLockGroupOwnedBy(String ownerId) {
+        var rows = dsl
+            .select(VN_LOCK_GROUP.LOCK_GROUP_ID, VN_LOCK_GROUP.FENCE_TOKEN)
+            .from(VN_LOCK_GROUP)
+            .where(VN_LOCK_GROUP.OWNER_ID.eq(ownerId))
+            .and(VN_LOCK_GROUP.ACTIVE.eq(true))
+            .and(condition("( {0} is null OR {0} > now() )", VN_LOCK_GROUP.EXPIRES_AT))
+            .limit(2)
+            .fetch();
+
+        if (rows.isEmpty()) return Optional.empty();
+        if (rows.size() > 1) {
+            throw new IllegalStateException(
+                "Multiple active lock groups owned by ownerId=" + ownerId + ". Expected a single lock group per txn."
+            );
+        }
+
+        UUID lockGroupId = rows.get(0).value1();
+        Long fenceToken = rows.get(0).value2();
+        if (lockGroupId == null || fenceToken == null) {
+            throw new IllegalStateException(
+                "Active lock group missing lock_group_id/fence_token for ownerId=" + ownerId
+            );
+        }
+
+        return Optional.of(new LockHandle(ownerId, lockGroupId, fenceToken));
     }
 
     // ---------- jOOQ kernel ops ----------
