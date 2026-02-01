@@ -8,11 +8,8 @@ import com.veritynow.core.store.persistence.jooq.tables.VnBlob;
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
-import com.veritynow.core.store.persistence.jooq.tables.VnLockGroup;
 import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead;
 import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion;
-import com.veritynow.core.store.persistence.jooq.tables.VnPathLock;
-import com.veritynow.core.store.persistence.jooq.tables.VnTxnEpoch;
 
 
 /**
@@ -42,11 +39,6 @@ public class Tables {
     public static final VnInodePathSegment VN_INODE_PATH_SEGMENT = VnInodePathSegment.VN_INODE_PATH_SEGMENT;
 
     /**
-     * The table <code>public.vn_lock_group</code>.
-     */
-    public static final VnLockGroup VN_LOCK_GROUP = VnLockGroup.VN_LOCK_GROUP;
-
-    /**
      * The table <code>public.vn_node_head</code>.
      */
     public static final VnNodeHead VN_NODE_HEAD = VnNodeHead.VN_NODE_HEAD;
@@ -55,14 +47,4 @@ public class Tables {
      * The table <code>public.vn_node_version</code>.
      */
     public static final VnNodeVersion VN_NODE_VERSION = VnNodeVersion.VN_NODE_VERSION;
-
-    /**
-     * The table <code>public.vn_path_lock</code>.
-     */
-    public static final VnPathLock VN_PATH_LOCK = VnPathLock.VN_PATH_LOCK;
-
-    /**
-     * The table <code>public.vn_txn_epoch</code>.
-     */
-    public static final VnTxnEpoch VN_TXN_EPOCH = VnTxnEpoch.VN_TXN_EPOCH;
 }

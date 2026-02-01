@@ -47,7 +47,7 @@ public record StoreContext(
 				StoreUtils.setRequired(snap.correlationId(), "correlationId"),
 				StoreUtils.setOrDefault(snap.workflowIdOrNull(), snap.correlationId()),
 				StoreUtils.setRequired(operation, "operation"),
-				StoreUtils.setOrDefault(snap.contextNameOrNull(), operation),
+				StoreUtils.setOrDefault(snap.contextNameOrNull(), defaultContextName(snap)),
 				snap.transactionIdOrNull(),
 				snap.transactionIdOrNull() == null ? AUTO_COMMITTED : IN_FLIGHT
 				);
@@ -58,7 +58,7 @@ public record StoreContext(
 				StoreUtils.setRequired(snap.correlationId(), "correlationId"),
 				StoreUtils.setOrDefault(snap.workflowIdOrNull(), snap.correlationId()),
 				StoreUtils.setRequired(operation, "operation"),
-				StoreUtils.setOrDefault(snap.contextNameOrNull(), operation),
+				StoreUtils.setOrDefault(snap.contextNameOrNull(), defaultContextName(snap)),
 				snap.transactionIdOrNull(),
 				snap.transactionIdOrNull() == null ? AUTO_COMMITTED : transactionResult == null ? IN_FLIGHT : transactionResult 
 				);
@@ -69,8 +69,17 @@ public record StoreContext(
 			return new StoreContext(Context.snapshot(),operation); 
 		}
 		String cid = UUID.randomUUID().toString();
-		return new StoreContext(ANONYMOUS, cid,cid,operation, operation,null, AUTO_COMMITTED);
+		return new StoreContext(ANONYMOUS, cid,cid,operation, "Non-transactional-Correlation",null, AUTO_COMMITTED);
 	}
 
+	public static String defaultContextName(ContextSnapshot snap) {
+		if (StringUtils.isEmpty(snap.contextNameOrNull())) {
+			String prefix = StringUtils.isEmpty(snap.transactionIdOrNull()) ? "Non-Transactional-"  : "Transactional-";
+			if (!StringUtils.isEmpty(snap.workflowIdOrNull())) return  prefix + "Workflow";
+			return prefix + "Correlation";
+		}
+		return snap.contextNameOrNull();
+		
+	}
 	
 }

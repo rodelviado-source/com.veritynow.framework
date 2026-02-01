@@ -1,12 +1,9 @@
 package com.veritynow.core.store.txn.jooq;
 
 import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 
 import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextScope;
-import com.veritynow.core.context.ContextSnapshot;
 import com.veritynow.core.store.TransactionAware;
 import com.veritynow.core.store.txn.TransactionService;
 
@@ -17,37 +14,28 @@ import com.veritynow.core.store.txn.TransactionService;
  */
 public class ContextAwareTransactionManager implements TransactionAware<ContextScope> {
 
-    private final TransactionService txnService;
+    private final TransactionService<ContextScope> txnService;
 
-    public ContextAwareTransactionManager(TransactionService txnService) {
+    public ContextAwareTransactionManager(TransactionService<ContextScope> txnService) {
         this.txnService = Objects.requireNonNull(txnService);
     }
 
     @Override
-    public Optional<ContextScope> begin() {
-        if (!Context.isActive()) {
-            ContextSnapshot cs = ContextSnapshot.builder()
-                    .correlationId(UUID.randomUUID().toString())
-                    .transactionId(UUID.randomUUID().toString())
-                    .propagated(false)
-                    .build();
-            Context.scope(cs);
-        }
+    public ContextScope begin() {
+		if (!Context.isActive()) {
+        	Context.ensureContext("Transaction(begin) Manager Context");
+        }    
 
-        ContextScope scope = Context.scope();
-        ContextSnapshot snap = Context.snapshot();
+        Objects.requireNonNull(Context.correlationId(), "correlationId");
+        Objects.requireNonNull(Context.transactionIdOrNull(), "transactionId");
 
-        Objects.requireNonNull(snap.correlationId(), "correlationId");
-        Objects.requireNonNull(snap.transactionIdOrNull(), "transactionId");
-
-        txnService.begin(snap.transactionIdOrNull());
-        return Optional.of(scope);
+        return txnService.begin(Context.transactionIdOrNull());
     }
 
     @Override
     public void commit() {
         if (!Context.isActive()) return;
-        String txnId = Context.snapshot().transactionIdOrNull();
+        String txnId = Context.transactionIdOrNull();
         Objects.requireNonNull(txnId, "transactionId");
         txnService.commit(txnId);
     }
@@ -55,7 +43,7 @@ public class ContextAwareTransactionManager implements TransactionAware<ContextS
     @Override
     public void rollback() {
         if (!Context.isActive()) return;
-        String txnId = Context.snapshot().transactionIdOrNull();
+        String txnId = Context.transactionIdOrNull();
         Objects.requireNonNull(txnId, "transactionId");
         txnService.rollback(txnId);
     }

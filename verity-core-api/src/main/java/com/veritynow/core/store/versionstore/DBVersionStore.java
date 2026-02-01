@@ -15,9 +15,11 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jooq.DSLContext;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
-import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.store.ImmutableBackingStore;
 import com.veritynow.core.store.StoreOperation;
@@ -34,19 +36,17 @@ import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;
 import com.veritynow.core.store.versionstore.model.DirEntry;
 import com.veritynow.core.store.versionstore.repo.RepositoryManager;
 
-import util.DBUtil;
 
-
-public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope>  {
+public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope, CloseableLockHandle>  {
     
     private static final Logger LOGGER = LogManager.getLogger();
     
     private final ImmutableBackingStore<String, BlobMeta> backingStore;
     private final ContextAwareTransactionManager txnManager;
-    LockingService lockingService;
+    private final LockingService lockingService;
+    private TransactionTemplate txnTemplate;
+
     
-    
-    private final Publisher publisher;
 	private final RepositoryManager repositoryManager;
 
     public DBVersionStore(
@@ -54,20 +54,23 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 			DSLContext dsl,
 			RepositoryManager repositoryManager,
             ContextAwareTransactionManager txnManager,
-            LockingService lockingService
+            LockingService lockingService,
+            PlatformTransactionManager platformTnxManager
     ) {
    
-    	super(backingStore.getHashingService());
+    	super(Objects.requireNonNull(backingStore, "backingstore required").getHashingService());
         this.backingStore = backingStore;
         this.txnManager = txnManager;
 		this.lockingService = lockingService;
-		this.publisher  = new Publisher(dsl, lockingService, repositoryManager);
 		this.repositoryManager = Objects.requireNonNull(repositoryManager, "repositoryManager required");
+		
+		
+		this.txnTemplate = new TransactionTemplate(platformTnxManager);
+		txnTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
+		txnTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_SERIALIZABLE);
+		
+		
     	repositoryManager.ensureRootInode();
-        
-        if (publisher.isLockingCapable()) {
-        	DBUtil.ensureProjectionReady(dsl);
-        }	
         
         LOGGER.info(
         		"Inode-backed Versioning Store started. Using {} for Immutable Storage", backingStore.getClass().getName()
@@ -77,54 +80,92 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
  
     //convenience if transaction support is avialable
     @Override
-	public Optional<ContextScope> begin() {
+	public ContextScope begin() {
     	if (txnManager != null)
     		return txnManager.begin();
-    	return Optional.empty();
+    	return null;
 	}
 
     @Override
 	public void commit() {
-    	if (txnManager != null && Context.isActive())
+    	if (txnManager != null)
     		txnManager.commit();
 	}
 
 	@Override
 	public void rollback() {
-		if (txnManager != null && Context.isActive())
+		if (txnManager != null)
 			txnManager.rollback();
 	}
 
 	@Override
-	public Optional<LockHandle> acquire(List<String> paths) {
-		if (lockingService != null)
-			return Optional.of(lockingService.acquire(paths));
-		return Optional.empty();
+	public CloseableLockHandle acquire(List<String> paths) {
+		if (lockingService != null) {
+			LockHandle lh = lockingService.acquire(paths);
+			CloseableLockHandle clh = new CloseableLockHandle(lockingService, lh); 
+			return clh;
+		}	
+		return null;
 	}
 
+	
+
+
 	@Override
-	public Optional<LockHandle> acquireLock(String... paths) {
+	public CloseableLockHandle acquireLock(String... paths) {
 		return acquire(List.of(paths));
 	}
 
 
 	@Override
-	public void release(LockHandle handle) {
-		if (lockingService != null) 
-			lockingService.release(handle);
+	public Optional<CloseableLockHandle> findActiveLock(String txnId) {
+		if (lockingService != null) {
+			Optional<LockHandle> lh =  lockingService.findActiveLock(txnId);
+			if (lh.isPresent()) {
+				return Optional.of(new CloseableLockHandle(lockingService, lh.get()));
+			}
+		}
+		return Optional.empty();
 	}
 
 
 	@Override
+	public CloseableLockHandle tryAcquireLock(List<String> paths, int maxTries, int intervalBetweenTriesMs, int jitterMs) {
+		if (lockingService != null) {
+				LockHandle lh = lockingService.tryAcquireLock(paths, maxTries, intervalBetweenTriesMs, jitterMs);
+				CloseableLockHandle clh = new CloseableLockHandle(lockingService, lh); 
+				return clh;
+		}
+			 
+		return null;
+	}
+
+
+	@Override
+	public void release(CloseableLockHandle handle) {
+		if (lockingService != null) {
+			try {
+				handle.close();
+			} catch (Exception e) {
+				//throw new RuntimeException(e);
+			}
+		}	
+	}
+
+	
+	@Override
     public Optional<InputStream> getContent(PK key) {
     	Objects.requireNonNull(key, "key");
     	Objects.requireNonNull(key.hash(), "hash");
+    	 
         try {
             return backingStore.retrieve(key.hash());
         } catch (IOException e) {
         	 LOGGER.error("Unable to retrieve hash={}", key.hash(), e);
             return Optional.empty();
         }
+        
+       
     }
 
     @Override
@@ -415,16 +456,23 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
         VersionMeta vm = new VersionMeta(blobMeta, pe);
 
         if (AUTO_COMMITTED.equals(sc.transactionResult())) {
-            if (publisher.isLockingCapable()) {
-                publisher.acquireLockAndPublish(vm);
-            } else {
-                // Degraded mode: only allowed if the current head is also unfenced.
-                publisher.publish(vm);
-            }
+            if (lockingService != null) {
+            	// must lock since this will move head
+        		 try (CloseableLockHandle lock = tryAcquireLock(List.of(nodePath),5, 100,50)) {
+        			 if (lock != null)
+        				 repositoryManager.persistAndPublish(vm); 
+        			 else 
+            			 throw new Exception("Cannot acquire lock for path = " + nodePath);
+        		 } catch (Exception e) {
+        			 throw new IOException("Publish failed for path = " + nodePath, e);
+        		 }
+            } 
         } else {
         	if (IN_FLIGHT.equals(sc.transactionResult())) {
-        		// Transaction layer handles IN_FLIGHT -> COMMITTED/ROLLED_BACK and HEAD movement.
-        		repositoryManager.saveVersionMeta(vm);
+        		//only persist the version no head movement
+        		 repositoryManager.persist(vm);
+        		 //Transaction layer will handle publish
+        		// IN_FLIGHT -> COMMITTED/ROLLED_BACK and HEAD movement.
         	} else {
         		throw new IllegalStateException("Expecting " + IN_FLIGHT + "  got " + sc.transactionResult() + " instead");
         	}

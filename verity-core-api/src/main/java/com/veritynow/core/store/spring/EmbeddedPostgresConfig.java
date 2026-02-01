@@ -125,8 +125,9 @@ public class EmbeddedPostgresConfig {
 		EmbeddedPostgres ep;
 
 		ep = EmbeddedPostgres.builder().
-				setDataDirectory(dataDir.toFile()).
-				setCleanDataDirectory(true)
+				setDataDirectory(dataDir.toFile())
+				.setPort(5432)
+				.setCleanDataDirectory(true)
 				.start();
 
 		LOGGER.info("Embedded Postgres Started");

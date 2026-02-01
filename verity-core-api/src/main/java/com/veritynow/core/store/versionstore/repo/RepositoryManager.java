@@ -44,7 +44,7 @@ public class RepositoryManager {
 	 return verRepo.findAllByInodeIdOrderByTimestampDescIdDesc(inodeId);
 	} 
 	
-	public VersionMeta saveVersionMeta(VersionMeta vm) {
+	public VersionMeta persist(VersionMeta vm) {
 		Inode inode = resolveOrCreateInode(vm.path());
 		return verRepo.save(vm, inode.id());
 	}
@@ -135,6 +135,11 @@ public class RepositoryManager {
         inodeRepo.save(new Inode(PathKeyCodec.ROOT_LABEL));
     }
 
+    
+    public void persistAndPublish(VersionMeta vm) {
+    	Inode inode	 = resolveOrCreateInode(vm.path());
+    	verRepo.saveAndPublishMeta(vm, inode.id());
+    }
 
 	public Optional<Long> resolveInodeId(String nodePath) {
 		return inodeRepo.resolveInodeId(nodePath);

@@ -59,11 +59,6 @@ public class VnNodeHead extends TableImpl<VnNodeHeadRecord> {
     }
 
     /**
-     * The column <code>public.vn_node_head.fence_token</code>.
-     */
-    public final TableField<VnNodeHeadRecord, Long> FENCE_TOKEN = createField(DSL.name("fence_token"), SQLDataType.BIGINT, this, "");
-
-    /**
      * The column <code>public.vn_node_head.inode_id</code>.
      */
     public final TableField<VnNodeHeadRecord, Long> INODE_ID = createField(DSL.name("inode_id"), SQLDataType.BIGINT.nullable(false), this, "");
@@ -71,7 +66,7 @@ public class VnNodeHead extends TableImpl<VnNodeHeadRecord> {
     /**
      * The column <code>public.vn_node_head.updated_at</code>.
      */
-    public final TableField<VnNodeHeadRecord, OffsetDateTime> UPDATED_AT = createField(DSL.name("updated_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).nullable(false), this, "");
+    public final TableField<VnNodeHeadRecord, OffsetDateTime> UPDATED_AT = createField(DSL.name("updated_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).nullable(false).defaultValue(DSL.field(DSL.raw("now()"), SQLDataType.TIMESTAMPWITHTIMEZONE)), this, "");
 
     /**
      * The column <code>public.vn_node_head.version_id</code>.

@@ -21,59 +21,45 @@ public class VnNodeHeadRecord extends UpdatableRecordImpl<VnNodeHeadRecord> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Setter for <code>public.vn_node_head.fence_token</code>.
-     */
-    public void setFenceToken(Long value) {
-        set(0, value);
-    }
-
-    /**
-     * Getter for <code>public.vn_node_head.fence_token</code>.
-     */
-    public Long getFenceToken() {
-        return (Long) get(0);
-    }
-
-    /**
      * Setter for <code>public.vn_node_head.inode_id</code>.
      */
     public void setInodeId(Long value) {
-        set(1, value);
+        set(0, value);
     }
 
     /**
      * Getter for <code>public.vn_node_head.inode_id</code>.
      */
     public Long getInodeId() {
-        return (Long) get(1);
+        return (Long) get(0);
     }
 
     /**
      * Setter for <code>public.vn_node_head.updated_at</code>.
      */
     public void setUpdatedAt(OffsetDateTime value) {
-        set(2, value);
+        set(1, value);
     }
 
     /**
      * Getter for <code>public.vn_node_head.updated_at</code>.
      */
     public OffsetDateTime getUpdatedAt() {
-        return (OffsetDateTime) get(2);
+        return (OffsetDateTime) get(1);
     }
 
     /**
      * Setter for <code>public.vn_node_head.version_id</code>.
      */
     public void setVersionId(Long value) {
-        set(3, value);
+        set(2, value);
     }
 
     /**
      * Getter for <code>public.vn_node_head.version_id</code>.
      */
     public Long getVersionId() {
-        return (Long) get(3);
+        return (Long) get(2);
     }
 
     // -------------------------------------------------------------------------
@@ -99,10 +85,9 @@ public class VnNodeHeadRecord extends UpdatableRecordImpl<VnNodeHeadRecord> {
     /**
      * Create a detached, initialised VnNodeHeadRecord
      */
-    public VnNodeHeadRecord(Long fenceToken, Long inodeId, OffsetDateTime updatedAt, Long versionId) {
+    public VnNodeHeadRecord(Long inodeId, OffsetDateTime updatedAt, Long versionId) {
         super(VnNodeHead.VN_NODE_HEAD);
 
-        setFenceToken(fenceToken);
         setInodeId(inodeId);
         setUpdatedAt(updatedAt);
         setVersionId(versionId);

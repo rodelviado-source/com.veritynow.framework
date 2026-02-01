@@ -8,20 +8,14 @@ import com.veritynow.core.store.persistence.jooq.tables.VnBlob;
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
-import com.veritynow.core.store.persistence.jooq.tables.VnLockGroup;
 import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead;
 import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion;
-import com.veritynow.core.store.persistence.jooq.tables.VnPathLock;
-import com.veritynow.core.store.persistence.jooq.tables.VnTxnEpoch;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnBlobRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnDirEntryRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnInodePathSegmentRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnLockGroupRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeHeadRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnPathLockRecord;
-import com.veritynow.core.store.persistence.jooq.tables.records.VnTxnEpochRecord;
 
 import org.jooq.ForeignKey;
 import org.jooq.TableField;
@@ -49,11 +43,8 @@ public class Keys {
     public static final UniqueKey<VnInodeRecord> VN_INODE_PKEY = Internal.createUniqueKey(VnInode.VN_INODE, DSL.name("vn_inode_pkey"), new TableField[] { VnInode.VN_INODE.ID }, true);
     public static final UniqueKey<VnInodePathSegmentRecord> UQ_INODE_ORD = Internal.createUniqueKey(VnInodePathSegment.VN_INODE_PATH_SEGMENT, DSL.name("uq_inode_ord"), new TableField[] { VnInodePathSegment.VN_INODE_PATH_SEGMENT.INODE_ID, VnInodePathSegment.VN_INODE_PATH_SEGMENT.ORD }, true);
     public static final UniqueKey<VnInodePathSegmentRecord> VN_INODE_PATH_SEGMENT_PKEY = Internal.createUniqueKey(VnInodePathSegment.VN_INODE_PATH_SEGMENT, DSL.name("vn_inode_path_segment_pkey"), new TableField[] { VnInodePathSegment.VN_INODE_PATH_SEGMENT.ID }, true);
-    public static final UniqueKey<VnLockGroupRecord> VN_LOCK_GROUP_PKEY = Internal.createUniqueKey(VnLockGroup.VN_LOCK_GROUP, DSL.name("vn_lock_group_pkey"), new TableField[] { VnLockGroup.VN_LOCK_GROUP.LOCK_GROUP_ID }, true);
     public static final UniqueKey<VnNodeHeadRecord> VN_NODE_HEAD_PKEY = Internal.createUniqueKey(VnNodeHead.VN_NODE_HEAD, DSL.name("vn_node_head_pkey"), new TableField[] { VnNodeHead.VN_NODE_HEAD.INODE_ID }, true);
     public static final UniqueKey<VnNodeVersionRecord> VN_NODE_VERSION_PKEY = Internal.createUniqueKey(VnNodeVersion.VN_NODE_VERSION, DSL.name("vn_node_version_pkey"), new TableField[] { VnNodeVersion.VN_NODE_VERSION.ID }, true);
-    public static final UniqueKey<VnPathLockRecord> VN_PATH_LOCK_PKEY = Internal.createUniqueKey(VnPathLock.VN_PATH_LOCK, DSL.name("vn_path_lock_pkey"), new TableField[] { VnPathLock.VN_PATH_LOCK.ID }, true);
-    public static final UniqueKey<VnTxnEpochRecord> VN_TXN_EPOCH_PKEY = Internal.createUniqueKey(VnTxnEpoch.VN_TXN_EPOCH, DSL.name("vn_txn_epoch_pkey"), new TableField[] { VnTxnEpoch.VN_TXN_EPOCH.TXN_ID }, true);
 
     // -------------------------------------------------------------------------
     // FOREIGN KEY definitions
@@ -66,5 +57,4 @@ public class Keys {
     public static final ForeignKey<VnNodeHeadRecord, VnInodeRecord> VN_NODE_HEAD__VN_NODE_HEAD_INODE_ID_FK = Internal.createForeignKey(VnNodeHead.VN_NODE_HEAD, DSL.name("vn_node_head_inode_id_fk"), new TableField[] { VnNodeHead.VN_NODE_HEAD.INODE_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<VnNodeHeadRecord, VnNodeVersionRecord> VN_NODE_HEAD__VN_NODE_HEAD_VERSION_ID_FK = Internal.createForeignKey(VnNodeHead.VN_NODE_HEAD, DSL.name("vn_node_head_version_id_fk"), new TableField[] { VnNodeHead.VN_NODE_HEAD.VERSION_ID }, Keys.VN_NODE_VERSION_PKEY, new TableField[] { VnNodeVersion.VN_NODE_VERSION.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
     public static final ForeignKey<VnNodeVersionRecord, VnInodeRecord> VN_NODE_VERSION__VN_NODE_VERSION_INODE_ID_FK = Internal.createForeignKey(VnNodeVersion.VN_NODE_VERSION, DSL.name("vn_node_version_inode_id_fk"), new TableField[] { VnNodeVersion.VN_NODE_VERSION.INODE_ID }, Keys.VN_INODE_PKEY, new TableField[] { VnInode.VN_INODE.ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
-    public static final ForeignKey<VnPathLockRecord, VnLockGroupRecord> VN_PATH_LOCK__VN_PATH_LOCK_LOCK_GROUP_ID_FK = Internal.createForeignKey(VnPathLock.VN_PATH_LOCK, DSL.name("vn_path_lock_lock_group_id_fk"), new TableField[] { VnPathLock.VN_PATH_LOCK.LOCK_GROUP_ID }, Keys.VN_LOCK_GROUP_PKEY, new TableField[] { VnLockGroup.VN_LOCK_GROUP.LOCK_GROUP_ID }, true, ForeignKeyRule.NO_ACTION, ForeignKeyRule.NO_ACTION);
 }

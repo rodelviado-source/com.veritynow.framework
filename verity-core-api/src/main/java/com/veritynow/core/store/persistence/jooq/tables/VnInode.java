@@ -4,6 +4,7 @@
 package com.veritynow.core.store.persistence.jooq.tables;
 
 
+import com.veritynow.core.store.persistence.jooq.Indexes;
 import com.veritynow.core.store.persistence.jooq.Keys;
 import com.veritynow.core.store.persistence.jooq.Public;
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry.VnDirEntryPath;
@@ -21,6 +22,7 @@ import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
 import org.jooq.Identity;
+import org.jooq.Index;
 import org.jooq.InverseForeignKey;
 import org.jooq.Name;
 import org.jooq.Path;
@@ -144,6 +146,11 @@ public class VnInode extends TableImpl<VnInodeRecord> {
     @Override
     public Schema getSchema() {
         return aliased() ? null : Public.PUBLIC;
+    }
+
+    @Override
+    public List<Index> getIndexes() {
+        return Arrays.asList(Indexes.IX_VN_INODE_SCOPE_KEY_GIST);
     }
 
     @Override

@@ -1,7 +1,5 @@
 package com.veritynow.core.store.txn;
 
-import com.veritynow.core.store.lock.LockHandle;
-
 /**
  * Minimal transaction lifecycle kernel.
  *
@@ -13,11 +11,9 @@ import com.veritynow.core.store.lock.LockHandle;
  *   <li><b>rollback()</b>: terminalizes as ROLLED_BACK and does not publish/move HEADs</li>
  * </ul>
  */
-public interface TransactionService {
-    void begin(String txnId);
-
-    void bindLock(String txnId, LockHandle lock);
-
+public interface TransactionService<T> {
+    T begin(String txnId);
+    
     void commit(String txnId);
 
     void rollback(String txnId);

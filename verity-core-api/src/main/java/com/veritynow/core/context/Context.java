@@ -1,5 +1,9 @@
 package com.veritynow.core.context;
 
+import java.util.UUID;
+
+import util.StringUtils;
+
 /**
  * Static access point for the current ContextManager.
  */
@@ -46,7 +50,7 @@ public final class Context {
 
     /** Returns transaction id or null if not present (never auto-generated). */
     public static String transactionIdOrNull() {
-        return get().getWorkflowId().orElse(null);
+        return get().getTransactionId().orElse(null);
     }
 
     /** Returns principal or null if not present. */
@@ -68,4 +72,38 @@ public final class Context {
     public static ContextSnapshot snapshot() {
         return get().snapshot();
     }
+    
+    // This always bind a request-scoped ContextSnapshot.
+    // Always pair this with close after use, this prevents servlet 
+    //thread-local context leaks across requests, which would otherwise reuse txnId/fenceToken.
+    public static ContextScope ensureContext(String contextName) {
+        
+    	String    	cn = contextName == null ? "(none)" : contextName;
+        ContextSnapshot cs;
+        if (!isActive()) {
+            cs = ContextSnapshot.builder()
+                    .workflowId(UUID.randomUUID().toString())
+                    .correlationId(UUID.randomUUID().toString())
+                    .transactionId(UUID.randomUUID().toString())
+                    .contextName(cn)
+                    .propagated(false)
+                    .build();
+        } else {
+            boolean wfIdEmpty = StringUtils.isEmpty(Context.workflowIdOrNull());
+            boolean txnIdEmpty = StringUtils.isEmpty(Context.transactionIdOrNull());
+            boolean ctxNameEmpty = StringUtils.isEmpty(Context.contextNameOrNull());
+            boolean propagate = wfIdEmpty || txnIdEmpty || ctxNameEmpty;
+
+            cs = ContextSnapshot.builder()
+                    .workflowId(wfIdEmpty ? UUID.randomUUID().toString() : Context.workflowIdOrNull())
+                    // correlationId() is guaranteed non-null by the ContextManager (generated if absent)
+                    .correlationId(Context.correlationId())
+                    .transactionId(txnIdEmpty ? UUID.randomUUID().toString() : Context.transactionIdOrNull())
+                    .contextName(ctxNameEmpty ? cn : Context.contextNameOrNull())
+                    .propagated(propagate)
+                    .build();
+        }
+        return scope(cs);
+    }	
+    
 }

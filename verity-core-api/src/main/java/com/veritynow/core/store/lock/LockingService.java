@@ -1,6 +1,7 @@
 package com.veritynow.core.store.lock;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface LockingService {
 
@@ -11,4 +12,8 @@ public interface LockingService {
     }
 
     void release(LockHandle handle);
+    
+    Optional<LockHandle> findActiveLock(String txnId); 
+
+	LockHandle tryAcquireLock(List<String> paths, int maxTries, int intervalBetweenTriesMs, int jitterMs);
 }

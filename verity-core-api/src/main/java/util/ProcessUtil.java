@@ -1,6 +1,7 @@
 package util;
 
 import java.time.Duration;
+import java.util.Random;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,33 +20,34 @@ public class ProcessUtil {
 
 						if (p != null) {
 							try {
+								
 								ProcessHandle targetProcess = p;
-								LOGGER.info("Found process: pid({}) - {}",
+								LOGGER.trace("Found process: pid({}) - {}",
 										 targetProcess.pid(),
 										 targetProcess.info().command().orElse("N/A")  
 								 );
 								
 								targetProcess.destroy(); // Graceful termination
 
-								LOGGER.info("Attempted to gracefully terminate process({})", targetProcess.pid());
+								LOGGER.trace("Attempted to gracefully terminate process({})", targetProcess.pid());
 								waitForTemination(targetProcess, 60, Duration.ofSeconds(1));
 								if (targetProcess.isAlive()) {
-									LOGGER.info("Graceful termination of process with pid = {} failed",	 targetProcess.pid() );
+									LOGGER.trace("Graceful termination of process with pid = {} failed",	 targetProcess.pid() );
 									targetProcess.destroyForcibly();
-									LOGGER.info("Attempted to forcibly terminate process with pid({})",
+									LOGGER.trace("Attempted to forcibly terminate process with pid({})",
 											 targetProcess.pid());
 									waitForTemination(targetProcess, 60, Duration.ofSeconds(1));
 								}
 								if (targetProcess.isAlive()) {
 									LOGGER.error("Unable to terminate process with pid({})" , targetProcess.pid());
 								} else {
-									LOGGER.info("Process with pid({}) terminated",  + targetProcess.pid());
+									LOGGER.trace("Process with pid({}) terminated",  + targetProcess.pid());
 								}
 							} catch (Throwable e) {
 								e.printStackTrace();
 							}
 						} else {
-							LOGGER.info("Process '{}' not found.",  processName);
+							LOGGER.trace("Process '{}' not found.",  processName);
 						}
 					});
 		} catch (Throwable e) {
@@ -57,6 +59,7 @@ public class ProcessUtil {
 			Duration waitDurationPerInterval) {
 		int wait = 0;
 		while (targetProcess.isAlive() && wait < maxInterval) {
+			
 			sleep(waitDurationPerInterval);
 			wait++;
 		}
@@ -68,6 +71,12 @@ public class ProcessUtil {
 		} catch (Throwable e) {
 			// ignore
 		}
+	}
+	
+	public  static int jitter(int baseDelayMs, int maxJitter) {
+		Random random = new Random();
+	    // Calculate jittered delay: base + random(0 to maxJitter)
+	    return  baseDelayMs + random.nextInt(maxJitter);
 	}
 
 }

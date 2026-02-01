@@ -6,6 +6,48 @@ import java.util.stream.Collectors;
 
 public class PathUtils {
 	
+	
+	public static String normalizeAndApplyNamespace(String path, String namespace) {
+		String ns = normalizeNamespace(namespace);
+		String p = normalizePath(path);
+
+		if (ns.isEmpty())
+			return p;
+		if (p.equals("/"))
+			return ns;
+		return ns + p;
+	}
+	
+	public static String normalizeNamespace(String namespace) {
+		if (namespace == null)
+			return "";
+
+		String ns = namespace.trim();
+		if (ns.isEmpty() || ns.equals("/"))
+			return "";
+
+		// remove leading slashes
+		ns = ns.replaceAll("^/+", "");
+		// remove trailing slashes
+		ns = ns.replaceAll("/+$", "");
+
+		return ns.isEmpty() ? "" : ("/" + ns);
+	}
+	
+	public static String removeNamespace(String internalPath, String namespace) {
+		String ns = normalizeNamespace(namespace);
+		String p = normalizePath(internalPath);
+
+		if (ns.isEmpty())
+			return p;
+		if (p.equals(ns))
+			return "/";
+		if (p.startsWith(ns + "/"))
+			return p.substring(ns.length());
+		return p;
+	}
+	
+	
 	public static String normalizePath(String path) {
         if (path == null) throw new IllegalArgumentException("path");
         String p = path.trim();

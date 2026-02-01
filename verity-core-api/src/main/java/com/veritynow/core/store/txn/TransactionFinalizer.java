@@ -1,7 +1,5 @@
 package com.veritynow.core.store.txn;
 
-import java.util.UUID;
-
 /**
  * Store-specific finalization operations.
  *
@@ -19,7 +17,7 @@ import java.util.UUID;
  */
 public interface TransactionFinalizer {
 
-    void commit(String txnId, UUID lockGroupId, long fenceToken);
+    void commit(String txnId);
 
     void rollback(String txnId);
 }

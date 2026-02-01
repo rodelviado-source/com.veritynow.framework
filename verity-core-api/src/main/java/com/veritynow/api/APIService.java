@@ -16,60 +16,56 @@ import com.veritynow.core.store.TransactionAndLockingAware;
 import com.veritynow.core.store.base.PK;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
+import com.veritynow.core.store.versionstore.CloseableLockHandle;
 
 import util.JSON;
+
 
 @Service
 public class APIService {
 
-	private final TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope> versionStore;
+	private final TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope, CloseableLockHandle> versionStore;
 	private static final Logger LOGGER = LogManager.getLogger();
-	
-	public APIService(TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope> versionStore) {
+
+	public APIService(TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope, CloseableLockHandle> versionStore) {
 		this.versionStore = versionStore;
 		LOGGER.info("API Service using " + versionStore.getClass().getName());
 	}
 
 	@Transactional
 	public Optional<VersionMeta> create(String parentPath, InputStream is, String mimeType, String name) {
-		
-		 
-		 try {
-			versionStore.begin(); 
-			Optional<BlobMeta> opt = versionStore.create(new PK(parentPath,  null), new BlobMeta(name, mimeType,  0), is);
+
+		try {
+			Optional<BlobMeta> opt = versionStore.create(new PK(parentPath, null), new BlobMeta(name, mimeType, 0), is);
 			if (opt.isPresent()) {
 				Optional<VersionMeta> latest = versionStore.getLatestVersion(parentPath);
-				versionStore.commit();
 				return latest;
-			}	
-			
+			}
+
 		} catch (IOException e) {
 			versionStore.rollback();
 			LOGGER.error("Unable to create {} {}", parentPath, e);
 		}
-		  
-		return Optional.empty(); 
+
+		return Optional.empty();
 	}
-	
+
 	@Transactional
 	public Optional<VersionMeta> createExactPath(String path, InputStream is, String mimeType, String name) {
-		
-		 try {
-			String parent = path.substring(0,path.lastIndexOf("/"));
-			String lastSegment = lastSegment(path) ;
-			
-			versionStore.begin();
-			Optional<BlobMeta> opt = versionStore.create(new PK(parent,  null), new BlobMeta(name, mimeType,  0), is, lastSegment);
-			
+
+		try {
+			String parent = path.substring(0, path.lastIndexOf("/"));
+			String lastSegment = lastSegment(path);
+			Optional<BlobMeta> opt = versionStore.create(new PK(parent, null), new BlobMeta(name, mimeType, 0), is, lastSegment);
+
 			if (opt.isPresent()) {
-				versionStore.commit();
 				return versionStore.getLatestVersion(path);
-			}	
+			}
 		} catch (IOException e) {
 			versionStore.rollback();
 			LOGGER.error("Unable to create {} {}", path, e);
 		}
-		return Optional.empty(); 
+		return Optional.empty();
 	}
 
 	@Transactional
@@ -86,39 +82,36 @@ public class APIService {
 
 	public Optional<InputStream> get(String path) {
 		try {
-		Optional<VersionMeta> opt = versionStore.getLatestVersion(path);
-		if (opt.isPresent()) {
-			VersionMeta vm = opt.get();
-			
-			if (StoreOperation.Deleted().equals(vm.operation()))
-			{
-				LOGGER.error("Attempt to get a deleted path {}",  path);
-				return Optional.empty();
-			}
-			Optional<InputStream> optIS = versionStore.read(new PK(path, vm.hash()));
-			if (optIS.isPresent()) {
-				return Optional.of(optIS.get());
-			}
-			try {
-				LOGGER.error("Meta exists but unable to get Payload for VersionMeta {}",  JSON.MAPPER.writeValueAsString(vm));
-			} catch (Exception e) {
-				LOGGER.error("Unable to deserialize meta",  e);
-			}
-		}
-	}  catch (Exception e) {
-		LOGGER.error("Unable to get {}",  path, e);
-	}
-		
-	return Optional.empty();
-	}
+			Optional<VersionMeta> opt = versionStore.getLatestVersion(path);
+			if (opt.isPresent()) {
+				VersionMeta vm = opt.get();
 
+				if (StoreOperation.Deleted().equals(vm.operation())) {
+					LOGGER.error("Attempt to get a deleted path {}", path);
+					return Optional.empty();
+				}
+				Optional<InputStream> optIS = versionStore.read(new PK(path, vm.hash()));
+				if (optIS.isPresent()) {
+					return Optional.of(optIS.get());
+				}
+				try {
+					LOGGER.error("Meta exists but unable to get Payload for VersionMeta {}",
+							JSON.MAPPER.writeValueAsString(vm));
+				} catch (Exception e) {
+					LOGGER.error("Unable to deserialize meta", e);
+				}
+			}
+		} catch (Exception e) {
+			LOGGER.error("Unable to get {}", path, e);
+		}
+
+		return Optional.empty();
+	}
 
 	public List<VersionMeta> list(String path) {
 		try {
-			 List<VersionMeta> bms = versionStore.list(path);
-			return bms.stream()
-	                 .filter(bm -> !StoreOperation.Deleted().equals(bm.operation()))
-	                 .toList();
+			List<VersionMeta> bms = versionStore.list(path);
+			return bms.stream().filter(bm -> !StoreOperation.Deleted().equals(bm.operation())).toList();
 		} catch (Exception e) {
 			throw new RuntimeException("Unable to list " + path, e);
 		}
@@ -134,7 +127,6 @@ public class APIService {
 		return Optional.empty();
 	}
 
-	
 	@Transactional
 	public Optional<VersionMeta> undelete(String path) {
 		try {
@@ -148,26 +140,25 @@ public class APIService {
 		}
 		return Optional.empty();
 	}
-	
+
 	@Transactional
 	public Optional<VersionMeta> restore(String path, String hash) {
 		try {
-			 Optional<BlobMeta> bm = versionStore.restore(new PK(path, hash));
-			 if (bm.isPresent()) {
-				 return versionStore.getLatestVersion(path);
-			 }
+			Optional<BlobMeta> bm = versionStore.restore(new PK(path, hash));
+			if (bm.isPresent()) {
+				return versionStore.getLatestVersion(path);
+			}
 		} catch (IOException e) {
-			LOGGER.error("Unable to restore {}?restore={}" , path ,  hash, e);
+			LOGGER.error("Unable to restore {}?restore={}", path, hash, e);
 		}
 		return Optional.empty();
 	}
-	
-	
-	
+
 	
 
 	private static String lastSegment(String path) {
 		int i = path.lastIndexOf('/');
 		return (i >= 0) ? path.substring(i + 1) : path;
 	}
+
 }

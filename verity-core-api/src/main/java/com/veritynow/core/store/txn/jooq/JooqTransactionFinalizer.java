@@ -5,23 +5,20 @@ import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_VERSION;
 import static com.veritynow.core.store.txn.TransactionResult.COMMITTED;
 import static com.veritynow.core.store.txn.TransactionResult.IN_FLIGHT;
 import static com.veritynow.core.store.txn.TransactionResult.ROLLED_BACK;
+import static org.jooq.impl.DSL.countDistinct;
+import static org.jooq.impl.DSL.currentOffsetDateTime;
 import static org.jooq.impl.DSL.excluded;
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.inline;
 import static org.jooq.impl.DSL.name;
 import static org.jooq.impl.DSL.select;
 import static org.jooq.impl.DSL.table;
-import static org.jooq.impl.DSL.val;
 
-import java.time.OffsetDateTime;
 import java.util.Objects;
-import java.util.UUID;
 
 import org.jooq.CommonTableExpression;
 import org.jooq.DSLContext;
-import org.jooq.Field;
 import org.jooq.InsertOnDuplicateStep;
-import org.jooq.Record2;
 
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
 import com.veritynow.core.store.txn.TransactionFinalizer;
@@ -46,68 +43,63 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
     }
 
     @Override
-    public void commit(String txnId, UUID lockGroupId, long fenceToken) {
+    public void commit(String txnId) {
         Objects.requireNonNull(txnId, "txnId");
         // lockGroupId intentionally unused (interface parity)
 
-        long expected = dsl.fetchCount(
-            VN_NODE_VERSION,
-            VN_NODE_VERSION.TRANSACTION_ID.eq(txnId)
-                .and(VN_NODE_VERSION.TRANSACTION_RESULT.eq(IN_FLIGHT))
+        // We publish one HEAD movement per inode, even if multiple versions exist for the same inode within
+        // a transaction (or if a buggy caller reuses the same txnId). This is both more correct and prevents
+        // duplicate-conflict issues when inserting into vn_node_head.
+        Long expectedBoxed = dsl.select(countDistinct(VN_NODE_VERSION.INODE_ID))
+            .from(VN_NODE_VERSION)
+            .where(VN_NODE_VERSION.TRANSACTION_ID.eq(txnId))
+            .and(VN_NODE_VERSION.TRANSACTION_RESULT.eq(IN_FLIGHT))
+            .fetchOne(0, Long.class);
+
+        long expected = (expectedBoxed == null) ? 0L : expectedBoxed.longValue();
+        if (expected == 0L) return; // idempotent
+
+        // 1) Clone all IN_FLIGHT rows into COMMITTED (append-only semantics).
+        // 2) Publish HEAD for the latest cloned version per inode using fencing.
+        CommonTableExpression<?> cloned = name("cloned").as(
+        		cloneAndSetTransactionResult(COMMITTED, txnId)
+               .returning(VN_NODE_VERSION.INODE_ID, VN_NODE_VERSION.ID)
         );
 
-        // Idempotent commit
-        if (expected == 0) {
-            return;
-        }
-              
-        // Data-modifying CTE that clones IN_FLIGHT -> COMMITTED and returns (inode_id, version_id)
-        CommonTableExpression<Record2<Long, Long>> cloned =
-        	    name("cloned")
-        	       .fields("inode_id", "version_id")
-        	       .as(
-        	    		cloneAndSetTransactionResult(COMMITTED, txnId)
-        	            // IMPORTANT: returningResult gives Record2<Long,Long> (inode_id, version_id)
-        	           .returningResult(VN_NODE_VERSION.INODE_ID, VN_NODE_VERSION.ID)
-        	       );
+        // "latest" = the single newest cloned version per inode
+        var c = cloned.asTable().as("c");
+        var cInodeId = c.field(VN_NODE_VERSION.INODE_ID);
+        var cVersionId = c.field(VN_NODE_VERSION.ID);
 
-        // Server-side updated_at (timestamptz -> OffsetDateTime)
-        
-        Field<OffsetDateTime> updatedAtNow = field("now()", OffsetDateTime.class);
-        // Reference the returned CTE columns in a stable way
-        
-        var c = cloned.asTable();
-        Field<Long> cInodeId   = c.field("inode_id", Long.class);
-        Field<Long> cVersionId = c.field("version_id", Long.class);
+        CommonTableExpression<?> latest = name("latest").as(
+             dsl.select(cInodeId, cVersionId).distinctOn(cInodeId)
+                .from(c)
+                .orderBy(cInodeId.asc(), cVersionId.desc())
+                
+        );
 
-        // Single statement: clone + publish
-        int published = dsl
-            .with(cloned)
-            .insertInto(
-                VN_NODE_HEAD,
+        int published = dsl.with(cloned)
+            .with(latest)
+            .insertInto(VN_NODE_HEAD)
+            .columns(
                 VN_NODE_HEAD.INODE_ID,
                 VN_NODE_HEAD.VERSION_ID,
-                VN_NODE_HEAD.UPDATED_AT,
-                VN_NODE_HEAD.FENCE_TOKEN
+                VN_NODE_HEAD.UPDATED_AT
             )
             .select(
                 select(
-                    cInodeId,
-                    cVersionId,
-                    updatedAtNow,
-                    val(fenceToken)
-                ).from(table(name("cloned")))
+                    field(name("latest", "inode_id"), Long.class),
+                    field(name("latest", "id"), Long.class),
+                    currentOffsetDateTime()
+                )
+                .from(table(name("latest")))
             )
             .onConflict(VN_NODE_HEAD.INODE_ID)
             .doUpdate()
             .set(VN_NODE_HEAD.VERSION_ID, excluded(VN_NODE_HEAD.VERSION_ID))
             .set(VN_NODE_HEAD.UPDATED_AT, excluded(VN_NODE_HEAD.UPDATED_AT))
-            .set(VN_NODE_HEAD.FENCE_TOKEN, excluded(VN_NODE_HEAD.FENCE_TOKEN))
-            .where(VN_NODE_HEAD.FENCE_TOKEN.lt(excluded(VN_NODE_HEAD.FENCE_TOKEN)))
             .execute();
 
-        // In the success case, every cloned inode row must publish exactly once.
-        // If fencing rejects any row, published < expected.
         if (published != expected) {
             throw new IllegalStateException(
                 "HEAD publish rejected due to fencing: expected=" + expected + " published=" + published

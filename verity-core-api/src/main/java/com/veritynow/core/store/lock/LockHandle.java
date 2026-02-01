@@ -1,7 +1,5 @@
 package com.veritynow.core.store.lock;
 
-import java.util.UUID;
-
 /**
  * Minimal lock handle.
  *
@@ -9,8 +7,6 @@ import java.util.UUID;
  * - release the lock group
  * - enforce fencing at publish/HEAD-move time
  */
-public record LockHandle(
-    String ownerId,
-    UUID lockGroupId,
-    long fenceToken
+public record LockHandle (
+    String ownerId
 ) {}

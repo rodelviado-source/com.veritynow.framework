@@ -8,17 +8,13 @@ import com.veritynow.core.store.persistence.jooq.tables.VnBlob;
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
-import com.veritynow.core.store.persistence.jooq.tables.VnLockGroup;
 import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead;
 import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion;
-import com.veritynow.core.store.persistence.jooq.tables.VnPathLock;
-import com.veritynow.core.store.persistence.jooq.tables.VnTxnEpoch;
 
 import java.util.Arrays;
 import java.util.List;
 
 import org.jooq.Catalog;
-import org.jooq.Sequence;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SchemaImpl;
@@ -58,11 +54,6 @@ public class Public extends SchemaImpl {
     public final VnInodePathSegment VN_INODE_PATH_SEGMENT = VnInodePathSegment.VN_INODE_PATH_SEGMENT;
 
     /**
-     * The table <code>public.vn_lock_group</code>.
-     */
-    public final VnLockGroup VN_LOCK_GROUP = VnLockGroup.VN_LOCK_GROUP;
-
-    /**
      * The table <code>public.vn_node_head</code>.
      */
     public final VnNodeHead VN_NODE_HEAD = VnNodeHead.VN_NODE_HEAD;
@@ -71,16 +62,6 @@ public class Public extends SchemaImpl {
      * The table <code>public.vn_node_version</code>.
      */
     public final VnNodeVersion VN_NODE_VERSION = VnNodeVersion.VN_NODE_VERSION;
-
-    /**
-     * The table <code>public.vn_path_lock</code>.
-     */
-    public final VnPathLock VN_PATH_LOCK = VnPathLock.VN_PATH_LOCK;
-
-    /**
-     * The table <code>public.vn_txn_epoch</code>.
-     */
-    public final VnTxnEpoch VN_TXN_EPOCH = VnTxnEpoch.VN_TXN_EPOCH;
 
     /**
      * No further instances allowed
@@ -96,24 +77,14 @@ public class Public extends SchemaImpl {
     }
 
     @Override
-    public final List<Sequence<?>> getSequences() {
-        return Arrays.asList(
-            Sequences.VN_FENCE_TOKEN_SEQ
-        );
-    }
-
-    @Override
     public final List<Table<?>> getTables() {
         return Arrays.asList(
             VnBlob.VN_BLOB,
             VnDirEntry.VN_DIR_ENTRY,
             VnInode.VN_INODE,
             VnInodePathSegment.VN_INODE_PATH_SEGMENT,
-            VnLockGroup.VN_LOCK_GROUP,
             VnNodeHead.VN_NODE_HEAD,
-            VnNodeVersion.VN_NODE_VERSION,
-            VnPathLock.VN_PATH_LOCK,
-            VnTxnEpoch.VN_TXN_EPOCH
+            VnNodeVersion.VN_NODE_VERSION
         );
     }
 }

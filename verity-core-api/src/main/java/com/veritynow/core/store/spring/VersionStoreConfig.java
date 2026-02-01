@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.store.HashingService;
@@ -30,13 +31,12 @@ import com.veritynow.core.store.lock.LockingService;
 import com.veritynow.core.store.lock.postgres.PgLockingService;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
-import com.veritynow.core.store.txn.PublishCoordinator;
 import com.veritynow.core.store.txn.TransactionFinalizer;
 import com.veritynow.core.store.txn.TransactionService;
 import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;
-import com.veritynow.core.store.txn.jooq.JooqPublishCoordinator;
 import com.veritynow.core.store.txn.jooq.JooqTransactionFinalizer;
 import com.veritynow.core.store.txn.jooq.JooqTransactionService;
+import com.veritynow.core.store.versionstore.CloseableLockHandle;
 import com.veritynow.core.store.versionstore.DBVersionStore;
 import com.veritynow.core.store.versionstore.repo.InodeRepository;
 import com.veritynow.core.store.versionstore.repo.RepositoryManager;
@@ -67,11 +67,6 @@ public class VersionStoreConfig {
 		return new JooqTransactionFinalizer(dsl);
 	}
 	
-	@Bean 
-	PublishCoordinator publishCoordinator(DSLContext dsl, TransactionFinalizer finalizer)  {
-		return new JooqPublishCoordinator(dsl, finalizer);
-	}
-	
 	@Bean
 	LockingService lockingService(
 			DSLContext dsl,
@@ -83,16 +78,14 @@ public class VersionStoreConfig {
 	
 	
 	@Bean 
-	TransactionService transactionService(DSLContext dsl, PublishCoordinator coordinator,  LockingService lockingService)  {
-		return new JooqTransactionService(dsl, coordinator, lockingService);
+	TransactionService<ContextScope> transactionService(TransactionFinalizer finalizer)  {
+		return new JooqTransactionService(finalizer);
 	}
 	
 	@Bean 
-	ContextAwareTransactionManager contextAwareTransactionManager(TransactionService txnService)  {
+	ContextAwareTransactionManager contextAwareTransactionManager(TransactionService<ContextScope> txnService)  {
 		return new ContextAwareTransactionManager(txnService);
 	}
-	
-	
 	
 	// Root directory for filesystem blobs, configurable via application.properties/yaml
     @Bean
@@ -119,17 +112,18 @@ public class VersionStoreConfig {
     	return new RepositoryManager(inodeRepo, verRepo);
     }
     
+
     @Bean
     @Primary
-    public TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope> versionStore(
+    public TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope, CloseableLockHandle> versionStore(
     		ImmutableBackingStore<String, BlobMeta> backingStore,
     		DSLContext dsl,
 			RepositoryManager repositoryManager,
             ContextAwareTransactionManager txnManager,
-            LockingService lockingService
-            
+            LockingService lockingService,
+            PlatformTransactionManager ptm
     ) {
-		return new DBVersionStore(backingStore, dsl, repositoryManager, txnManager, lockingService);
+		return new DBVersionStore(backingStore, dsl, repositoryManager, txnManager, lockingService, ptm);
     }
     
     @Bean

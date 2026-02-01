@@ -267,6 +267,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>${maven.compiler.plugin.version}</version>
 				<configuration>
+					<debug>true</debug>
+					<debuglevel>lines,vars,source</debuglevel>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.springframework.boot</groupId>

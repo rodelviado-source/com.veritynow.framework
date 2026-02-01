@@ -1,25 +1,13 @@
 package com.veritynow.core.store.txn.jooq;
 
-import static com.veritynow.core.store.persistence.jooq.Tables.VN_LOCK_GROUP;
-import static com.veritynow.core.store.persistence.jooq.Tables.VN_TXN_EPOCH;
-import static com.veritynow.core.store.persistence.jooq.Sequences.VN_FENCE_TOKEN_SEQ;
-import static com.veritynow.core.store.txn.TransactionResult.COMMITTED;
-import static com.veritynow.core.store.txn.TransactionResult.IN_FLIGHT;
-import static com.veritynow.core.store.txn.TransactionResult.ROLLED_BACK;
-import static org.jooq.impl.DSL.condition;
-import static org.jooq.impl.DSL.currentOffsetDateTime;
-
 import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 
-import org.jooq.DSLContext;
-import org.jooq.Record3;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.veritynow.core.store.lock.LockHandle;
-import com.veritynow.core.store.lock.LockingService;
-import com.veritynow.core.store.txn.PublishCoordinator;
+import com.veritynow.core.context.Context;
+import com.veritynow.core.context.ContextScope;
+import com.veritynow.core.store.txn.TransactionFinalizer;
 import com.veritynow.core.store.txn.TransactionService;
 
 /**
@@ -27,236 +15,61 @@ import com.veritynow.core.store.txn.TransactionService;
  *
  * No JPA entities or repositories.
  */
-public class JooqTransactionService implements TransactionService {
+public class JooqTransactionService implements TransactionService<ContextScope> {
 
-    private final DSLContext dsl;
-    private final PublishCoordinator coordinator;
-    private final LockingService lockingService;
-
-    public JooqTransactionService(DSLContext dsl, PublishCoordinator coordinator, LockingService lockingService) {
-        this.dsl = Objects.requireNonNull(dsl, "dsl");
-        this.coordinator = Objects.requireNonNull(coordinator, "coordinator");
-        this.lockingService = Objects.requireNonNull(lockingService, "lockingService");
+	private final TransactionFinalizer finalizer;
+   
+ 
+    public JooqTransactionService(TransactionFinalizer finalizer) {
+    	Objects.requireNonNull(finalizer);
+    	this.finalizer = finalizer;
     }
 
     @Override
-    @Transactional
-    public void begin(String txnId) {
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ContextScope begin(String txnId) {
         Objects.requireNonNull(txnId, "txnId");
-
-        dsl.insertInto(VN_TXN_EPOCH)
-           .set(VN_TXN_EPOCH.TXN_ID, txnId)
-           .set(VN_TXN_EPOCH.STATUS, IN_FLIGHT)
-           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
-           .onConflict(VN_TXN_EPOCH.TXN_ID)
-           .doUpdate()
-           .set(VN_TXN_EPOCH.STATUS, IN_FLIGHT)
-           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
-           .execute();
-    }
-
-    @Override
-    @Transactional
-    public void bindLock(String txnId, LockHandle lock) {
-        Objects.requireNonNull(txnId, "txnId");
-        Objects.requireNonNull(lock, "lock");
-
-        dsl.update(VN_TXN_EPOCH)
-           .set(VN_TXN_EPOCH.LOCK_GROUP_ID, lock.lockGroupId())
-           .set(VN_TXN_EPOCH.FENCE_TOKEN, lock.fenceToken())
-           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
-           .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
-           .execute();
-    }
+        if (!Context.isActive()) {
+        	Context.ensureContext("Transaction(begin) Contex");
+        }
+        
+        return Context.scope();
+        
+        //Get current context for txnId, if missing make one
+        //Final state we don't need the txnId passed
+    } 
+    
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.MANDATORY)
     public void commit(String txnId) {
         Objects.requireNonNull(txnId, "txnId");
-
-        Epoch e0 = readEpoch(txnId).orElseThrow(() ->
-            new IllegalStateException("Missing vn_txn_epoch row for txnId=" + txnId)
-        );
-
-        // Resolve lock metadata lazily (turnkey commit): if epoch does not yet have
-        // (lock_group_id, fence_token), derive it from the active lock group owned
-        // by this txnId.
-        Epoch e = resolveLockIfMissing(txnId, e0);
-
-        if (!IN_FLIGHT.equals(e.status)) {
-            if (COMMITTED.equals(e.status)) return; // idempotent
-            throw new IllegalStateException("Txn not " + IN_FLIGHT + " : " + e.status);
+       //Get current context, throw exception if missing
+       //Final state we don't need the txnId passed
+        if (!Context.isActive()) {
+        	throw new RuntimeException("Commit called without an active context, call begin() or create a context");
         }
-
-        if (e.lockGroupId == null || e.fenceToken < 0) {
-            throw new IllegalStateException(
-                "Commit requires an active lock group (lock_group_id + fence_token) owned by txnId=" + txnId
-            );
+        finalizer.commit(txnId);
+        if ("Transaction(begin) Contex".equals(Context.contextNameOrNull())) {
+        	Context.scope().close();
         }
-
-        coordinator.onCommit(txnId, e.lockGroupId, e.fenceToken);
-
-        dsl.update(VN_TXN_EPOCH)
-           .set(VN_TXN_EPOCH.STATUS, COMMITTED)
-           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
-           .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
-           .execute();
-
-        // Policy A: txn-controlled lock group is released on terminalization.
-        // User-level release during IN_FLIGHT is a no-op.
-        releaseTxnControlledLockGroup(txnId, e);
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.MANDATORY)
     public void rollback(String txnId) {
         Objects.requireNonNull(txnId, "txnId");
-
-        Optional<Epoch> opt = readEpoch(txnId);
-        if (opt.isEmpty()) return; // idempotent rollback
-
-        // Best-effort: if we can resolve a held lock group for this txn, stamp it
-        // into vn_txn_epoch for auditability. Rollback itself does not require a lock.
-        Epoch e = resolveLockIfMissing(txnId, opt.get());
-        if (!IN_FLIGHT.equals(e.status)) {
-            if (ROLLED_BACK.equals(e.status)) return;
-            throw new IllegalStateException("Txn not " + IN_FLIGHT + " : " + e.status);
+        //Get current context, throw exception if missing
+        //Final state we don't need the txnId passed
+        if (!Context.isActive()) {
+        	throw new RuntimeException("Rollback called without an active context, call begin() or create a context");
         }
-
-        coordinator.onRollback(txnId);
-
-        dsl.update(VN_TXN_EPOCH)
-           .set(VN_TXN_EPOCH.STATUS, ROLLED_BACK)
-           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
-           .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
-           .execute();
-
-        // Policy A: release txn-controlled lock group on rollback if present.
-        releaseTxnControlledLockGroup(txnId, e);
-    }
-
-    private void releaseTxnControlledLockGroup(String txnId, Epoch e) {
-        if (e == null) return;
-        if (e.lockGroupId == null || e.fenceToken < 0) return;
-        // Best-effort release (locking kernel is authoritative).
-        try {
-            lockingService.release(new LockHandle(txnId, e.lockGroupId, e.fenceToken));
-        } catch (Exception ex) {
-            // Do not fail commit/rollback if release fails; correctness is enforced
-            // by fencing at publish time.
+        
+        finalizer.rollback(txnId);
+        if ("Transaction(begin) Contex".equals(Context.contextNameOrNull())) {
+        	Context.scope().close();
         }
+       
     }
-
-    private Optional<Epoch> readEpoch(String txnId) {
-        Record3<String, UUID, Long> r = dsl
-            .select(VN_TXN_EPOCH.STATUS, VN_TXN_EPOCH.LOCK_GROUP_ID, VN_TXN_EPOCH.FENCE_TOKEN)
-            .from(VN_TXN_EPOCH)
-            .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
-            .fetchOne();
-
-        if (r == null) return Optional.empty();
-
-        String status = r.value1();
-        UUID lockGroupId = r.value2();
-        Long fenceToken = r.value3();
-
-        return Optional.of(new Epoch(
-            status,
-            lockGroupId,
-            fenceToken == null ? -1L : fenceToken
-        ));
-    }
-
-    /**
-     * Turnkey behavior: derive (lock_group_id, fence_token) for this transaction from
-     * the locking kernel, if they have not been stamped into vn_txn_epoch yet.
-     */
-    private Epoch resolveLockIfMissing(String txnId, Epoch e) {
-        if (e.lockGroupId != null && e.fenceToken >= 0) return e;
-
-        Optional<LockHandle> opt = findActiveLockGroupOwnedBy(txnId);
-        // Turnkey behavior: if no explicit lock group exists yet, mint an implicit
-        // lock group for fencing. This satisfies commit semantics without forcing
-        // callers to acquire a path lock up-front.
-        if (opt.isEmpty()) {
-            LockHandle implicit = createImplicitLockGroup(txnId);
-            dsl.update(VN_TXN_EPOCH)
-               .set(VN_TXN_EPOCH.LOCK_GROUP_ID, implicit.lockGroupId())
-               .set(VN_TXN_EPOCH.FENCE_TOKEN, implicit.fenceToken())
-               .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
-               .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
-               .execute();
-            return new Epoch(e.status, implicit.lockGroupId(), implicit.fenceToken());
-        }
-
-        LockHandle h = opt.get();
-        dsl.update(VN_TXN_EPOCH)
-           .set(VN_TXN_EPOCH.LOCK_GROUP_ID, h.lockGroupId())
-           .set(VN_TXN_EPOCH.FENCE_TOKEN, h.fenceToken())
-           .set(VN_TXN_EPOCH.UPDATED_AT, currentOffsetDateTime())
-           .where(VN_TXN_EPOCH.TXN_ID.eq(txnId))
-           .execute();
-
-        return new Epoch(e.status, h.lockGroupId(), h.fenceToken());
-    }
-
-    /**
-     * Creates an implicit lock group for fencing only (no vn_path_lock rows).
-     * This keeps commit semantics turnkey: if a transaction has staged IN_FLIGHT
-     * versions but never explicitly acquired a lock, commit still obtains a
-     * monotonic fence token and publishes under that token.
-     */
-    private LockHandle createImplicitLockGroup(String ownerId) {
-        UUID lockGroupId = UUID.randomUUID();
-        Long fenceToken = dsl.nextval(VN_FENCE_TOKEN_SEQ);
-        if (fenceToken == null) {
-            throw new IllegalStateException("Unable to allocate fence token");
-        }
-
-        dsl.insertInto(VN_LOCK_GROUP)
-           .set(VN_LOCK_GROUP.LOCK_GROUP_ID, lockGroupId)
-           .set(VN_LOCK_GROUP.OWNER_ID, ownerId)
-           .set(VN_LOCK_GROUP.FENCE_TOKEN, fenceToken)
-           .set(VN_LOCK_GROUP.ACTIVE, true)
-           .set(VN_LOCK_GROUP.ACQUIRED_AT, currentOffsetDateTime())
-           .execute();
-
-        return new LockHandle(ownerId, lockGroupId, fenceToken);
-    }
-
-    /**
-     * Returns the single active lock group owned by {@code ownerId} (txnId), if any.
-     *
-     * Enforces the invariant that a transaction must hold at most one active lock group.
-     */
-    private Optional<LockHandle> findActiveLockGroupOwnedBy(String ownerId) {
-        var rows = dsl
-            .select(VN_LOCK_GROUP.LOCK_GROUP_ID, VN_LOCK_GROUP.FENCE_TOKEN)
-            .from(VN_LOCK_GROUP)
-            .where(VN_LOCK_GROUP.OWNER_ID.eq(ownerId))
-            .and(VN_LOCK_GROUP.ACTIVE.eq(true))
-            .and(condition("( {0} is null OR {0} > now() )", VN_LOCK_GROUP.EXPIRES_AT))
-            .limit(2)
-            .fetch();
-
-        if (rows.isEmpty()) return Optional.empty();
-        if (rows.size() > 1) {
-            throw new IllegalStateException(
-                "Multiple active lock groups owned by ownerId=" + ownerId + ". Expected a single lock group per txn."
-            );
-        }
-
-        UUID lockGroupId = rows.get(0).value1();
-        Long fenceToken = rows.get(0).value2();
-        if (lockGroupId == null || fenceToken == null) {
-            throw new IllegalStateException(
-                "Active lock group missing lock_group_id/fence_token for ownerId=" + ownerId
-            );
-        }
-
-        // Minimal handle: ownerId is the transaction id.
-        return Optional.of(new LockHandle(ownerId, lockGroupId, fenceToken));
-    }
-
-    private record Epoch(String status, UUID lockGroupId, long fenceToken) {}
+    
 }
