@@ -33,27 +33,23 @@ public class APIService {
 	}
 
 	@Transactional
-	public Optional<VersionMeta> create(String parentPath, InputStream is, String mimeType, String name) {
+	public Optional<VersionMeta> create(String parentPath, InputStream is, String mimeType, String name) throws IOException {
 
-		try {
-			Optional<BlobMeta> opt = versionStore.create(new PK(parentPath, null), new BlobMeta(name, mimeType, 0), is);
-			if (opt.isPresent()) {
-				Optional<VersionMeta> latest = versionStore.getLatestVersion(parentPath);
-				return latest;
-			}
-
-		} catch (IOException e) {
-			versionStore.rollback();
-			LOGGER.error("Unable to create {} {}", parentPath, e);
+	
+		Optional<BlobMeta> opt = versionStore.create(new PK(parentPath, null), new BlobMeta(name, mimeType, 0), is);
+		if (opt.isPresent()) {
+			Optional<VersionMeta> latest = versionStore.getLatestVersion(parentPath);
+			return latest;
 		}
 
+	
 		return Optional.empty();
 	}
 
 	@Transactional
-	public Optional<VersionMeta> createExactPath(String path, InputStream is, String mimeType, String name) {
+	public Optional<VersionMeta> createExactPath(String path, InputStream is, String mimeType, String name) throws IOException {
 
-		try {
+		
 			String parent = path.substring(0, path.lastIndexOf("/"));
 			String lastSegment = lastSegment(path);
 			Optional<BlobMeta> opt = versionStore.create(new PK(parent, null), new BlobMeta(name, mimeType, 0), is, lastSegment);
@@ -61,27 +57,22 @@ public class APIService {
 			if (opt.isPresent()) {
 				return versionStore.getLatestVersion(path);
 			}
-		} catch (IOException e) {
-			versionStore.rollback();
-			LOGGER.error("Unable to create {} {}", path, e);
-		}
+		
 		return Optional.empty();
 	}
 
 	@Transactional
-	public Optional<VersionMeta> update(String identityPath, InputStream is, String mimeType, String name) {
-		try {
+	public Optional<VersionMeta> update(String identityPath, InputStream is, String mimeType, String name) throws IOException {
+		
 			Optional<BlobMeta> opt = versionStore.update(new PK(identityPath, null), is);
 			if (opt.isPresent())
 				return versionStore.getLatestVersion(identityPath);
-		} catch (IOException e) {
-			LOGGER.error("Unable to update {}", identityPath, e);
-		}
+		
 		return Optional.empty();
 	}
 
-	public Optional<InputStream> get(String path) {
-		try {
+	public Optional<InputStream> getLatestVersion(String path) throws IOException {
+		
 			Optional<VersionMeta> opt = versionStore.getLatestVersion(path);
 			if (opt.isPresent()) {
 				VersionMeta vm = opt.get();
@@ -101,56 +92,43 @@ public class APIService {
 					LOGGER.error("Unable to deserialize meta", e);
 				}
 			}
-		} catch (Exception e) {
-			LOGGER.error("Unable to get {}", path, e);
-		}
 
 		return Optional.empty();
 	}
 
-	public List<VersionMeta> list(String path) {
-		try {
-			List<VersionMeta> bms = versionStore.list(path);
+	public List<VersionMeta> list(String path) throws IOException {
+		
+			List<VersionMeta> bms = versionStore.getChildrenLatestVersion(path);
 			return bms.stream().filter(bm -> !StoreOperation.Deleted().equals(bm.operation())).toList();
-		} catch (Exception e) {
-			throw new RuntimeException("Unable to list " + path, e);
-		}
+		
 	}
 
 	@Transactional
-	public Optional<BlobMeta> delete(String path, String reason) {
-		try {
-			return versionStore.delete(new PK(path, null));
-		} catch (IOException e) {
-			LOGGER.error("Unable to delete {}", path, e);
+	public Optional<BlobMeta> delete(String path, String reason) throws IOException {
+		Optional<BlobMeta> bm = versionStore.delete(new PK(path, null));
+		if (bm.isPresent()) {
+			return Optional.of(bm.get());
 		}
 		return Optional.empty();
 	}
 
 	@Transactional
-	public Optional<VersionMeta> undelete(String path) {
-		try {
-			Optional<BlobMeta> bm = versionStore.undelete(new PK(path, null));
-			if (bm.isPresent()) {
-				return versionStore.getLatestVersion(path);
-			}
-
-		} catch (IOException e) {
-			LOGGER.error("Unable to undelete {}", path, e);
+	public Optional<VersionMeta> undelete(String path) throws IOException {
+		
+		Optional<BlobMeta> bm = versionStore.undelete(new PK(path, null));
+		if (bm.isPresent()) {
+			return versionStore.getLatestVersion(path);
 		}
 		return Optional.empty();
 	}
 
 	@Transactional
-	public Optional<VersionMeta> restore(String path, String hash) {
-		try {
+	public Optional<VersionMeta> restore(String path, String hash) throws IOException {
+
 			Optional<BlobMeta> bm = versionStore.restore(new PK(path, hash));
 			if (bm.isPresent()) {
 				return versionStore.getLatestVersion(path);
 			}
-		} catch (IOException e) {
-			LOGGER.error("Unable to restore {}?restore={}", path, hash, e);
-		}
 		return Optional.empty();
 	}
 

@@ -162,20 +162,26 @@ public class APIController {
 
 	
 	@GetMapping (produces = { MediaType.APPLICATION_OCTET_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE})
-	public void get(HttpServletRequest request, HttpServletResponse response) {
+	public void getLatestVersion(HttpServletRequest request, HttpServletResponse response) {
 
 		String path = APIUtils.applyNamespace(request, namespace);
-		Optional<InputStream> opt = apiService.get(path);
-		if (opt.isEmpty()) {
-			response.setStatus(HttpStatus.NOT_FOUND.value());
-			return;
-		}
+		Optional<InputStream> opt;
+		try {
+			
+			opt = apiService.getLatestVersion(path);
+			if (opt.isEmpty()) {
+				response.setStatus(HttpStatus.NOT_FOUND.value());
+				return;
+			}
+		 	
 		
-		try (ServletOutputStream sos = response.getOutputStream(); InputStream payload = opt.get();) {
-			StreamUtils.copy(payload, sos);
-			response.setStatus(HttpStatus.OK.value());
-	        response.flushBuffer();
-		} catch (Exception e) {
+			try (ServletOutputStream sos = response.getOutputStream(); InputStream payload = opt.get();) {
+				StreamUtils.copy(payload, sos);
+				response.setStatus(HttpStatus.OK.value());
+		        response.flushBuffer();
+			}
+		
+		}catch (Exception e) {
 			LOGGER.error("Get failed", e);
 			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
 		}

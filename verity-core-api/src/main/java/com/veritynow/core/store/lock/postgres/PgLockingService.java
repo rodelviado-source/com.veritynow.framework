@@ -78,6 +78,8 @@ public class PgLockingService implements LockingService {
 	@Transactional(propagation = Propagation.MANDATORY)
 	public LockHandle acquire(List<String> paths) {
 		Objects.requireNonNull(paths, "paths");
+		
+		Context.ensureContext("Acquired Lock");
 
 		ContextSnapshot snap = Context.snapshot();
 		String ownerId = snap.transactionIdOrNull();
@@ -105,8 +107,8 @@ public class PgLockingService implements LockingService {
 
 	@Override
 	public void release(LockHandle handle) {
-		if (handle == null)
-			return;
+		if (Context.isActive() && "Acquired Lock".equals( Context.contextNameOrNull()) )
+			Context.scope().close();
 		// Release is always idempotent and safe to call from finally blocks.
 	}
 

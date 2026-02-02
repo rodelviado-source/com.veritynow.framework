@@ -174,9 +174,10 @@ public final class VersionMetaRepository {
             .fetch(this::nodeVersionToVersionMeta);
     }
     
-    
+            
     public int saveAndPublishMeta(VersionMeta vm, Long inodeId) {
         Objects.requireNonNull(vm, "vm");
+        Objects.requireNonNull(inodeId, "inodeId");
 
         // Insert the new version row, then move HEAD in".
         // Update is only allowed if the existing head is also unfenced.
@@ -215,6 +216,58 @@ public final class VersionMetaRepository {
         return rows;
       }
 
+	  List<VersionMeta> getWorkflows(Long inodeId) {
+		 
+		return dsl.selectFrom(VN_NODE_VERSION)
+		   .where(VN_NODE_VERSION.WORKFLOW_ID.in(
+		       dsl.select(VN_NODE_VERSION.WORKFLOW_ID)
+		          .from(VN_NODE_VERSION)
+		          .where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+		          .and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())
+		   ))
+		   .orderBy(
+		       VN_NODE_VERSION.WORKFLOW_ID.asc(),
+		       VN_NODE_VERSION.TIMESTAMP.desc(),
+		       VN_NODE_VERSION.ID.desc()
+		   )
+		   .fetch(this::nodeVersionToVersionMeta);
+	  }
+	  
+	  List<VersionMeta> getCorrelations(Long inodeId) {
+			 
+			return dsl.selectFrom(VN_NODE_VERSION)
+			   .where(VN_NODE_VERSION.CORRELATION_ID.in(
+			       dsl.select(VN_NODE_VERSION.CORRELATION_ID)
+			          .from(VN_NODE_VERSION)
+			          .where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+			          .and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())
+			   ))
+			   .orderBy(
+			       VN_NODE_VERSION.WORKFLOW_ID.asc(),
+			       VN_NODE_VERSION.TIMESTAMP.desc(),
+			       VN_NODE_VERSION.ID.desc()
+			   )
+			   .fetch(this::nodeVersionToVersionMeta);
+		  }
+	  
+	  List<VersionMeta> getTransactions(Long inodeId) {
+			 
+			return dsl.selectFrom(VN_NODE_VERSION)
+			   .where(VN_NODE_VERSION.TRANSACTION_ID.in(
+			       dsl.select(VN_NODE_VERSION.TRANSACTION_ID)
+			          .from(VN_NODE_VERSION)
+			          .where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+			          .and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())
+			   ))
+			   .orderBy(
+			       VN_NODE_VERSION.WORKFLOW_ID.asc(),
+			       VN_NODE_VERSION.TIMESTAMP.desc(),
+			       VN_NODE_VERSION.ID.desc()
+			   )
+			   .fetch(this::nodeVersionToVersionMeta);
+		  }
+	  
+      
       
       private  InsertSetMoreStep<VnNodeVersionRecord> insertVersionMeta(VersionMeta vm, Long inodeId) {
     	  return dsl.insertInto(VN_NODE_VERSION).

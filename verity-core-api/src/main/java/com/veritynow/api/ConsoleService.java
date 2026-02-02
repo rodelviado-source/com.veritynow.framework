@@ -25,6 +25,7 @@ import com.veritynow.core.store.meta.PathMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.versionstore.CloseableLockHandle;
 import com.veritynow.core.store.versionstore.PathUtils;
+import com.veritynow.core.store.versionstore.repo.RepositoryManager;
 import com.veritynow.core.store.versionstore.repo.VersionMetaRepository;
 
 import util.StringUtils;
@@ -34,14 +35,16 @@ public class ConsoleService {
 
 	private final TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope, CloseableLockHandle> versionStore;
 	private final VersionMetaRepository versionMetaRepository;
+	private final RepositoryManager repoManager;
 	private static final Logger LOGGER = LogManager.getLogger();
 	private final APIService apiService;
 
 	public ConsoleService(
 			TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope, CloseableLockHandle> versionStore,
-			VersionMetaRepository versionMetaRepository, APIService apiService) {
+			VersionMetaRepository versionMetaRepository, RepositoryManager repoManager, APIService apiService) {
 		this.versionStore = versionStore;
 		this.versionMetaRepository = versionMetaRepository;
+		this.repoManager = repoManager;
 		this.apiService = apiService;
 		LOGGER.info("Console Service using " + versionStore.getClass().getName());
 
@@ -82,12 +85,17 @@ public class ConsoleService {
 		return versionMetaRepository.findByWorkflowIdAndCorrelationIdAndTransactionId(workflowId, correlationId,
 				transactionId);
 	}
+	
+	public List<VersionMeta> getWorkflows(String path) {
+		Objects.requireNonNull(path, "path");
+		return repoManager.getWorkflows(path);
+	}
 
 	public Optional<PathMeta> getPathMeta(String merklePath) {
 		try {
 			String p = normalizePath(merklePath);
 			// --- HEAD (payload at this exact path, if any)
-			List<String> children = versionStore.listChildren(p);
+			List<String> children = versionStore.getChildrenPath(p);
 			List<VersionMeta> versions = versionStore.getAllVersions(p);
 
 			PathMeta nm = new PathMeta(p, children, versions);
@@ -112,23 +120,15 @@ public class ConsoleService {
 		return p.isEmpty() ? "/" : p;
 	}
 
-	public Optional<List<VersionMeta>> listAllVersions(String nodePath) {
-		try {
-			return Optional.of(versionStore.getAllVersions(nodePath));
-		} catch (IOException e) {
-			LOGGER.error("Can't get versions {}", nodePath, e);
-		}
-		return Optional.empty();
+	public Optional<List<VersionMeta>> getAllVersions(String nodePath) throws IOException {
+		List<VersionMeta> l = versionStore.getAllVersions(nodePath);
+		return Optional.of(l);
 	}
 
-	public Optional<InputStream> loadBytesByHash(String hash) {
-		try {
-			Optional<InputStream> opt = versionStore.getContent(new PK(null, hash));
-			if (opt.isPresent())
-				return opt;
-		} catch (IOException e) {
-			LOGGER.error("Unable to load content with hash {}", hash, e);
-		}
+	public Optional<InputStream> loadBytesByHash(String hash) throws IOException {
+		Optional<InputStream> opt = versionStore.getContent(new PK(null, hash));
+		if (opt.isPresent())
+			return opt;
 		return Optional.empty();
 	}
 
@@ -147,12 +147,11 @@ public class ConsoleService {
 	@Transactional
 	public void processTransaction(APITransaction apiTxn, String namespace, Map<String, MultipartFile> fileMap)
 			throws Exception {
-
-		
 		
 			List<Transaction> txns = apiTxn.transactions();
 			List<String> paths = getPathsToLock(apiTxn.transactions(), namespace);
 
+			//create a context if not present, then acquire a lock
 			try (ContextScope scope = Context.ensureContext("Transactional API");
 					CloseableLockHandle lock = versionStore.tryAcquireLock(paths, 5, 100, 50);) {
 

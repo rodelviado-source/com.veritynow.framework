@@ -19,6 +19,7 @@ import org.jooq.postgres.extensions.types.Ltree;
 
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
+import com.veritynow.core.store.versionstore.PathUtils;
 import com.veritynow.core.store.versionstore.model.DirEntry;
 import com.veritynow.core.store.versionstore.model.Inode;
 import com.veritynow.core.store.versionstore.model.InodePathSegment;
@@ -262,7 +263,50 @@ public final class InodeRepository {
         );
     }
     
-        private static Inode toInode(VnInodeRecord r) {
+    public Inode rootInode() {
+  	  Long rootId = findIdByScopeKey(PathKeyCodec.ROOT_LABEL)
+  	      .orElseThrow(() -> new IllegalStateException("Root inode missing for scope_key=" + PathKeyCodec.ROOT_LABEL));
+  	  return findById(rootId)
+  	      .orElseThrow(() -> new IllegalStateException("Root inode missing id=" + rootId));
+  	}
+
+    public void ensureRootInode() {
+        if (findIdByScopeKey(PathKeyCodec.ROOT_LABEL).isPresent()) {
+            return;
+        }
+        save(new Inode(PathKeyCodec.ROOT_LABEL));
+    }
+    
+    
+    public Inode resolveOrCreateInode(String nodePath) {
+        List<String> segs = PathUtils.splitSegments(nodePath);
+        Inode cur = rootInode();
+
+        for (String seg : segs) {
+            Optional<DirEntry> e = findByParentIdAndName(cur.id(), seg);
+            if (e.isPresent()) {
+                cur = e.get().child();
+                continue;
+            }
+            String childScopeKey = PathKeyCodec.appendSegLabel(cur.scopeKey(), PathKeyCodec.label(seg));
+            
+            Inode child = save(new Inode(childScopeKey));
+			DirEntry entry = save(new DirEntry(cur, seg, child));
+			
+			List<InodePathSegment> parentSegs = findAllByInodeIdOrderByOrdAsc(cur.id());
+			List<InodePathSegment> childSegs = new ArrayList<>(parentSegs.size() + 1);
+			for (InodePathSegment ps : parentSegs) {
+				childSegs.add(new InodePathSegment(child, ps.ord(), ps.dirEntry()));
+			}
+			childSegs.add(new InodePathSegment(child, parentSegs.size(), entry));
+			saveAll(childSegs);
+			
+            cur = child;
+        }
+        return cur;
+    }
+    
+   private static Inode toInode(VnInodeRecord r) {
         
         String scopeKey = r.getScopeKey() == null ? null : r.getScopeKey().toString();
         return new Inode(r.getId(), r.getCreatedAt().toInstant(), scopeKey);

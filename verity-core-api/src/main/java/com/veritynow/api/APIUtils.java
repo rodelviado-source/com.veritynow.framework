@@ -27,8 +27,6 @@ public class APIUtils {
 		URI uri = URI.create(request.getRequestURI());
 		return uri.getPath(); // decoded, no query, no fragment
 	}
-
-
 	
 
 	/**

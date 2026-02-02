@@ -5,12 +5,10 @@ import static com.veritynow.core.store.txn.TransactionResult.IN_FLIGHT;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,6 +18,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.store.ImmutableBackingStore;
 import com.veritynow.core.store.StoreOperation;
@@ -33,7 +32,6 @@ import com.veritynow.core.store.lock.LockingService;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;
-import com.veritynow.core.store.versionstore.model.DirEntry;
 import com.veritynow.core.store.versionstore.repo.RepositoryManager;
 
 
@@ -315,70 +313,27 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     @Transactional(readOnly = true)
     public Optional<VersionMeta> getLatestVersion(String nodePath) throws IOException {
         Objects.requireNonNull(nodePath, "nodePath");
-        nodePath = PathUtils.normalizePath(nodePath);
-        Optional<Long> inodeIdOpt = repositoryManager.resolveInodeId(nodePath);
-        if (inodeIdOpt.isEmpty()) return Optional.empty();
-        
-        Long inodeId = inodeIdOpt.get();
-        return getLatestVersionByInodeId(inodeId);
+        return repositoryManager.getLatestVersion(nodePath);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<VersionMeta> list(String nodePath) throws IOException {
+    public List<VersionMeta> getChildrenLatestVersion(String nodePath) throws IOException {
         Objects.requireNonNull(nodePath, "nodePath");
-
-        nodePath = PathUtils.normalizePath(nodePath);
-
-        Optional<Long> inodeIdOpt = repositoryManager.resolveInodeId(nodePath);
-        if (inodeIdOpt.isEmpty()) return List.of();
-
-        Long inodeId = inodeIdOpt.get();
-        List<VersionMeta> out = new ArrayList<>();
-        Optional<VersionMeta> vmOpt;
-        List<DirEntry> children = repositoryManager.findAllByParentId(inodeId);
-        for (DirEntry child : children) {
-            Long childId = child.child().id();
-            vmOpt = getLatestVersionByInodeId(childId);
-            if (vmOpt.isPresent()) out.add(vmOpt.get());
-        }
-        
-        return out;
+        return repositoryManager.getChildrenLatestVersion(nodePath);
      }
 
     @Override
     @Transactional(readOnly = true)
-    public List<String> listChildren(String nodePath) throws IOException {
+    public List<String> getChildrenPath(String nodePath) throws IOException {
         Objects.requireNonNull(nodePath, "nodePath");
-
-        nodePath = PathUtils.normalizePath(nodePath);
-
-        Optional<Long> inodeIdOpt = repositoryManager.resolveInodeId(nodePath);
-        if (inodeIdOpt.isEmpty()) return List.of();
-
-        Long inodeId = inodeIdOpt.get();
-        String np = PathUtils.trimEndingSlash(nodePath);
-
-        List<DirEntry> children = repositoryManager.findAllByParentId(inodeId);
-        return children.stream()
-                .map(de -> np + "/" + de.name())
-                .collect(Collectors.toList());
+        return repositoryManager.getChildrenPath(nodePath);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<VersionMeta> getAllVersions(String nodePath) throws IOException {
-        Objects.requireNonNull(nodePath, "nodePath");
-
-        nodePath = PathUtils.normalizePath(nodePath);
-
-        Optional<Long> inodeIdOpt = repositoryManager.resolveInodeId(nodePath);
-        if (inodeIdOpt.isEmpty()) return List.of();
-
-        Long inodeId = inodeIdOpt.get();
-
-        return repositoryManager.findAllByInodeIdOrderByTimestampDescIdDesc(inodeId);
-    
+    	return repositoryManager.getAllVersions(nodePath);
     }
   
     private Optional<BlobMeta> createNewVersion(
@@ -447,44 +402,39 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
         return Optional.of(blobMeta);
     }
 
+    private CloseableLockHandle tryAcquireLock(String path) {
+    	if (lockingService != null)
+    		return tryAcquireLock(List.of(path),5, 100,50);
+    	LOGGER.warn("Unable to acquire lock for path {}", path);
+    	return null;
+    }
+    
     private void persistAndPublish(String nodePath, BlobMeta blobMeta,  StoreOperation operation) throws IOException {
+    	//Capture global context, if no active context then create a store context 
+    	//with sane defaults
     	StoreContext sc = StoreContext.create(operation.name());
         PathEvent pe = new PathEvent(nodePath,  sc);
 
-        // Publish is the authoritative write: insert the version row and move HEAD in one statement.
+        // repo is the authoritative write: insert the version row and move HEAD in one statement.
         // This keeps inode/version ids entirely within the persistence layer.
         VersionMeta vm = new VersionMeta(blobMeta, pe);
-
-        if (AUTO_COMMITTED.equals(sc.transactionResult())) {
-            if (lockingService != null) {
-            	// must lock since this will move head
-        		 try (CloseableLockHandle lock = tryAcquireLock(List.of(nodePath),5, 100,50)) {
-        			 if (lock != null)
-        				 repositoryManager.persistAndPublish(vm); 
-        			 else 
-            			 throw new Exception("Cannot acquire lock for path = " + nodePath);
-        		 } catch (Exception e) {
-        			 throw new IOException("Publish failed for path = " + nodePath, e);
-        		 }
-            } 
-        } else {
-        	if (IN_FLIGHT.equals(sc.transactionResult())) {
-        		//only persist the version no head movement
-        		 repositoryManager.persist(vm);
-        		 //Transaction layer will handle publish
-        		// IN_FLIGHT -> COMMITTED/ROLLED_BACK and HEAD movement.
-        	} else {
-        		throw new IllegalStateException("Expecting " + IN_FLIGHT + "  got " + sc.transactionResult() + " instead");
-        	}
-            
+        try (@SuppressWarnings("unused") ContextScope scope = Context.ensureContext(operation + "-" +sc.transactionResult());
+        		@SuppressWarnings("unused")	CloseableLockHandle lock = tryAcquireLock(nodePath)) {
+	        if (AUTO_COMMITTED.equals(sc.transactionResult())) {
+	        		repositoryManager.persistAndPublish(vm); 
+	        } else {
+	        	if (IN_FLIGHT.equals(sc.transactionResult())) {
+	        		//only persist the version no head movement
+        			repositoryManager.persist(vm);
+	        		 //Transaction layer will handle publish
+	        		// IN_FLIGHT -> COMMITTED/ROLLED_BACK and HEAD movement.
+	        	} else {
+	        		throw new IllegalStateException("Expecting " + IN_FLIGHT + "  got " + sc.transactionResult() + " instead");
+	        	}
+	        }
         }
     }
  
-
-    private Optional<VersionMeta> getLatestVersionByInodeId(Long id) {
-    	return repositoryManager.getLatestVersionInodeId(id);
-    }
-
     
     private static boolean isDeleted(VersionMeta m ) {
     	return StoreOperation.Deleted().equals(m.operation());

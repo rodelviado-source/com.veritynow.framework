@@ -47,9 +47,9 @@ public record StoreContext(
 				StoreUtils.setRequired(snap.correlationId(), "correlationId"),
 				StoreUtils.setOrDefault(snap.workflowIdOrNull(), snap.correlationId()),
 				StoreUtils.setRequired(operation, "operation"),
-				StoreUtils.setOrDefault(snap.contextNameOrNull(), defaultContextName(snap)),
+				StoreUtils.setOrDefault(snap.contextNameOrNull(), defaultContextName(operation, snap)),
 				snap.transactionIdOrNull(),
-				snap.transactionIdOrNull() == null ? AUTO_COMMITTED : IN_FLIGHT
+				txnState(snap.transactionIdOrNull())
 				);
 	}
 	
@@ -58,9 +58,9 @@ public record StoreContext(
 				StoreUtils.setRequired(snap.correlationId(), "correlationId"),
 				StoreUtils.setOrDefault(snap.workflowIdOrNull(), snap.correlationId()),
 				StoreUtils.setRequired(operation, "operation"),
-				StoreUtils.setOrDefault(snap.contextNameOrNull(), defaultContextName(snap)),
+				StoreUtils.setOrDefault(snap.contextNameOrNull(), defaultContextName(operation, snap)),
 				snap.transactionIdOrNull(),
-				snap.transactionIdOrNull() == null ? AUTO_COMMITTED : transactionResult == null ? IN_FLIGHT : transactionResult 
+				snap.transactionIdOrNull() == null ? txnState(snap.transactionIdOrNull()) : transactionResult 
 				);
 	}
 	
@@ -69,17 +69,16 @@ public record StoreContext(
 			return new StoreContext(Context.snapshot(),operation); 
 		}
 		String cid = UUID.randomUUID().toString();
-		return new StoreContext(ANONYMOUS, cid,cid,operation, "Non-transactional-Correlation",null, AUTO_COMMITTED);
+		return new StoreContext(ANONYMOUS, cid,cid,operation, operation + "-" + AUTO_COMMITTED, null, AUTO_COMMITTED);
 	}
 
-	public static String defaultContextName(ContextSnapshot snap) {
-		if (StringUtils.isEmpty(snap.contextNameOrNull())) {
-			String prefix = StringUtils.isEmpty(snap.transactionIdOrNull()) ? "Non-Transactional-"  : "Transactional-";
-			if (!StringUtils.isEmpty(snap.workflowIdOrNull())) return  prefix + "Workflow";
-			return prefix + "Correlation";
-		}
-		return snap.contextNameOrNull();
-		
+	private static String defaultContextName(String operation, ContextSnapshot snap) {
+		return operation + "-" +  txnState(snap.transactionIdOrNull()); 
 	}
+	
+	private static String txnState(String txnId) {
+		return txnId == null ? AUTO_COMMITTED : IN_FLIGHT;
+	}
+	
 	
 }

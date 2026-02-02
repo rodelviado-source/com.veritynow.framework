@@ -31,8 +31,8 @@ import java.util.Optional;
  *
  * <h3>Listing semantics</h3>
  * <ul>
- *   <li>{@link #list(String)} returns latest-version entries directly under {@code path} (non-recursive).</li>
- *   <li>{@link #listChildren(String)} returns direct child segments under {@code path} (non-recursive).</li>
+ *   <li>{@link #getChildrenLatestVersion(String)} returns latest-version entries directly under {@code path} (non-recursive).</li>
+ *   <li>{@link #getChildrenPath(String)} returns direct child segments under {@code path} (non-recursive).</li>
  * </ul>
  *
  * <p>
@@ -86,13 +86,13 @@ public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBM
      * @return latest version metadata for direct children (possibly empty)
      * @throws IOException on I/O failure
      */
-    List<VERSIONMETA> list(String path) throws IOException;
+    List<VERSIONMETA> getChildrenLatestVersion(String path) throws IOException;
 
     /**
      * List the direct child names/segments under the given logical path (non-recursive).
      *
      * <p>
-     * This is the "names only" companion to {@link #list(String)}. The returned list should be
+     * This is the "names only" companion to {@link #getChildrenLatestVersion(String)}. The returned list should be
      * deterministic and contain each child exactly once.
      * </p>
      *
@@ -100,7 +100,7 @@ public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBM
      * @return direct child names/segments (possibly empty)
      * @throws IOException on I/O failure
      */
-    List<String> listChildren(String path) throws IOException;
+    List<String> getChildrenPath(String path) throws IOException;
 
     /**
      * Retrieve the binary content for a concrete key {@code PK}.
