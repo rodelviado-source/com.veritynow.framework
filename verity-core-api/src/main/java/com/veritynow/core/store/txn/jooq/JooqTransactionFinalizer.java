@@ -55,6 +55,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
          
         var publisher = dsl.with(finalized)
             .with(latest)
+            //Insert - assume no heads exist, onConflicet do an  update
             .insertInto(VN_NODE_HEAD)
             .columns(
                 VN_NODE_HEAD.INODE_ID,
@@ -85,23 +86,25 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
                 "HEAD publish rejected : expected=" + expected + " published=" + published
             );
         }
+        dsl.commit();
     }
 
     @Override
     public void rollback(String txnId) {
-        Objects.requireNonNull(txnId, "txnId");
-        // Single statement:  IN_FLIGHT -> ROLLED_BACK. No head movement.
-        var forUpdate = selectForUpdate(txnId);
-        int expected = dsl.with(forUpdate).selectFrom(forUpdate).execute();
-        if (expected == 0) return;
-        dsl.
-		update(VN_NODE_VERSION).
-		set(VN_NODE_VERSION.TRANSACTION_RESULT, ROLLED_BACK).
-		where(	
-				VN_NODE_VERSION.TRANSACTION_ID.eq(txnId).
-				and(
-				VN_NODE_VERSION.TRANSACTION_RESULT.eq(IN_FLIGHT))
-		).execute();
+    	dsl.rollback();
+//        Objects.requireNonNull(txnId, "txnId");
+//        // Single statement:  IN_FLIGHT -> ROLLED_BACK. No head movement.
+//        var forUpdate = selectForUpdate(txnId);
+//        int expected = dsl.with(forUpdate).selectFrom(forUpdate).execute();
+//        if (expected == 0) return;
+//        dsl.
+//		update(VN_NODE_VERSION).
+//		set(VN_NODE_VERSION.TRANSACTION_RESULT, ROLLED_BACK).
+//		where(	
+//				VN_NODE_VERSION.TRANSACTION_ID.eq(txnId).
+//				and(
+//				VN_NODE_VERSION.TRANSACTION_RESULT.eq(IN_FLIGHT))
+//		).execute();
     }
     
     
