@@ -14,14 +14,14 @@ import com.veritynow.core.store.txn.TransactionService;
  */
 public class ContextAwareTransactionManager implements TransactionAware<ContextScope> {
 
-    private final TransactionService<ContextScope> txnService;
+    private final TransactionService txnService;
 
-    public ContextAwareTransactionManager(TransactionService<ContextScope> txnService) {
+    public ContextAwareTransactionManager(TransactionService txnService) {
         this.txnService = Objects.requireNonNull(txnService);
     }
 
     @Override
-    public ContextScope begin() {
+    public String begin() {
 		if (!Context.isActive()) {
         	Context.ensureContext("Transaction(begin) Manager Context");
         }    

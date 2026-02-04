@@ -1,4 +1,4 @@
-package com.veritynow.api;
+package com.veritynow.rest.api;
 
 public record Transaction (
 	String path,

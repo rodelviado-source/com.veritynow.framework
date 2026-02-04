@@ -7,4 +7,5 @@ public interface ContextStorage {
     ContextSnapshot currentOrNull();
     void bind(ContextSnapshot snapshot);
     void clear();
+    int size();
 }

@@ -1,4 +1,4 @@
-package com.veritynow.api;
+package com.veritynow.rest.api;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,7 +13,6 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.veritynow.core.context.Context;
@@ -132,7 +131,7 @@ public class ConsoleService {
 		return Optional.empty();
 	}
 
-	@Transactional
+	
 	public Optional<BlobMeta> undelete(String path) {
 		try {
 			Optional<BlobMeta> opt = versionStore.undelete(new PK(path, null));
@@ -144,7 +143,7 @@ public class ConsoleService {
 		return Optional.empty();
 	}
 
-	@Transactional
+	
 	public void processTransaction(APITransaction apiTxn, String namespace, Map<String, MultipartFile> fileMap)
 			throws Exception {
 		
@@ -227,7 +226,7 @@ public class ConsoleService {
 					}
 				}
 				versionStore.commit();
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				versionStore.rollback();
 				LOGGER.error("Transaction failed {}", Context.transactionIdOrNull(), e);
 				throw new IOException("Transaction rolled back", e);

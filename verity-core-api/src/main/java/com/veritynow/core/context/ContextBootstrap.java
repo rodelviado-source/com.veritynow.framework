@@ -8,8 +8,7 @@ public final class ContextBootstrap {
     private ContextBootstrap() {}
 
     public static ContextManager defaultManager() {
-        ContextStorage storage = new ThreadLocalContextStorage();
-        IdGenerator idGen = new UuidIdGenerator();
-        return new DefaultContextManager(storage, idGen);
+        ContextStorage storage = new ContextStack();
+        return new DefaultContextManager(storage);
     }
 }

@@ -16,6 +16,8 @@ package com.veritynow.core.store.txn;
  * </ul>
  */
 public interface TransactionFinalizer {
+	
+	void begin(String txnId);	
 
     void commit(String txnId);
 

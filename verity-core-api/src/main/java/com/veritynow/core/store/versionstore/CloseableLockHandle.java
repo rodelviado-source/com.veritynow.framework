@@ -1,12 +1,11 @@
 package com.veritynow.core.store.versionstore;
 
-import java.io.Closeable;
 import java.io.IOException;
 
 import com.veritynow.core.store.lock.LockHandle;
 import com.veritynow.core.store.lock.LockingService;
 
-public class CloseableLockHandle implements Closeable {
+public class CloseableLockHandle implements AutoCloseable {
 	private final LockHandle lockHandle;
 	private final LockingService lockingService;;
 	

@@ -13,10 +13,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jooq.DSLContext;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
+
 
 import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextScope;
@@ -42,8 +39,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     private final ImmutableBackingStore<String, BlobMeta> backingStore;
     private final ContextAwareTransactionManager txnManager;
     private final LockingService lockingService;
-    private TransactionTemplate txnTemplate;
-
+    
     
 	private final RepositoryManager repositoryManager;
 
@@ -52,8 +48,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 			DSLContext dsl,
 			RepositoryManager repositoryManager,
             ContextAwareTransactionManager txnManager,
-            LockingService lockingService,
-            PlatformTransactionManager platformTnxManager
+            LockingService lockingService
     ) {
    
     	super(Objects.requireNonNull(backingStore, "backingstore required").getHashingService());
@@ -61,12 +56,6 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
         this.txnManager = txnManager;
 		this.lockingService = lockingService;
 		this.repositoryManager = Objects.requireNonNull(repositoryManager, "repositoryManager required");
-		
-		
-		this.txnTemplate = new TransactionTemplate(platformTnxManager);
-		txnTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
-		txnTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_SERIALIZABLE);
-		
 		
     	repositoryManager.ensureRootInode();
         
@@ -78,7 +67,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
  
     //convenience if transaction support is avialable
     @Override
-	public ContextScope begin() {
+	public String begin() {
     	if (txnManager != null)
     		return txnManager.begin();
     	return null;
@@ -177,7 +166,6 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
  	// CREATE - create a new version with new UUID(storeId) , under path/{storeId}
  	// 
     @Override
-    @Transactional
     public Optional<BlobMeta> create(PK key, BlobMeta meta, InputStream content) throws IOException {
     	Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "path");
@@ -190,7 +178,6 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
  	//          if id is null will generate a new UUID{storeId} and create a new version under path/{storeId}
  	//
     @Override
-    @Transactional
 	public Optional<BlobMeta> create(PK key, BlobMeta meta, InputStream content, String id) throws IOException {
     	Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "path");
@@ -199,7 +186,6 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 	}
 
 	@Override
-    @Transactional
     public Optional<BlobMeta> update(PK key, InputStream content) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
@@ -220,7 +206,6 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<InputStream> read(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
@@ -241,7 +226,6 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     }
 
     @Override
-    @Transactional
     public Optional<BlobMeta> delete(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
@@ -262,7 +246,6 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     }
 
     @Override
-    @Transactional
     public Optional<BlobMeta> undelete(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
@@ -283,7 +266,6 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     }
 
     
-    @Transactional
     @Override
     public Optional<BlobMeta> restore(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
@@ -310,28 +292,24 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     
     
     @Override
-    @Transactional(readOnly = true)
     public Optional<VersionMeta> getLatestVersion(String nodePath) throws IOException {
         Objects.requireNonNull(nodePath, "nodePath");
         return repositoryManager.getLatestVersion(nodePath);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<VersionMeta> getChildrenLatestVersion(String nodePath) throws IOException {
         Objects.requireNonNull(nodePath, "nodePath");
         return repositoryManager.getChildrenLatestVersion(nodePath);
      }
 
     @Override
-    @Transactional(readOnly = true)
     public List<String> getChildrenPath(String nodePath) throws IOException {
         Objects.requireNonNull(nodePath, "nodePath");
         return repositoryManager.getChildrenPath(nodePath);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<VersionMeta> getAllVersions(String nodePath) throws IOException {
     	return repositoryManager.getAllVersions(nodePath);
     }
@@ -406,32 +384,39 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     	if (lockingService != null)
     		return tryAcquireLock(List.of(path),5, 100,50);
     	LOGGER.warn("Unable to acquire lock for path {}", path);
-    	return null;
+    	throw new IllegalStateException("Unable to acquire lock");
     }
     
     private void persistAndPublish(String nodePath, BlobMeta blobMeta,  StoreOperation operation) throws IOException {
-    	//Capture global context, if no active context then create a store context 
+    	//Capture global context/transaction context, if no active context then create a store context 
     	//with sane defaults
+    	//if no transaction and global Context
+    	//StoreContext is just operation capture - read/write/update/restore etc with synthesize ids--
     	StoreContext sc = StoreContext.create(operation.name());
         PathEvent pe = new PathEvent(nodePath,  sc);
-
+        VersionMeta vm = new VersionMeta(blobMeta, pe);
+        
         // repo is the authoritative write: insert the version row and move HEAD in one statement.
         // This keeps inode/version ids entirely within the persistence layer.
-        VersionMeta vm = new VersionMeta(blobMeta, pe);
-        try (@SuppressWarnings("unused") ContextScope scope = Context.ensureContext(operation + "-" +sc.transactionResult());
-        		@SuppressWarnings("unused")	CloseableLockHandle lock = tryAcquireLock(nodePath)) {
+        try (@SuppressWarnings("unused") ContextScope scope = Context.ensureContext(sc.operation() + "-" +sc.transactionResult());
+        		@SuppressWarnings("unused")	CloseableLockHandle lock = tryAcquireLock(nodePath)
+        				) {
 	        if (AUTO_COMMITTED.equals(sc.transactionResult())) {
 	        		repositoryManager.persistAndPublish(vm); 
-	        } else {
-	        	if (IN_FLIGHT.equals(sc.transactionResult())) {
-	        		//only persist the version no head movement
-        			repositoryManager.persist(vm);
-	        		 //Transaction layer will handle publish
-	        		// IN_FLIGHT -> COMMITTED/ROLLED_BACK and HEAD movement.
-	        	} else {
-	        		throw new IllegalStateException("Expecting " + IN_FLIGHT + "  got " + sc.transactionResult() + " instead");
-	        	}
-	        }
+	        } else if (IN_FLIGHT.equals(sc.transactionResult())) {
+	        	// Under an explicit store transaction, this write must NOT be committed yet.
+	        	// There is exactly one DB commit, and it is only legal at transaction finalization.
+	        	//
+	        	// - commit() transitions IN_FLIGHT → COMMITTED, then moves HEAD
+	        	// - rollback() transitions IN_FLIGHT → ROLLED_BACK, no HEAD movement
+	        	//
+	        	// If this IN_FLIGHT write is ever made durable before explicit finalization,
+	        	// that indicates an illegal early DB commit and is a bug / red flag.
+        		repositoryManager.persist(vm);
+	        } 
+	        else throw new IllegalStateException("Expecting " + IN_FLIGHT + "  got " + sc.transactionResult() + " instead");
+        } catch (Exception e) {
+        	throw new IllegalStateException("Failed to acquire lock ",e);
         }
     }
  

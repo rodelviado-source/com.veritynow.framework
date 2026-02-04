@@ -1,4 +1,4 @@
-package com.veritynow.api;
+package com.veritynow.rest.api;
 
 import java.io.InputStream;
 import java.util.List;

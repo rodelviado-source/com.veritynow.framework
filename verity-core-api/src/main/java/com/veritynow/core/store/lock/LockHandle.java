@@ -1,5 +1,7 @@
 package com.veritynow.core.store.lock;
 
+import com.veritynow.core.context.ContextScope;
+
 /**
  * Minimal lock handle.
  *
@@ -8,5 +10,6 @@ package com.veritynow.core.store.lock;
  * - enforce fencing at publish/HEAD-move time
  */
 public record LockHandle (
-    String ownerId
+    String ownerId,
+    ContextScope scope
 ) {}

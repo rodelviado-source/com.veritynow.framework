@@ -1,6 +1,7 @@
 package com.veritynow.core.context;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 
@@ -9,24 +10,16 @@ import java.util.concurrent.Executor;
  */
 final class DefaultContextManager implements ContextManager {
 
-    private final ContextStorage storage;
-    private final IdGenerator idGenerator;
+    private final ContextStorage storage; 
     
-
-    DefaultContextManager(ContextStorage storage, IdGenerator idGenerator) {
+    DefaultContextManager(ContextStorage storage) {
         this.storage = storage;
-        this.idGenerator = idGenerator;
-        
     }
-
-    
     
     @Override
 	public boolean isActive() {
     	return storage.currentOrNull() != null;
 	}
-
-
 
 	@Override
     public String getCorrelationId() {
@@ -42,9 +35,7 @@ final class DefaultContextManager implements ContextManager {
     public Optional<String> getPrincipal() {
         return Optional.ofNullable(ensure().principalOrNull());
     }
-    
-    
-
+  
     @Override
 	public Optional<String> getContextName() {
     	return Optional.ofNullable(ensure().contextNameOrNull());
@@ -65,9 +56,8 @@ final class DefaultContextManager implements ContextManager {
         ContextSnapshot cur = storage.currentOrNull();
         if (cur != null) return cur;
 
-
         ContextSnapshot snap = ContextSnapshot.builder()
-                .correlationId(idGenerator.newCorrelationId())
+                .correlationId(UUID.randomUUID().toString())
                 .propagated(false)
                 .build();
         storage.bind(snap);
@@ -77,17 +67,14 @@ final class DefaultContextManager implements ContextManager {
     @Override
     public ContextScope scope() {
         ensure();
-        ContextSnapshot prev = storage.currentOrNull();
-        return new ContextScope(storage, prev);
+        return new ContextScope(storage);
     }
 
     @Override
     public ContextScope scope(ContextSnapshot snapshot) {
         if (snapshot == null) throw new IllegalArgumentException("snapshot must not be null");
-        ContextSnapshot prev = storage.currentOrNull();
         storage.bind(snapshot);
-        
-        return new ContextScope(storage, prev);
+        return new ContextScope(storage);
     }
 
     @Override

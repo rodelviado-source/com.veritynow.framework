@@ -9,36 +9,71 @@ import static org.jooq.impl.DSL.excluded;
 import static org.jooq.impl.DSL.name;
 import static org.jooq.impl.DSL.select;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.util.Objects;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jooq.CommonTableExpression;
 import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
+import com.veritynow.core.store.txn.TransactionContext;
 import com.veritynow.core.store.txn.TransactionFinalizer;
 
 /**
  * TransactionFinalizer implemented with jOOQ generated tables using set-based SQL.
  *
  * commit(): single statement via data-modifying CTE:
- *   - clone IN_FLIGHT -> COMMITTED (RETURNING inode_id, version_id)
- *   - publish HEAD using INSERT..SELECT..ON CONFLICT..WHERE fence predicate
+ *   - versions IN_FLIGHT -> COMMITTED (RETURNING inode_id, version_id)
+ *   - publish HEAD using INSERT..SELECT..ON CONFLICT
  *
  * rollback(): single statement:
- *   - clone IN_FLIGHT -> ROLLED_BACK
+ *   - IN_FLIGHT -> ROLLED_BACK
  *   - no head movement
  */
 public class JooqTransactionFinalizer implements TransactionFinalizer {
+	final static Logger  LOGGER = LogManager.getLogger(); 
+    
 
-    private final DSLContext dsl;
-
-    public JooqTransactionFinalizer(DSLContext dsl) {
-        this.dsl = Objects.requireNonNull(dsl, "dsl");
+    private DSLContext ensureDSL(String txnId) {
+    	Connection conn = TransactionContext.getConnection(txnId);
+    	if (conn == null) {
+    		throw new IllegalStateException("Finalizer called without an active transaction. txnId = " + txnId);
+    	}
+    	
+    	return DSL.using(conn, SQLDialect.POSTGRES);
     }
-
+    
+    
+    
     @Override
+	public void begin(String txnId) {
+    	Objects.requireNonNull(txnId, "txnId");
+    	 
+    	 Connection conn = TransactionContext.getConnection(txnId);
+    	 //create a savepoint so rollback can transition the versions
+    	 //from in_flight to rolled_back without the head movement
+    	 try { TransactionContext.putSavepoint(txnId, conn.setSavepoint());} catch (Exception e) {
+    		 throw  new IllegalStateException("Unable to set savepoint ",e); 
+    	};
+	}
+
+
+
+	@Override
     public void commit(String txnId) {
         Objects.requireNonNull(txnId, "txnId");
+        
+        Connection conn = TransactionContext.getConnection(txnId);
+        
+        if (conn == null) {
+        	 throw  new IllegalStateException("commit called with no active transaction txnId = " + txnId);
+        }
         
         var finalized = finalizedVersions(txnId);
         // "latest" = the single newest version per inode
@@ -46,6 +81,9 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
         var inodeId = committed.field(VN_NODE_VERSION.INODE_ID);
         var id = committed.field(VN_NODE_VERSION.ID);
 
+        DSLContext  dsl = ensureDSL(txnId);
+        
+        
         CommonTableExpression<?> latest = name("latest").as(
              dsl.select(inodeId, id).distinctOn(inodeId)
                 .from(committed)
@@ -74,41 +112,98 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
             .set(VN_NODE_HEAD.VERSION_ID, excluded(VN_NODE_HEAD.VERSION_ID))
             .set(VN_NODE_HEAD.UPDATED_AT, excluded(VN_NODE_HEAD.UPDATED_AT));
         
-         var forUpdate = selectForUpdate(txnId);
-	     
-         
-         int expected = dsl.with(forUpdate).selectFrom(forUpdate).execute();
-         if (expected == 0) return;
-	     int published = publisher.execute();
+        	 
+        	 Savepoint sp = TransactionContext.getSavepoint(txnId);
+        	 
+        	//realease the previous savepoint set by begin()
+         	 if (sp != null) {
+        		 try {	conn.releaseSavepoint(sp); } catch (Exception e) {
+            		 throw  new IllegalStateException("Unable to release savepoint ",e); 
+             	};
+        	 }
+        	 
+        	//create a savepoint so rollback can transition the versions
+        	 //from in_flight to rolled_back without the head movement
+        	 try { TransactionContext.putSavepoint(txnId, conn.setSavepoint());} catch (Exception e) {
+        		 throw  new IllegalStateException("Unable to set savepoint ",e); 
+        	};
+			 
+         	 var forUpdate = selectForUpdate(txnId);
+	         int expected = dsl.with(forUpdate).selectFrom(forUpdate).execute();
+	         if (expected == 0) return;
+		     int published = publisher.execute();
+		    
 	     
         if (expected != published) {
             throw new IllegalStateException(
                 "HEAD publish rejected : expected=" + expected + " published=" + published
             );
         }
-        dsl.commit();
+
+        //important do not cleanup here on exception
+        //let rollback record the rollback
+        //cleanup on success only
+        try  {
+      		conn.commit();
+      		TransactionContext.clear(txnId);
+        	dsl = null;
+		} catch (SQLException e) {
+			rollback(txnId);
+		} 
+        
     }
 
     @Override
     public void rollback(String txnId) {
-    	dsl.rollback();
-//        Objects.requireNonNull(txnId, "txnId");
-//        // Single statement:  IN_FLIGHT -> ROLLED_BACK. No head movement.
-//        var forUpdate = selectForUpdate(txnId);
-//        int expected = dsl.with(forUpdate).selectFrom(forUpdate).execute();
-//        if (expected == 0) return;
-//        dsl.
-//		update(VN_NODE_VERSION).
-//		set(VN_NODE_VERSION.TRANSACTION_RESULT, ROLLED_BACK).
-//		where(	
-//				VN_NODE_VERSION.TRANSACTION_ID.eq(txnId).
-//				and(
-//				VN_NODE_VERSION.TRANSACTION_RESULT.eq(IN_FLIGHT))
-//		).execute();
+        Objects.requireNonNull(txnId, "txnId");
+        Connection conn = TransactionContext.getConnection(txnId);
+        Savepoint sp = TransactionContext.getSavepoint(txnId);
+        
+        if (conn == null) return;
+        
+        DSLContext  dsl = ensureDSL(txnId);
+        
+        if (sp != null) {
+        	try {
+        		TransactionContext.removeSavepoint(txnId);
+				conn.rollback(sp);
+				conn.releaseSavepoint(sp);
+			} catch (SQLException e) {
+				dsl = null;
+				TransactionContext.clear(txnId);
+				throw new IllegalStateException("rollback failed txnId = {}",  e);
+			}
+        }
+        
+        // Single statement:  IN_FLIGHT -> ROLLED_BACK. No head movement.
+        try (conn) {
+	        var forUpdate = selectForRollbackUpdate(txnId);
+	        int expected = dsl.with(forUpdate).selectFrom(forUpdate).execute();
+	        if (expected == 0) return;
+	        dsl.
+			update(VN_NODE_VERSION).
+			set(VN_NODE_VERSION.TRANSACTION_RESULT, ROLLED_BACK).
+			where(	
+					VN_NODE_VERSION.TRANSACTION_ID.eq(txnId).
+					and(
+					VN_NODE_VERSION.TRANSACTION_RESULT.in(IN_FLIGHT, COMMITTED))
+			).execute();
+	
+	        conn.commit();
+        }         
+        catch (SQLException e) {
+        	LOGGER.error("rollback failed txnId = {}", txnId, e);
+        	throw new IllegalStateException("rollback failed txnId = {}",  e);
+		
+		} finally {
+			dsl = null;
+			TransactionContext.clear(txnId);
+		}	
     }
     
     
     private CommonTableExpression<VnNodeVersionRecord> finalizedVersions(String txnId ) {
+    	DSLContext  dsl = ensureDSL(txnId);
     	return name("finalized").as(
     			dsl.
 				update(VN_NODE_VERSION).
@@ -124,7 +219,7 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
     
     
     private  CommonTableExpression<?> selectForUpdate(String txnId) {
-    	
+    	DSLContext  dsl = ensureDSL(txnId);
     	CommonTableExpression<?> locked = name("locked").as(
     			dsl.select(VN_NODE_VERSION.TRANSACTION_ID).from(VN_NODE_VERSION)
     			.where(	VN_NODE_VERSION.TRANSACTION_ID.eq(txnId)
@@ -135,4 +230,16 @@ public class JooqTransactionFinalizer implements TransactionFinalizer {
 		return locked;
     }
     
+    
+private  CommonTableExpression<?> selectForRollbackUpdate(String txnId) {
+		DSLContext  dsl = ensureDSL(txnId);
+    	CommonTableExpression<?> locked = name("locked").as(
+    			dsl.select(VN_NODE_VERSION.TRANSACTION_ID).from(VN_NODE_VERSION)
+    			.where(	VN_NODE_VERSION.TRANSACTION_ID.eq(txnId)
+    					.and(VN_NODE_VERSION.TRANSACTION_RESULT.in(IN_FLIGHT,COMMITTED))).forUpdate().noWait()
+        );
+    	
+    	
+		return locked;
+    }
 }

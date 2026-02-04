@@ -1,4 +1,4 @@
-package com.veritynow.api;
+package com.veritynow.rest.api;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,7 +8,6 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.store.StoreOperation;
@@ -32,7 +31,7 @@ public class APIService {
 		LOGGER.info("API Service using " + versionStore.getClass().getName());
 	}
 
-	@Transactional
+	
 	public Optional<VersionMeta> create(String parentPath, InputStream is, String mimeType, String name) throws IOException {
 
 	
@@ -46,7 +45,7 @@ public class APIService {
 		return Optional.empty();
 	}
 
-	@Transactional
+	
 	public Optional<VersionMeta> createExactPath(String path, InputStream is, String mimeType, String name) throws IOException {
 
 		
@@ -61,7 +60,7 @@ public class APIService {
 		return Optional.empty();
 	}
 
-	@Transactional
+	
 	public Optional<VersionMeta> update(String identityPath, InputStream is, String mimeType, String name) throws IOException {
 		
 			Optional<BlobMeta> opt = versionStore.update(new PK(identityPath, null), is);
@@ -103,7 +102,7 @@ public class APIService {
 		
 	}
 
-	@Transactional
+	
 	public Optional<BlobMeta> delete(String path, String reason) throws IOException {
 		Optional<BlobMeta> bm = versionStore.delete(new PK(path, null));
 		if (bm.isPresent()) {
@@ -112,7 +111,7 @@ public class APIService {
 		return Optional.empty();
 	}
 
-	@Transactional
+	
 	public Optional<VersionMeta> undelete(String path) throws IOException {
 		
 		Optional<BlobMeta> bm = versionStore.undelete(new PK(path, null));
@@ -122,7 +121,7 @@ public class APIService {
 		return Optional.empty();
 	}
 
-	@Transactional
+	
 	public Optional<VersionMeta> restore(String path, String hash) throws IOException {
 
 			Optional<BlobMeta> bm = versionStore.restore(new PK(path, hash));

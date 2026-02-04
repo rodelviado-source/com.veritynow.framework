@@ -2,6 +2,7 @@ package com.veritynow.core.store.lock.postgres;
 
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
 
+import java.sql.Connection;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,15 +12,17 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
 import org.jooq.exception.DataAccessException;
+import org.jooq.impl.DSL;
 import org.jooq.postgres.extensions.types.Ltree;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.veritynow.core.context.Context;
+import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.context.ContextSnapshot;
 import com.veritynow.core.store.lock.LockHandle;
 import com.veritynow.core.store.lock.LockingService;
+import com.veritynow.core.store.txn.TransactionContext;
 import com.veritynow.core.store.versionstore.PathUtils;
 import com.veritynow.core.store.versionstore.repo.PathKeyCodec;
 
@@ -44,48 +47,54 @@ import util.ProcessUtil;
  *
  * Important: row locks are connection/transaction-scoped. To keep locks held
  * while work is performed, callers must run acquire() and subsequent work in
- * the SAME Spring @Transactional boundary (or otherwise keep the same JDBC
- * connection open).
+ * 
+ * 
  * 
  */
 public class PgLockingService implements LockingService {
 
 	private static final Logger LOGGER = LogManager.getLogger();
-
-	private final DSLContext dsl;
-
-	/** Lease TTL in milliseconds. When <= 0, leases disabled. */
-	@SuppressWarnings("unused")
-	private final long ttlMs;
+	
+    private final DSLContext defaultDSL;
+	
 
 	// No background renewal thread.
 	// We rely on the DB-visible expires_at field (and the conflict query ignores
 	// expired leases).
 
-	public PgLockingService(DSLContext dsl, long ttlMs, float lockRenewFraction) {
-		this.dsl = Objects.requireNonNull(dsl, "dsl required");
-		this.ttlMs = ttlMs;
-
-		if (ttlMs > 0) {
-			LOGGER.info("Postgres Locking Service started. [ttl({ignored})]", ttlMs);
-		} else {
-			LOGGER.info("Postgres Locking Service started. [ttl(ignored)]");
-
-		}
+	public PgLockingService(DSLContext dsl) {
+		this.defaultDSL = Objects.requireNonNull(dsl, "dsl required");
+		LOGGER.info("Postgres Locking Service started.");
 	}
+	
+	
+	private DSLContext ensureDSL() {
+    	if (!Context.isActive()) {
+    		return defaultDSL;
+    	}
+    	String txnId = Context.transactionIdOrNull();
+    	if (txnId == null) {
+    		return defaultDSL;
+    	}
+    	Connection conn = TransactionContext.getConnection(txnId);
+    	if (conn == null) {
+    		return defaultDSL;
+    	}
+    	
+   		return DSL.using(conn, SQLDialect.POSTGRES);
+    }
 
 	@Override
-	@Transactional(propagation = Propagation.MANDATORY)
 	public LockHandle acquire(List<String> paths) {
 		Objects.requireNonNull(paths, "paths");
 		
-		Context.ensureContext("Acquired Lock");
+		ContextScope ctx = Context.ensureContext("Acquired Lock");
 
 		ContextSnapshot snap = Context.snapshot();
-		String ownerId = snap.transactionIdOrNull();
-		if (ownerId == null || ownerId.isBlank())
-			ownerId = snap.correlationId();
-		if (ownerId == null || ownerId.isBlank())
+		String txnId = snap.transactionIdOrNull();
+		if (txnId == null || txnId.isBlank())
+			txnId = snap.correlationId();
+		if (txnId == null || txnId.isBlank())
 			throw new IllegalStateException("No transactionId/correlationId in Context");
 
 		List<String> normalized = paths.stream().filter(Objects::nonNull).map(PathUtils::normalizePath).distinct()
@@ -101,15 +110,13 @@ public class PgLockingService implements LockingService {
 
 		lockScopeRootsNowait(minimizedScoped);
 
-		return new LockHandle(ownerId);
+		return new LockHandle(txnId, ctx);
 
 	}
 
 	@Override
 	public void release(LockHandle handle) {
-		if (Context.isActive() && "Acquired Lock".equals( Context.contextNameOrNull()) )
-			Context.scope().close();
-		// Release is always idempotent and safe to call from finally blocks.
+		handle.scope().close();
 	}
 
 	@Override
@@ -142,6 +149,7 @@ public class PgLockingService implements LockingService {
 	 * the root scope) using NOWAIT.
 	 */
 	private void lockScopeRootsNowait(List<String> scopeKeyStrings) {
+		
 		if (scopeKeyStrings == null || scopeKeyStrings.isEmpty())
 			return;
 
@@ -161,6 +169,8 @@ public class PgLockingService implements LockingService {
 		// Deterministic lock order.
 		rootIds = rootIds.stream().distinct().sorted().toList();
 
+		DSLContext dsl = ensureDSL();
+		
 		try {
 			// Lock order is by inode_id for determinism.
 			dsl.select(VN_INODE.ID).from(VN_INODE).where(VN_INODE.ID.in(rootIds)).orderBy(VN_INODE.ID.asc()).forUpdate()
@@ -182,6 +192,8 @@ public class PgLockingService implements LockingService {
 		if (scopeKeyString == null || scopeKeyString.isBlank())
 			return null;
 		// Fast path: exact match.
+		DSLContext dsl = ensureDSL();
+		
 		Long id = dsl.select(VN_INODE.ID).from(VN_INODE).where(VN_INODE.SCOPE_KEY.eq(Ltree.ltree(scopeKeyString)))
 				.fetchOne(VN_INODE.ID);
 		if (id != null)

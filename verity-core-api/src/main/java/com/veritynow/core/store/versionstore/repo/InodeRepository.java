@@ -6,6 +6,7 @@ import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE_PATH_SEG
 import static org.jooq.impl.DSL.condition;
 import static org.jooq.impl.DSL.val;
 
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -15,10 +16,14 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record1;
 import org.jooq.Result;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 import org.jooq.postgres.extensions.types.Ltree;
 
+import com.veritynow.core.context.Context;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
+import com.veritynow.core.store.txn.TransactionContext;
 import com.veritynow.core.store.versionstore.PathUtils;
 import com.veritynow.core.store.versionstore.model.DirEntry;
 import com.veritynow.core.store.versionstore.model.Inode;
@@ -30,19 +35,36 @@ import com.veritynow.core.store.versionstore.model.InodePathSegment;
  */
 public final class InodeRepository {
 
-    private final DSLContext dsl;
-
+    private final DSLContext defaultDSL;
+    
     public InodeRepository(DSLContext dsl) {
-        this.dsl = Objects.requireNonNull(dsl, "dsl");
+        this.defaultDSL = dsl;
     }
 
+    private DSLContext ensureDSL() {
+    	if (!Context.isActive()) {
+    		return defaultDSL;
+    	}
+    	String txnId = Context.transactionIdOrNull();
+    	if (txnId == null) {
+    		return defaultDSL;
+    	}
+    	Connection conn = TransactionContext.getConnection(txnId);
+    	if (conn == null) {
+    		return defaultDSL;
+    	}
+    	
+   		return DSL.using(conn, SQLDialect.POSTGRES);
+    	
+    }
     /**
      * Equivalent to the legacy native query:
      * {@code select id from vn_inode where scope_key = cast(? as ltree)}
      */
     public Optional<Long> findIdByScopeKey(String scopeKey) {
         Objects.requireNonNull(scopeKey, "scopeKey");
-
+        DSLContext dsl = ensureDSL();
+        
         Record1<Long> r = dsl
             .select(VN_INODE.ID)
             .from(VN_INODE)
@@ -55,6 +77,8 @@ public final class InodeRepository {
     public Optional<Inode> findById(Long id) {
         Objects.requireNonNull(id, "id");
 
+        DSLContext dsl = ensureDSL();
+        
         VnInodeRecord rec = dsl
             .selectFrom(VN_INODE)
             .where(VN_INODE.ID.eq(id))
@@ -68,7 +92,9 @@ public final class InodeRepository {
      */
     public Inode save(Inode entity) {
         Objects.requireNonNull(entity, "entity");
- 
+        
+        DSLContext dsl = ensureDSL();
+        
         Ltree scope = entity.scopeKey() == null ? null :   Ltree.ltree(entity.scopeKey());
         VnInodeRecord inserted = dsl
             .insertInto(VN_INODE)
@@ -93,6 +119,8 @@ public final class InodeRepository {
     public List<InodePathSegment> findAllByInodeIdOrderByOrdAsc(Long inodeId) {
         Objects.requireNonNull(inodeId, "inodeId");
 
+        DSLContext dsl = ensureDSL();
+        
         var I = VN_INODE.as("i"); // owning inode of the segment
         var P = VN_INODE.as("p"); // parent inode for dir entry
         var C = VN_INODE.as("c"); // child inode for dir entry
@@ -122,6 +150,8 @@ public final class InodeRepository {
     public List<InodePathSegment> saveAll(Iterable<InodePathSegment> entities) {
         Objects.requireNonNull(entities, "entities");
 
+        DSLContext dsl = ensureDSL();
+        
         List<InodePathSegment> list = new ArrayList<>();
         for (InodePathSegment e : entities) {
             Objects.requireNonNull(e, "entity");
@@ -146,6 +176,8 @@ public final class InodeRepository {
         Objects.requireNonNull(parentInodeId, "parentInodeId");
         Objects.requireNonNull(name, "name");
 
+        DSLContext dsl = ensureDSL();
+        
         var P = VN_INODE.as("p");
         var C = VN_INODE.as("c");
 
@@ -166,6 +198,8 @@ public final class InodeRepository {
     public List<DirEntry> findAllByParentIdOrderByNameAsc(Long parentInodeId) {
         Objects.requireNonNull(parentInodeId, "parentInodeId");
 
+        DSLContext dsl = ensureDSL();
+        
         var P = VN_INODE.as("p");
         var C = VN_INODE.as("c");
 
@@ -189,6 +223,8 @@ public final class InodeRepository {
         Objects.requireNonNull(dir.name(), "dir.name");
         Objects.requireNonNull(dir.child().id(), "dir.childInodeId");
 
+        DSLContext dsl = ensureDSL();
+        
         var inserted = dsl
             .insertInto(VN_DIR_ENTRY)
             .set(VN_DIR_ENTRY.PARENT_ID, dir.parent().id())
@@ -214,6 +250,7 @@ public final class InodeRepository {
                                    VnInode P,
                                    VnInode C) {
         
+    	
         String pScope = r.get(P.SCOPE_KEY) == null ? null : r.get(P.SCOPE_KEY).toString();
         String cScope = r.get(C.SCOPE_KEY) == null ? null : r.get(C.SCOPE_KEY).toString();
 
@@ -237,7 +274,7 @@ public final class InodeRepository {
         VnInode C
     ) {
 
-  
+     	
         String iScope = r.get(I.SCOPE_KEY) == null ? null : r.get(I.SCOPE_KEY).toString();
         String pScope = r.get(P.SCOPE_KEY) == null ? null : r.get(P.SCOPE_KEY).toString();
         String cScope = r.get(C.SCOPE_KEY) == null ? null : r.get(C.SCOPE_KEY).toString();

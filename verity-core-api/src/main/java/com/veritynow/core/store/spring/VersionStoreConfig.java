@@ -16,8 +16,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
-import org.springframework.transaction.PlatformTransactionManager;
 
 import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.store.HashingService;
@@ -49,7 +47,7 @@ public class VersionStoreConfig {
 		
 	 @Bean
 	public DSLContext dsl(DataSource ds) {
-	   return DSL.using(new TransactionAwareDataSourceProxy(ds), SQLDialect.POSTGRES);
+	   return DSL.using(ds, SQLDialect.POSTGRES);
 	}
 	
 	
@@ -63,27 +61,25 @@ public class VersionStoreConfig {
 	}
 	
 	@Bean 
-	TransactionFinalizer transactionFinalizer(DSLContext dsl) {
-		return new JooqTransactionFinalizer(dsl);
+	TransactionFinalizer transactionFinalizer() {
+		return new JooqTransactionFinalizer();
 	}
 	
 	@Bean
 	LockingService lockingService(
-			DSLContext dsl,
-			@Value("${verity.lock.ttl-ms:-1}") long lockTtlMs,
-			@Value("${verity.lock.renew-fraction:0.33}") float lockRenewFraction
+			DSLContext dsl
 	)  {
-		return new PgLockingService(dsl, lockTtlMs, lockRenewFraction);
+		return new PgLockingService(dsl);
 	}
 	
 	
 	@Bean 
-	TransactionService<ContextScope> transactionService(TransactionFinalizer finalizer)  {
-		return new JooqTransactionService(finalizer);
+	TransactionService transactionService(TransactionFinalizer finalizer, DataSource ds)  {
+		return new JooqTransactionService(finalizer, ds);
 	}
 	
 	@Bean 
-	ContextAwareTransactionManager contextAwareTransactionManager(TransactionService<ContextScope> txnService)  {
+	ContextAwareTransactionManager contextAwareTransactionManager(TransactionService txnService)  {
 		return new ContextAwareTransactionManager(txnService);
 	}
 	
@@ -120,10 +116,10 @@ public class VersionStoreConfig {
     		DSLContext dsl,
 			RepositoryManager repositoryManager,
             ContextAwareTransactionManager txnManager,
-            LockingService lockingService,
-            PlatformTransactionManager ptm
+            LockingService lockingService
+            
     ) {
-		return new DBVersionStore(backingStore, dsl, repositoryManager, txnManager, lockingService, ptm);
+		return new DBVersionStore(backingStore, dsl, repositoryManager, txnManager, lockingService);
     }
     
     @Bean

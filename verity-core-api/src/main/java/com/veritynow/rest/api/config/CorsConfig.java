@@ -1,4 +1,4 @@
-package com.veritynow.api.config;
+package com.veritynow.rest.api.config;
 
 import java.io.IOException;
 

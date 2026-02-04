@@ -11,8 +11,8 @@ package com.veritynow.core.store.txn;
  *   <li><b>rollback()</b>: terminalizes as ROLLED_BACK and does not publish/move HEADs</li>
  * </ul>
  */
-public interface TransactionService<T> {
-    T begin(String txnId);
+public interface TransactionService {
+    String begin(String txnId);
     
     void commit(String txnId);
 

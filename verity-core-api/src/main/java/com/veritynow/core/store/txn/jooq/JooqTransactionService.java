@@ -1,12 +1,12 @@
 package com.veritynow.core.store.txn.jooq;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Objects;
 
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import javax.sql.DataSource;
 
-import com.veritynow.core.context.Context;
-import com.veritynow.core.context.ContextScope;
+import com.veritynow.core.store.txn.TransactionContext;
 import com.veritynow.core.store.txn.TransactionFinalizer;
 import com.veritynow.core.store.txn.TransactionService;
 
@@ -15,61 +15,77 @@ import com.veritynow.core.store.txn.TransactionService;
  *
  * No JPA entities or repositories.
  */
-public class JooqTransactionService implements TransactionService<ContextScope> {
+public class JooqTransactionService implements TransactionService {
 
 	private final TransactionFinalizer finalizer;
-   
- 
-    public JooqTransactionService(TransactionFinalizer finalizer) {
-    	Objects.requireNonNull(finalizer);
-    	this.finalizer = finalizer;
-    }
+	private final DataSource dataSource;
 
-    @Override
-    @Transactional(propagation = Propagation.MANDATORY)
-    public ContextScope begin(String txnId) {
-        Objects.requireNonNull(txnId, "txnId");
-        if (!Context.isActive()) {
-        	Context.ensureContext("Transaction(begin) Contex");
-        }
-        
-        return Context.scope();
-        
-        //Get current context for txnId, if missing make one
-        //Final state we don't need the txnId passed
-    } 
-    
+	public JooqTransactionService(TransactionFinalizer finalizer, DataSource dataSource) {
+		this.finalizer = Objects.requireNonNull(finalizer, "finalizer");
+		this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
+	}
 
-    @Override
-    @Transactional(propagation = Propagation.MANDATORY)
-    public void commit(String txnId) {
-        Objects.requireNonNull(txnId, "txnId");
-       //Get current context, throw exception if missing
-       //Final state we don't need the txnId passed
-        if (!Context.isActive()) {
-        	throw new RuntimeException("Commit called without an active context, call begin() or create a context");
-        }
-        finalizer.commit(txnId);
-        if ("Transaction(begin) Contex".equals(Context.contextNameOrNull())) {
-        	Context.scope().close();
-        }
-    }
+	@Override
+	public String begin(String txnId) {
+		
+		Objects.requireNonNull(txnId, "Transaction id is required");
 
-    @Override
-    @Transactional(propagation = Propagation.MANDATORY)
-    public void rollback(String txnId) {
-        Objects.requireNonNull(txnId, "txnId");
-        //Get current context, throw exception if missing
-        //Final state we don't need the txnId passed
-        if (!Context.isActive()) {
-        	throw new RuntimeException("Rollback called without an active context, call begin() or create a context");
-        }
-        
-        finalizer.rollback(txnId);
-        if ("Transaction(begin) Contex".equals(Context.contextNameOrNull())) {
-        	Context.scope().close();
-        }
-       
-    }
-    
+		Connection conn = TransactionContext.getConnection(txnId);
+
+		if (conn == null) {
+			// try to get a valid connection and bind it to transactionId
+			// this will be the connection for this transaction
+			// it is not thread bound
+			try {
+				// Connection
+				conn = dataSource.getConnection();
+				conn.setAutoCommit(false);
+			} catch (SQLException e) {
+				try {
+					if (conn != null)
+						conn.close();
+				} catch (Exception ignore) {
+				}
+				;
+				throw new IllegalStateException("Cannot set the state of the connection ", e);
+			}
+
+			TransactionContext.putConnection(txnId, conn);
+		}
+		
+		finalizer.begin(txnId);
+
+		return txnId;
+	}
+
+	@Override
+	public void commit(String txnId) {
+		Objects.requireNonNull(txnId, "txnId");
+		requireActiveMatchingTxn(txnId);
+		finalizer.commit(txnId);
+		closeTransaction(txnId);
+	}
+
+	@Override
+	public void rollback(String txnId) {
+		Objects.requireNonNull(txnId, "txnId");
+		requireActiveMatchingTxn(txnId);
+
+		try {
+			finalizer.rollback(txnId);
+		} finally {
+			closeTransaction(txnId);
+		}
+	}
+
+	private static void requireActiveMatchingTxn(String txnId) {
+		if (TransactionContext.getConnection(txnId) == null) {
+			throw new IllegalStateException("Called without an active transaction; use begin()");
+		}
+	}
+
+	private void closeTransaction(String txnId) {
+		try ( Connection conn = TransactionContext.removeConnection(txnId)) {
+		} catch (Exception ignore) {} finally {TransactionContext.clear(txnId);} ;
+	}
 }
