@@ -297,6 +297,7 @@ public class ConsoleController {
 		summary.put("blobs", apiTxn.blobs().keySet());
 
 		try (ContextScope scope = Context.ensureContext("Submit Record")) {
+			
 			consoleService.processTransaction(apiTxn, namespace, fileMap);
 		} finally {
 			// Cleanup to avoid multipart stream leaks

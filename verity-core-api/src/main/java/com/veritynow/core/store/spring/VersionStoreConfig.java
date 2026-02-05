@@ -67,9 +67,9 @@ public class VersionStoreConfig {
 	
 	@Bean
 	LockingService lockingService(
-			DSLContext dsl
+			DSLContext dsl, DataSource dataSource
 	)  {
-		return new PgLockingService(dsl);
+		return new PgLockingService(dsl, dataSource);
 	}
 	
 	

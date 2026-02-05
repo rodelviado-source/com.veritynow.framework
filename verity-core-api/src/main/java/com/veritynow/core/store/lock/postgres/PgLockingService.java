@@ -3,11 +3,14 @@ package com.veritynow.core.store.lock.postgres;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import javax.sql.DataSource;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,7 +59,7 @@ public class PgLockingService implements LockingService {
 	private final static String PG_ADVISORY_LOCK = "pg_try_advisory_xact_lock";
 	private static final Logger LOGGER = LogManager.getLogger();
 	
-	
+	private final DataSource dataSource;
     private final DSLContext defaultDSL;
 	
 
@@ -64,8 +67,9 @@ public class PgLockingService implements LockingService {
 	// We rely on the DB-visible expires_at field (and the conflict query ignores
 	// expired leases).
 
-	public PgLockingService(DSLContext dsl) {
+	public PgLockingService(DSLContext dsl, DataSource dataSource) {
 		this.defaultDSL = Objects.requireNonNull(dsl, "dsl required");
+		this.dataSource = dataSource;
 		LOGGER.info("Postgres Locking Service started.");
 	}
 	
@@ -80,7 +84,28 @@ public class PgLockingService implements LockingService {
     	}
     	Connection conn = TransactionContext.getConnection(txnId);
     	if (conn == null) {
-    		return defaultDSL;
+    		//try lock called first before begin()
+    		//lets make a connection for this transaction
+    		if (conn == null) {
+    			// try to get a valid connection and bind it to transactionId
+    			// this will be the connection for this transaction
+    			// it is not thread bound
+    			try {
+    				// Connection
+    				conn = dataSource.getConnection();
+    				conn.setAutoCommit(false);
+    			} catch (SQLException e) {
+    				try {
+    					if (conn != null)
+    						conn.close();
+    				} catch (Exception ignore) {
+    				}
+    				;
+    				throw new IllegalStateException("Cannot set the state of the connection ", e);
+    			}
+
+    			TransactionContext.putConnection(txnId, conn);
+    		}
     	}
     	
    		return DSL.using(conn, SQLDialect.POSTGRES);
@@ -146,6 +171,8 @@ public class PgLockingService implements LockingService {
 		if (txnId == null || txnId.isBlank())
 			throw new IllegalStateException("No transactionId/correlationId in Context");
 
+		
+		
 		List<String> normalized = paths.stream().filter(Objects::nonNull).map(PathUtils::normalizePath).distinct()
 				.sorted().toList();
 

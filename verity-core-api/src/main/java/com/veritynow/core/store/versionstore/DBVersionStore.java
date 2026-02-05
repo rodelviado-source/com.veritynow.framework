@@ -14,8 +14,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jooq.DSLContext;
 
-
-import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.store.ImmutableBackingStore;
 import com.veritynow.core.store.StoreOperation;
@@ -131,7 +129,14 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 		return null;
 	}
 
-
+	@Override
+	public CloseableLockHandle tryAcquireLock(String path) {
+    	if (lockingService != null)
+    		return tryAcquireLock(List.of(path),5, 100);
+    	LOGGER.warn("Unable to acquire lock for path {}", path);
+    	throw new IllegalStateException("Unable to acquire lock");
+    }
+	
 	@Override
 	public void release(CloseableLockHandle handle) {
 		try (handle) {
@@ -389,12 +394,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
         return Optional.of(blobMeta);
     }
 
-    private CloseableLockHandle tryAcquireLock(String path) {
-    	if (lockingService != null)
-    		return tryAcquireLock(List.of(path),5, 100);
-    	LOGGER.warn("Unable to acquire lock for path {}", path);
-    	throw new IllegalStateException("Unable to acquire lock");
-    }
+    
     
     private void persistAndPublish(String nodePath, BlobMeta blobMeta,  StoreOperation operation) throws IOException {
     	//Capture global context/transaction context, if no active context then create a store context 
@@ -409,9 +409,9 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
         
         // repo is the authoritative write: insert the version row and move HEAD in one statement.
         // This keeps inode/version ids entirely within the persistence layer.
-        try (@SuppressWarnings("unused") ContextScope scope = Context.ensureContext(sc.operation() + "-" +sc.transactionResult());
-        		@SuppressWarnings("unused")	CloseableLockHandle lock = tryAcquireLock(nodePath)
-        				) {
+//        try (@SuppressWarnings("unused") ContextScope scope = Context.ensureContext(sc.operation() + "-" +sc.transactionResult());
+//        		@SuppressWarnings("unused")	CloseableLockHandle lock = tryAcquireLock(nodePath)
+//        				) {
 	        if (AUTO_COMMITTED.equals(sc.transactionResult())) {
 	        		repositoryManager.persistAndPublish(vm); 
 	        } else if (IN_FLIGHT.equals(sc.transactionResult())) {
@@ -426,9 +426,9 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
         		repositoryManager.persist(vm);
 	        } 
 	        else throw new IllegalStateException("Expecting " + IN_FLIGHT + "  got " + sc.transactionResult() + " instead");
-        } catch (Exception e) {
-        	throw new IllegalStateException("Failed to acquire lock ",e);
-        }
+//        } catch (Exception e) {
+//        	throw new IllegalStateException("Failed to acquire lock ",e);
+//        }
     }
  
     
