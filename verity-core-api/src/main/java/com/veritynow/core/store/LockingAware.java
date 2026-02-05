@@ -14,9 +14,10 @@ public interface LockingAware<LOCKHANDLE> {
 
     void release(LOCKHANDLE handle);
     
-    Optional<LOCKHANDLE> findActiveLock(String txnId); 
+    Optional<List<Long>> findActiveAdvisoryLocks(String txnId);
+    Optional<Long> findActiveAdvisoryLock(String txnId, String path);
 
-	LOCKHANDLE tryAcquireLock(List<String> paths, int maxTries, int intervalBetweenTriesMs, int jitterMs);
+	LOCKHANDLE tryAcquireLock(List<String> paths, int maxAttempts, int delayBetweenAttemptsMs);
 
 
 }

@@ -13,8 +13,9 @@ import java.util.Optional;
  * This interface keeps the same core semantics as {@link Store} for:
  * </p>
  * <ul>
- *   <li><b>Existence</b>: a path is considered present iff a latest version (HEAD) is resolvable
- *       (see {@link Store#exists(Object)} and {@link #getLatestVersion(String)}).</li>
+ *   <li><b>Existence</b>: a path is considered present iff it is non-empty. 
+ *       It has a latest version (see {@link Store#exists(Object)} and {@link #getLatestVersion(String)})
+ *       or it has atleast 1 child (see {@link #getChildrenPath(String)}.</li>
  *   <li><b>Restore</b>: restore moves HEAD to a prior version regardless of deletion state
  *       (see {@link Store#restore(Object)}).</li>
  *   <li><b>Non-transactional contract</b>: this interface does not prescribe transactional semantics;
@@ -117,4 +118,18 @@ public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBM
      * @throws IOException on I/O failure
      */
     Optional<InputStream> getContent(PK key) throws IOException;
+
+    /**
+     * Determine whether the given key has a resolvable path.
+     *
+     * <p>
+     * This method returns {@code true} if and only if the store can resolve a
+     * path for the key.
+     * </p>
+     *
+     * @param key logical key
+     * @return {@code true} if path exists for the key
+     * @throws IOException on I/O failure
+     */
+	boolean pathExists(PK key) throws IOException;
 }

@@ -32,7 +32,7 @@ import com.veritynow.core.store.txn.TransactionContext;
 public final class VersionMetaRepository {
 
 	private final DSLContext defaultDSL;
-	private  DSLContext txnDSL = null;
+	
 
 	public VersionMetaRepository(DSLContext dsl) {
 		this.defaultDSL = Objects.requireNonNull(dsl, "dsl");
@@ -40,27 +40,18 @@ public final class VersionMetaRepository {
 
 	private DSLContext ensureDSL() {
 		if (!Context.isActive()) {
-			txnDSL = null;
 			return defaultDSL;
 		}
 		String txnId = Context.transactionIdOrNull();
 		if (txnId == null) {
-			txnDSL = null;
 			return defaultDSL;
 		}
 		Connection conn = TransactionContext.getConnection(txnId);
 		if (conn == null) {
-			txnDSL = null;
 			return defaultDSL;
 		}
-
-		 
-    	if (txnDSL == null) {
-    		txnDSL = DSL.using(conn, SQLDialect.POSTGRES);
-    	}
     	
-		return txnDSL;
-
+    	return  DSL.using(conn, SQLDialect.POSTGRES);
 	}
 
 	public List<VersionMeta> findAllByInodeIdOrderByTimestampDescIdDesc(Long inodeId) {
@@ -194,7 +185,7 @@ public final class VersionMetaRepository {
 		Field<OffsetDateTime> now = currentOffsetDateTime();
 
 		DSLContext dsl = ensureDSL();
-
+		
 		int rows = dsl.with(ins)
 				.insertInto(VN_NODE_HEAD, VN_NODE_HEAD.INODE_ID, VN_NODE_HEAD.VERSION_ID, VN_NODE_HEAD.UPDATED_AT)
 				.select(select(iId, vId, now).from(table(name("ins")))).onConflict(VN_NODE_HEAD.INODE_ID).doUpdate()

@@ -13,7 +13,11 @@ public interface LockingService {
 
     void release(LockHandle handle);
     
-    Optional<LockHandle> findActiveLock(String txnId); 
+    Optional<List<Long>> findActiveAdvisoryLocks(String txnId); 
 
-	LockHandle tryAcquireLock(List<String> paths, int maxTries, int intervalBetweenTriesMs, int jitterMs);
+    Optional<Long> findActiveAdvisoryLock(String txnId, String path);
+    
+	LockHandle tryAcquireLock(List<String> paths, int maxAttempts, int delayBetweenAttemptsMs);
+
+	
 }

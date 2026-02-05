@@ -6,10 +6,10 @@ import com.veritynow.core.context.ContextScope;
  * Minimal lock handle.
  *
  * Contains only what is required to:
- * - release the lock group
- * - enforce fencing at publish/HEAD-move time
+ * - release the lock context scope   
+ * Lock enforcement is handled directly by the DB
  */
 public record LockHandle (
-    String ownerId,
+    String tnxId,
     ContextScope scope
 ) {}

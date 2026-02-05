@@ -1,6 +1,7 @@
 package com.veritynow.core.store.versionstore;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import com.veritynow.core.store.lock.LockHandle;
 import com.veritynow.core.store.lock.LockingService;
@@ -11,6 +12,8 @@ public class CloseableLockHandle implements AutoCloseable {
 	
 	
 	public CloseableLockHandle(LockingService lockingService, LockHandle lockHandle) {
+		Objects.requireNonNull(lockingService, "lockingService");
+		Objects.requireNonNull(lockHandle, "lockHandle");
 		this.lockingService = lockingService;
 		this.lockHandle = lockHandle;
 	}
@@ -21,9 +24,7 @@ public class CloseableLockHandle implements AutoCloseable {
 	
 	@Override
 	public void close() throws IOException {
-		if (lockHandle != null) {
-			lockingService.release(lockHandle);
-		}
+		lockingService.release(lockHandle);
 	}
 	
 }

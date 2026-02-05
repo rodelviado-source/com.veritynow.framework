@@ -3,8 +3,8 @@ package com.veritynow.core.store.lock.postgres;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
 
 import java.sql.Connection;
-import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,7 +53,9 @@ import util.ProcessUtil;
  */
 public class PgLockingService implements LockingService {
 
+	private final static String PG_ADVISORY_LOCK = "pg_try_advisory_xact_lock";
 	private static final Logger LOGGER = LogManager.getLogger();
+	
 	
     private final DSLContext defaultDSL;
 	
@@ -83,7 +85,54 @@ public class PgLockingService implements LockingService {
     	
    		return DSL.using(conn, SQLDialect.POSTGRES);
     }
+	private boolean hasTxnConnection() {
+		if (!Context.isActive()) return false;
+		String txnId = Context.transactionIdOrNull();
+		if (txnId == null || txnId.isBlank()) return false;
+		return TransactionContext.getConnection(txnId) != null;
+	}
 
+	/**
+	 * For CREATE of a non-existent path, there is no inode row yet to hard-lock.
+	 * We bridge that gap by taking a transaction-scoped advisory lock on a stable
+	 * 64-bit key derived from the requested scope. This lock is held until the
+	 * surrounding DB transaction commits/rolls back.
+	 *
+	 * If no transaction-bound connection exists (non-txn / probe usage), this
+	 * method is a no-op and hard-locking falls back to nearest existing ancestors.
+	 */
+	private void tryAcquireCreateAdvisoryLockNowait(String txnId, String scopeKeyString) {
+		if (!hasTxnConnection()) return; // advisory_xact_lock only makes sense inside a real txn
+		
+		long key = PathKeyCodec.scopeKeyToLockKey(scopeKeyString);
+
+		if (!acquireAdvisoryLock(key)) {
+			throw new IllegalStateException("Lock conflict");
+		}
+		TransactionContext.putLock(txnId, key);
+	}
+
+	
+	
+	private boolean acquireAdvisoryLock(Long key) {
+		DSLContext dsl = ensureDSL();
+		Boolean ok = dsl.select(
+				DSL.function(PG_ADVISORY_LOCK, Boolean.class, DSL.val(key))
+			).fetchOne(0, Boolean.class);
+		if  (ok != null) return ok.booleanValue();
+		return false;		
+	}
+	
+	private Long resolveExactInodeId(String scopeKeyString) {
+		if (scopeKeyString == null || scopeKeyString.isBlank()) return null;
+		DSLContext dsl = ensureDSL();
+		return dsl.select(VN_INODE.ID)
+				.from(VN_INODE)
+				.where(VN_INODE.SCOPE_KEY.eq(Ltree.ltree(scopeKeyString)))
+				.fetchOne(VN_INODE.ID);
+	}
+
+	
 	@Override
 	public LockHandle acquire(List<String> paths) {
 		Objects.requireNonNull(paths, "paths");
@@ -108,7 +157,7 @@ public class PgLockingService implements LockingService {
 
 		List<String> minimizedScoped = minimizeScopes(scopeKeyStrings);
 
-		lockScopeRootsNowait(minimizedScoped);
+		lockScopeRootsNowait(txnId, minimizedScoped);
 
 		return new LockHandle(txnId, ctx);
 
@@ -120,22 +169,38 @@ public class PgLockingService implements LockingService {
 	}
 
 	@Override
-	public Optional<LockHandle> findActiveLock(String ownerId) {
-		return Optional.empty();
+	public Optional<List<Long>> findActiveAdvisoryLocks(String txnId) {
+		return TransactionContext.getActiveAdvisoryLocks(txnId);
 	}
 
 	@Override
-	public LockHandle tryAcquireLock(List<String> paths, int maxTries, int intervalBetweenTriesMs, int jitterMs) {
+	public Optional<Long> findActiveAdvisoryLock(String txnId, String path) {
+		Optional<List<Long>> ls = findActiveAdvisoryLocks(txnId);
+		if (ls.isPresent()) {
+			List<Long> l = ls.get();
+			Long key = PathKeyCodec.pathToLockKey(path);
+			int idx = l.indexOf(key);
+			if (idx > -1) {
+				return Optional.of(l.get(idx));
+			}
+		}
+		return Optional.empty();
+	}
+	
+	@Override
+	public LockHandle tryAcquireLock(List<String> paths, int maxAttempts, int delayBetweenAttemptsMs) {
 		Objects.requireNonNull(paths, "paths");
-		int tries = Math.max(1, maxTries);
+		int tries = Math.max(1, maxAttempts);
+		int attempt = 0;
 		while (true) {
 			try {
+				attempt++;
 				return acquire(paths);
 			} catch (IllegalStateException e) {
 				tries--;
 				if (tries <= 0)
 					throw e;
-				ProcessUtil.sleep(Duration.ofMillis(ProcessUtil.jitter(intervalBetweenTriesMs, jitterMs)));
+				ProcessUtil.sleep(ProcessUtil.backoffWithJitter(delayBetweenAttemptsMs, attempt, 1000));
 			}
 		}
 	}
@@ -148,7 +213,7 @@ public class PgLockingService implements LockingService {
 	 * move, the trigger should attempt to lock ancestor vn_inode rows (including
 	 * the root scope) using NOWAIT.
 	 */
-	private void lockScopeRootsNowait(List<String> scopeKeyStrings) {
+	private void lockScopeRootsNowait(String txnId, List<String> scopeKeyStrings) {
 		
 		if (scopeKeyStrings == null || scopeKeyStrings.isEmpty())
 			return;
@@ -159,7 +224,15 @@ public class PgLockingService implements LockingService {
 		// parent.)
 		List<Long> rootIds = new ArrayList<>(scopeKeyStrings.size());
 		for (String scopeKey : scopeKeyStrings) {
-			Long id = resolveNearestExistingInodeId(scopeKey);
+			// If the exact path doesn't exist yet, we cannot hard-lock a leaf inode row.
+			// Bridge the create-race by taking a txn-scoped advisory lock on the scope key.
+			Long exact = resolveExactInodeId(scopeKey);
+			if (exact == null) {
+				tryAcquireCreateAdvisoryLockNowait(txnId, scopeKey);
+			}
+			
+			
+			Long id = (exact != null) ? exact : resolveNearestExistingInodeId(scopeKey);
 			if (id == null) {
 				throw new IllegalStateException("No inode exists for scopeKey='" + scopeKey + "' or any ancestor");
 			}
@@ -202,7 +275,7 @@ public class PgLockingService implements LockingService {
 		// Walk up: "a.b.c" -> "a.b" -> "a".
 		String[] labels = scopeKeyString.split("\\.");
 		for (int n = labels.length - 1; n >= 1; n--) {
-			String anc = String.join(".", java.util.Arrays.copyOf(labels, n));
+			String anc = String.join(".", Arrays.copyOf(labels, n));
 			id = dsl.select(VN_INODE.ID).from(VN_INODE).where(VN_INODE.SCOPE_KEY.eq(Ltree.ltree(anc)))
 					.fetchOne(VN_INODE.ID);
 			if (id != null)
@@ -238,5 +311,8 @@ public class PgLockingService implements LockingService {
 			return true;
 		return b.startsWith(a + ".");
 	}
+
+
+	
 
 }

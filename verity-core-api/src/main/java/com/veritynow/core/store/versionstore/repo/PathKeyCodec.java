@@ -36,6 +36,17 @@ public final class PathKeyCodec {
         return sb.toString();
     }
     
+    public static Long xxh3(String s) {
+    	return HASH.hashChars(s);
+    }
+    
+    public static Long scopeKeyToLockKey(String scopeKey) {
+    	return HASH.hashChars(scopeKey);
+    }
+    
+    public static Long pathToLockKey(String path) {
+    	return HASH.hashChars(toLTree(path));
+    }
     
     public static String xxh3Encode(String seg) {
         

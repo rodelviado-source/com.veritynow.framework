@@ -84,7 +84,7 @@ public class ConsoleService {
 		return versionMetaRepository.findByWorkflowIdAndCorrelationIdAndTransactionId(workflowId, correlationId,
 				transactionId);
 	}
-	
+
 	public List<VersionMeta> getWorkflows(String path) {
 		Objects.requireNonNull(path, "path");
 		return repoManager.getWorkflows(path);
@@ -131,7 +131,6 @@ public class ConsoleService {
 		return Optional.empty();
 	}
 
-	
 	public Optional<BlobMeta> undelete(String path) {
 		try {
 			Optional<BlobMeta> opt = versionStore.undelete(new PK(path, null));
@@ -143,78 +142,74 @@ public class ConsoleService {
 		return Optional.empty();
 	}
 
-	
 	public void processTransaction(APITransaction apiTxn, String namespace, Map<String, MultipartFile> fileMap)
 			throws Exception {
-		
-			List<Transaction> txns = apiTxn.transactions();
-			List<String> paths = getPathsToLock(apiTxn.transactions(), namespace);
 
-			//create a context if not present, then acquire a lock
-			try (ContextScope scope = Context.ensureContext("Transactional API");
-					CloseableLockHandle lock = versionStore.tryAcquireLock(paths, 5, 100, 50);) {
+		List<Transaction> txns = apiTxn.transactions();
+		List<String> paths = getPathsToLock(apiTxn.transactions(), namespace);
 
-				if (scope == null) {
-					LOGGER.error("Context is missing {}", paths);
-					throw new Exception("No Context");
+		// create a context if not present, then acquire a lock
+		try (ContextScope scope = Context.ensureContext("Transactional API");
+				CloseableLockHandle lock = versionStore.tryAcquireLock(paths, 5, 50);) {
+
+			if (scope == null) {
+				LOGGER.error("Context is missing {}", paths);
+				throw new Exception("No Context");
+			}
+			if (lock == null) {
+				LOGGER.error("Cannot acquire lock for paths {}", paths);
+				throw new Exception("Cannot acquire a lock");
+			}
+			
+			versionStore.begin();
+			String txnId = Context.transactionIdOrNull();
+			for (Transaction txn : txns) {
+				String op = txn.operation();
+				String bref = txn.blobRef();
+				String name = bref;
+				String mimeType = "application/octet-stream";
+				if (bref != null && fileMap.get(bref) != null) {
+					MultipartFile mp = fileMap.get(bref);
+					mimeType = mp.getContentType();
+					name = StringUtils.isEmpty(mp.getOriginalFilename())
+							? (StringUtils.isEmpty(mp.getName()) ? bref : mp.getName())
+							: mp.getOriginalFilename();
+
 				}
-				if (lock == null) {
-					LOGGER.error("Cannot acquire lock for paths {}", paths);
-					throw new Exception("Cannot acquire a lock");
-				}
 
-				versionStore.begin();
-				for (Transaction txn : txns) {
-					String op = txn.operation();
-					String bref = txn.blobRef();
-					String name = bref;
-					String mimeType = "application/octet-stream";
-					if (bref != null && fileMap.get(bref) != null) {
-						MultipartFile mp = fileMap.get(bref);
-						mimeType = mp.getContentType();
-						name = StringUtils.isEmpty(mp.getOriginalFilename())
-								? (StringUtils.isEmpty(mp.getName()) ? bref : mp.getName())
-								: mp.getOriginalFilename();
+				InputStream is = apiTxn.blobs().get(bref);
 
-					}
+				// normalize and applyNamespace
+				String path = PathUtils.normalizeAndApplyNamespace(txn.path(), namespace);
 
-					InputStream is = apiTxn.blobs().get(bref);
-
-					// normalize and applyNamespace
-					String path = PathUtils.normalizeAndApplyNamespace(txn.path(), namespace);
-
-					try (is) {
-						if ("CREATE".equals(op)) {
-							// for create we make a new segment which is analogous to DB generated index
-							String lastSegment = UUID.randomUUID().toString();
-							String newPath = path + "/" + lastSegment;
-							apiService.createExactPath(newPath, is, mimeType, name);
-							continue;
-						}
-						if ("CREATE?exactPath".equals(op)) {
-							apiService.createExactPath(path, is, mimeType, name);
-							continue;
-						}
-						if ("UPSERT?exactPath".equals(op)) {
-							if (versionStore.exists(new PK(path, null))) {
-								apiService.update(path, is, mimeType, name);
-							} else {
-								apiService.createExactPath(path, is, mimeType, name);
-							}
-							continue;
-						}
-						if ("UPDATE".equals(op)) {
+				try (is) {
+					switch (op) {
+					case "CREATE":
+						// for create we make a new segment which is analogous to DB generated index
+						String lastSegment = UUID.randomUUID().toString();
+						String newPath = path + "/" + lastSegment;
+						apiService.createExactPath(newPath, is, mimeType, name);
+						continue;
+					case "CREATE?exactPath":
+						apiService.createExactPath(path, is, mimeType, name);
+						continue;
+					case "UPSERT?exactPath":
+						if (versionStore.exists(new PK(path, null))) {
 							apiService.update(path, is, mimeType, name);
-							continue;
+						} else {
+							apiService.createExactPath(path, is, mimeType, name);
 						}
-						if ("DELETE".equals(op)) {
-							apiService.delete(path, "");
-							continue;
-						}
-						if ("UNDELETE".equals(op)) {
-							apiService.undelete(path);
-							continue;
-						}
+						continue;
+					case "UPDATE":
+						apiService.update(path, is, mimeType, name);
+						continue;
+					case "DELETE":
+						apiService.delete(path, "");
+						continue;
+					case "UNDELETE":
+						apiService.undelete(path);
+						continue;
+					default:
 						if (op.startsWith("RESTORE?hash")) {
 							// extract hash from op
 							String[] parts = op.split("=");
@@ -222,16 +217,37 @@ public class ConsoleService {
 								apiService.restore(path, parts[1]);
 							}
 						}
-
 					}
 				}
-				versionStore.commit();
-			} catch (Throwable e) {
-				versionStore.rollback();
-				LOGGER.error("Transaction failed {}", Context.transactionIdOrNull(), e);
-				throw new IOException("Transaction rolled back", e);
 			}
-		
+			Optional<List<Long>> lcks = versionStore.findActiveAdvisoryLocks(txnId);
+			
+			if (lcks.isPresent()) {
+				lcks.get().stream().forEach((l) -> {
+					LOGGER.info("Advisory lock - {}", l);
+				});
+			}
+			
+			versionStore.commit();
+			
+			
+			lcks = versionStore.findActiveAdvisoryLocks(txnId);
+			
+			if (lcks.isPresent() && !lcks.get().isEmpty()) {
+				LOGGER.warn("Possible leak - advisory locks not released for transaction {}", txnId);
+				lcks.get().stream().forEach((l) -> {
+					LOGGER.info("Advisory lock - {}", l);
+				});
+			} else {
+				LOGGER.info("No advisory locks obtained or Advisory locks released");
+			}
+		} catch (Throwable e) {
+			String txnId = Context.transactionIdOrNull();
+			versionStore.rollback();
+			LOGGER.error("Transaction failed {}", txnId, e);
+			throw new IOException("Transaction rolled back", e);
+		}
+
 	}
 
 	private List<String> getPathsToLock(List<Transaction> transactions, String namespace) {

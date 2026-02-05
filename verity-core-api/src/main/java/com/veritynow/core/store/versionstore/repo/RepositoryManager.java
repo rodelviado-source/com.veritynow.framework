@@ -73,6 +73,10 @@ public class RepositoryManager {
     }
 	
 	
+	public boolean pathExists(String path) {
+		return inodeRepo.resolveInodeId(path).isPresent();
+	}
+	
 	public List<VersionMeta> getChildrenLatestVersion(String nodePath) throws IOException {
         Objects.requireNonNull(nodePath, "nodePath");
 

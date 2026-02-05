@@ -105,21 +105,25 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 
 
 	@Override
-	public Optional<CloseableLockHandle> findActiveLock(String txnId) {
+	public Optional<List<Long>> findActiveAdvisoryLocks(String txnId) {
 		if (lockingService != null) {
-			Optional<LockHandle> lh =  lockingService.findActiveLock(txnId);
-			if (lh.isPresent()) {
-				return Optional.of(new CloseableLockHandle(lockingService, lh.get()));
-			}
+			return lockingService.findActiveAdvisoryLocks(txnId);
 		}
 		return Optional.empty();
 	}
 
+	@Override
+	public Optional<Long> findActiveAdvisoryLock(String txnId, String path) {
+		if (lockingService != null) {
+			return lockingService.findActiveAdvisoryLock(txnId, path);
+		}
+		return Optional.empty();
+	}
 
 	@Override
-	public CloseableLockHandle tryAcquireLock(List<String> paths, int maxTries, int intervalBetweenTriesMs, int jitterMs) {
+	public CloseableLockHandle tryAcquireLock(List<String> paths, int maxAttempts, int delayBetweenAttemptsMs) {
 		if (lockingService != null) {
-				LockHandle lh = lockingService.tryAcquireLock(paths, maxTries, intervalBetweenTriesMs, jitterMs);
+				LockHandle lh = lockingService.tryAcquireLock(paths, maxAttempts, delayBetweenAttemptsMs);
 				CloseableLockHandle clh = new CloseableLockHandle(lockingService, lh); 
 				return clh;
 		}
@@ -130,13 +134,10 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 
 	@Override
 	public void release(CloseableLockHandle handle) {
-		if (lockingService != null) {
-			try {
-				handle.close();
-			} catch (Exception e) {
-				//throw new RuntimeException(e);
-			}
-		}	
+		try (handle) {
+		} catch (Exception ignore) {
+			//throw new RuntimeException(e);
+		}
 	}
 
 	
@@ -162,6 +163,14 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
         return getLatestVersion(key.path()).isPresent();
     }
 
+    
+    @Override
+    public boolean pathExists(PK key) throws IOException {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(key.path(), "key.path");
+        return repositoryManager.pathExists(key.path());
+    }
+    
     // ----------------------------
  	// CREATE - create a new version with new UUID(storeId) , under path/{storeId}
  	// 
@@ -382,7 +391,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 
     private CloseableLockHandle tryAcquireLock(String path) {
     	if (lockingService != null)
-    		return tryAcquireLock(List.of(path),5, 100,50);
+    		return tryAcquireLock(List.of(path),5, 100);
     	LOGGER.warn("Unable to acquire lock for path {}", path);
     	throw new IllegalStateException("Unable to acquire lock");
     }
@@ -390,8 +399,10 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     private void persistAndPublish(String nodePath, BlobMeta blobMeta,  StoreOperation operation) throws IOException {
     	//Capture global context/transaction context, if no active context then create a store context 
     	//with sane defaults
-    	//if no transaction and global Context
-    	//StoreContext is just operation capture - read/write/update/restore etc with synthesize ids--
+    	
+    	//If no active gobal/transaction context StoreContext is just "operation" capture 
+    	//read/write/update/restore etc with synthesize ids 
+    	//transactionId is set to null and transactionResult is set to AUTO_COMMITTED--
     	StoreContext sc = StoreContext.create(operation.name());
         PathEvent pe = new PathEvent(nodePath,  sc);
         VersionMeta vm = new VersionMeta(blobMeta, pe);
@@ -424,5 +435,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     private static boolean isDeleted(VersionMeta m ) {
     	return StoreOperation.Deleted().equals(m.operation());
     }
-   
+
+
+	   
 }

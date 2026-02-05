@@ -2,6 +2,7 @@ package util;
 
 import java.time.Duration;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 public class ProcessUtil {
 	
 	private static final Logger LOGGER = LogManager.getLogger();
+	static Random random = new Random();
 	
 	public static void killProcess(String processName) {
 
@@ -79,4 +81,9 @@ public class ProcessUtil {
 	    return  baseDelayMs + random.nextInt(maxJitter);
 	}
 
+	
+	public static Duration backoffWithJitter(int delayBetweenAttempts, int attempt, int maxDelay) {
+		 int expDelay =  Math.min(maxDelay, delayBetweenAttempts * (int) Math.pow(2, attempt));
+		 return Duration.ofMillis(ThreadLocalRandom.current().nextInt(0, expDelay));
+	}
 }
