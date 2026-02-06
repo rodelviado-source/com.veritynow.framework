@@ -123,26 +123,32 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 
 	@Override
 	public CloseableLockHandle tryAcquireLock(List<String> paths, int maxAttempts, int delayBetweenAttemptsMs) {
-		if (lockingService != null) {
-				LockHandle lh = lockingService.tryAcquireLock(paths, maxAttempts, delayBetweenAttemptsMs);
-				CloseableLockHandle clh = new CloseableLockHandle(lockingService, lh); 
-				return clh;
+		try {
+			if (lockingService != null) {
+					LockHandle lh = lockingService.tryAcquireLock(paths, maxAttempts, delayBetweenAttemptsMs);
+					CloseableLockHandle clh = new CloseableLockHandle(lockingService, lh); 
+					return clh;
+			}
+		} catch (Exception e) {
+			LOGGER.warn("Unable to acquire lock for path {}", paths);
+			throw new IllegalStateException("Unable to acquire lock", e);
 		}
-			 
-		LOGGER.warn("Unable to acquire lock for path {}", paths);
-    	throw new IllegalStateException("Unable to acquire lock");
+		return null;
 	}
 	
 	@Override
 	public CloseableLockHandle tryAcquireLock(List<String> paths) {
-		if (lockingService != null) {
-				LockHandle lh = lockingService.tryAcquireLock(paths, maxAttempts, delayBetweenAttempts);
-				CloseableLockHandle clh = new CloseableLockHandle(lockingService, lh); 
-				return clh;
+		try {
+			if (lockingService != null) {
+					LockHandle lh = lockingService.tryAcquireLock(paths, maxAttempts, delayBetweenAttempts);
+					CloseableLockHandle clh = new CloseableLockHandle(lockingService, lh); 
+					return clh;
+			}  
+		}catch (Exception e) {
+			LOGGER.warn("Unable to acquire lock for path {}", paths);
+			throw new IllegalStateException("Unable to acquire lock", e);
 		}
-		
-		LOGGER.warn("Unable to acquire lock for path {}", paths);
-    	throw new IllegalStateException("Unable to acquire lock");
+		return null;
 	}
 
 	
