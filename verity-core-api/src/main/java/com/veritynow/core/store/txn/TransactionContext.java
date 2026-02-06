@@ -94,11 +94,11 @@ public class TransactionContext  {
 		putSavepoint(txn, sp);
 	}
 
-	public static Optional<List<Long>> getActiveAdvisoryLocks(String txnId) {
+	public static List<Long> getActiveAdvisoryLocks(String txnId) {
 		List<Long> lckIds = lcks.get(txnId);
 		if (lckIds != null)
-			return Optional.of(lckIds.stream().toList());
-		return Optional.empty();
+			return lckIds.stream().toList();
+		return List.of();
 	}
 	
 	public static Optional<Long> getActiveAdvisoryLock(String txnId, String path) {

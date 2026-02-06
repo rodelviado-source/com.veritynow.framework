@@ -4,7 +4,6 @@ import static com.veritynow.core.store.persistence.jooq.Tables.VN_DIR_ENTRY;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE_PATH_SEGMENT;
 import static org.jooq.impl.DSL.condition;
-import static org.jooq.impl.DSL.val;
 
 import java.sql.Connection;
 import java.util.ArrayList;
@@ -12,7 +11,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.Param;
 import org.jooq.Record;
 import org.jooq.Record1;
 import org.jooq.Result;
@@ -36,6 +39,7 @@ import com.veritynow.core.store.versionstore.model.InodePathSegment;
 public final class InodeRepository {
 
     private final DSLContext defaultDSL;
+    private static final Logger LOGGER = LogManager.getLogger();
     
     public InodeRepository(DSLContext dsl) {
         this.defaultDSL = dsl;
@@ -64,14 +68,47 @@ public final class InodeRepository {
     public Optional<Long> findIdByScopeKey(String scopeKey) {
         Objects.requireNonNull(scopeKey, "scopeKey");
         DSLContext dsl = ensureDSL();
-        
+
         Record1<Long> r = dsl
             .select(VN_INODE.ID)
             .from(VN_INODE)
-            .where(condition("{0} = cast({1} as ltree)", VN_INODE.SCOPE_KEY, val(scopeKey)))
+            .where(VN_INODE.SCOPE_KEY.eq(Ltree.ltree(scopeKey)))
             .fetchOne();
 
         return r == null ? Optional.empty() : Optional.ofNullable(r.value1());
+    }
+
+    /**
+     * Resolve the nearest existing inode for the given scope key.
+     *
+     * Semantics:
+     * - If there is an exact match, returns that inode id.
+     * - Otherwise, returns the deepest (longest) existing ancestor scope key.
+     * - Returns empty if no ancestor exists.
+     *
+     * This is the natural place to leverage ltree containment operators.
+     */
+    public Optional<Long> findNearestExistingInodeIdByScopeKey(String scopeKeyString) {
+        if (scopeKeyString == null || scopeKeyString.isBlank()) {
+            return Optional.empty();
+        }
+
+        DSLContext dsl = ensureDSL();
+		
+		Param<Ltree> target = DSL.val(Ltree.ltree(scopeKeyString), VN_INODE.SCOPE_KEY.getDataType() );
+
+        // candidate @> target  ==> candidate is ancestor of target (or equals)
+        // pick the deepest ancestor by ordering on nlevel(scope_key) DESC
+         
+		Field<Integer> nlevel = DSL.field("nlevel({0})", Integer.class, VN_INODE.SCOPE_KEY);
+		
+        return dsl
+            .select(VN_INODE.ID)
+            .from(VN_INODE)
+            .where(condition("{0} @> {1}", VN_INODE.SCOPE_KEY, target))
+            .orderBy(nlevel.desc())
+            .limit(1)
+            .fetchOptional(VN_INODE.ID);
     }
 
     public Optional<Inode> findById(Long id) {
@@ -115,6 +152,20 @@ public final class InodeRepository {
 		return findIdByScopeKey(scopeKey);
     }
 
+    
+    boolean pathExists(String path) {
+    	Objects.requireNonNull(path, "path");	
+    DSLContext dsl = ensureDSL();
+    String scopeKey = PathKeyCodec.toLTree(path); // whatever you already use
+
+    return dsl.fetchExists(
+        dsl.selectOne()
+           .from(VN_INODE)
+           .where(VN_INODE.SCOPE_KEY.eq(
+               DSL.val(Ltree.ltree(scopeKey), VN_INODE.SCOPE_KEY.getDataType())
+           ))
+    );
+    }
 
     public List<InodePathSegment> findAllByInodeIdOrderByOrdAsc(Long inodeId) {
         Objects.requireNonNull(inodeId, "inodeId");
@@ -267,6 +318,9 @@ public final class InodeRepository {
     }
     
     
+    
+
+    
     private InodePathSegment toInodePathSegment(
         Record r,
         VnInode I,
@@ -308,40 +362,137 @@ public final class InodeRepository {
   	}
 
     public void ensureRootInode() {
-        if (findIdByScopeKey(PathKeyCodec.ROOT_LABEL).isPresent()) {
-            return;
+       
+        DSLContext dsl = ensureDSL();
+
+        boolean exists = dsl.fetchExists(
+            dsl.selectOne()
+               .from(VN_INODE)
+               .where(VN_INODE.SCOPE_KEY.eq(Ltree.ltree(PathKeyCodec.ROOT_LABEL)))
+        );
+
+        if (!exists) {
+            dsl.insertInto(VN_INODE)
+               .set(VN_INODE.SCOPE_KEY, Ltree.ltree(PathKeyCodec.ROOT_LABEL))
+               .execute();
         }
-        save(new Inode(PathKeyCodec.ROOT_LABEL));
     }
     
     
     public Inode resolveOrCreateInode(String nodePath) {
-        List<String> segs = PathUtils.splitSegments(nodePath);
-        Inode cur = rootInode();
+    Objects.requireNonNull(nodePath, "nodePath");
 
-        for (String seg : segs) {
+    // Normalize for consistent semantics (callers sometimes pass trailing slash, etc.)
+    nodePath = PathUtils.normalizePath(nodePath);
+
+    // Ensure the root exists (scope_key = ROOT_LABEL)
+    ensureRootInode();
+
+    List<String> segs = PathUtils.splitSegments(nodePath);
+    Inode root = rootInode();
+
+    // Fast path: root
+    if (segs.isEmpty()) {
+        return root;
+    }
+
+    // Compute the full scope key for the target path, and keep prefix scope keys so we can
+    // map the nearest existing inode back to a segment index.
+    String curScope = root.scopeKey();
+    List<String> prefixScopeKeys = new ArrayList<>(segs.size());
+    for (String seg : segs) {
+        curScope = PathKeyCodec.appendSegLabel(curScope, PathKeyCodec.label(seg));
+        prefixScopeKeys.add(curScope);
+    }
+    String targetScopeKey = prefixScopeKeys.get(prefixScopeKeys.size() - 1);
+
+    // Find the deepest existing ancestor (or self) by scope_key.
+    // If none is found, fall back to root (should not happen if root exists).
+    Inode cur = root;
+    List<InodePathSegment> curSegs = List.of();
+
+    Optional<Long> nearestIdOpt = findNearestExistingInodeIdByScopeKey(targetScopeKey);
+    if (nearestIdOpt.isPresent()) {
+        Inode nearest = findById(nearestIdOpt.get()).orElse(root);
+        cur = nearest;
+
+        // Determine how many segments are already present in this nearest inode.
+        // This lets us avoid re-walking/reading the graph for the prefix we already have.
+        int existingDepth = 0;
+        String nearestScope = nearest.scopeKey();
+
+        if (nearestScope != null && nearestScope.equals(root.scopeKey())) {
+            existingDepth = 0;
+        } else {
+            int idx = prefixScopeKeys.indexOf(nearestScope);
+            existingDepth = (idx >= 0) ? (idx + 1) : 0;
+        }
+
+        // Materialized path segments for the current inode; reused/extended as we create new nodes.
+        curSegs = (cur.id() != null) ? findAllByInodeIdOrderByOrdAsc(cur.id()) : List.of();
+
+        // Create remaining suffix starting from the nearest existing depth.
+        for (int i = existingDepth; i < segs.size(); i++) {
+            String seg = segs.get(i);
+
+            // If the child edge already exists under this inode, follow it.
             Optional<DirEntry> e = findByParentIdAndName(cur.id(), seg);
             if (e.isPresent()) {
                 cur = e.get().child();
+                curSegs = findAllByInodeIdOrderByOrdAsc(cur.id());
                 continue;
             }
-            String childScopeKey = PathKeyCodec.appendSegLabel(cur.scopeKey(), PathKeyCodec.label(seg));
-            
+
+            String childScopeKey = prefixScopeKeys.get(i);
             Inode child = save(new Inode(childScopeKey));
-			DirEntry entry = save(new DirEntry(cur, seg, child));
-			
-			List<InodePathSegment> parentSegs = findAllByInodeIdOrderByOrdAsc(cur.id());
-			List<InodePathSegment> childSegs = new ArrayList<>(parentSegs.size() + 1);
-			for (InodePathSegment ps : parentSegs) {
-				childSegs.add(new InodePathSegment(child, ps.ord(), ps.dirEntry()));
-			}
-			childSegs.add(new InodePathSegment(child, parentSegs.size(), entry));
-			saveAll(childSegs);
-			
+
+            DirEntry entry = save(new DirEntry(cur, seg, child));
+
+            // Build the child's materialized path segments by copying the parent's segments
+            // and appending the new edge at the next ordinal.
+            List<InodePathSegment> childSegs = new ArrayList<>(curSegs.size() + 1);
+            for (InodePathSegment ps : curSegs) {
+                childSegs.add(new InodePathSegment(child, ps.ord(), ps.dirEntry()));
+            }
+            childSegs.add(new InodePathSegment(child, curSegs.size(), entry));
+            saveAll(childSegs);
+
             cur = child;
+            curSegs = childSegs;
         }
+
         return cur;
     }
+
+    // Conservative fallback: old behavior (walk from root via dir entries).
+    // This should be rare if scope_key is kept coherent.
+    LOGGER.error("Scope key is not coherent");
+    cur = root;
+    for (String seg : segs) {
+        Optional<DirEntry> e = findByParentIdAndName(cur.id(), seg);
+        if (e.isPresent()) {
+            cur = e.get().child();
+            continue;
+        }
+
+        String childScopeKey = PathKeyCodec.appendSegLabel(cur.scopeKey(), PathKeyCodec.label(seg));
+        Inode child = save(new Inode(childScopeKey));
+        DirEntry entry = save(new DirEntry(cur, seg, child));
+
+        List<InodePathSegment> parentSegs = findAllByInodeIdOrderByOrdAsc(cur.id());
+        List<InodePathSegment> childSegs = new ArrayList<>(parentSegs.size() + 1);
+        for (InodePathSegment ps : parentSegs) {
+            childSegs.add(new InodePathSegment(child, ps.ord(), ps.dirEntry()));
+        }
+        childSegs.add(new InodePathSegment(child, parentSegs.size(), entry));
+        saveAll(childSegs);
+
+        cur = child;
+    }
+    return cur;
+}
+ 
+  
     
    private static Inode toInode(VnInodeRecord r) {
         

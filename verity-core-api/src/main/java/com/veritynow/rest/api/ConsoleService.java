@@ -2,6 +2,7 @@ package com.veritynow.rest.api;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -210,20 +211,36 @@ public class ConsoleService {
 						apiService.undelete(path);
 						continue;
 					default:
-						if (op.startsWith("RESTORE?hash")) {
+						if (op.startsWith("RESTORE?")) {
 							// extract hash from op
-							String[] parts = op.split("=");
-							if (parts.length == 2) {
-								apiService.restore(path, parts[1]);
+							
+							String[] parts = op.substring("RESTORE?".length()).split("=");
+							Map<String, String> p = new HashMap<>();
+							for (int i = 0; i  < parts.length - 2; i=i+2)
+								p.put(parts[i], parts[i+1]);
+							
+							String hash = p.get("hash");
+							String algo = p.get("algo");
+							
+							if (hash != null && algo != null) {
+								apiService.restore(path, hash, algo);
+								continue;
+							} else if (hash != null) {
+								apiService.restore(path, hash);
+								continue;
+							} else {
+								throw new IllegalArgumentException("Invalid or missing operation parameters" + op);
 							}
 						}
+						throw new IllegalArgumentException("Invalid Operation " + op);
 					}
+					
 				}
 			}
-			Optional<List<Long>> lcks = versionStore.findActiveAdvisoryLocks(txnId);
+			List<Long> lcksBefore = versionStore.findActiveAdvisoryLocks(txnId);
 			
-			if (lcks.isPresent()) {
-				lcks.get().stream().forEach((l) -> {
+			if (!lcksBefore.isEmpty()) {
+				lcksBefore.stream().forEach((l) -> {
 					LOGGER.info("Advisory lock - {}", l);
 				});
 			}
@@ -231,15 +248,19 @@ public class ConsoleService {
 			versionStore.commit();
 			
 			
-			lcks = versionStore.findActiveAdvisoryLocks(txnId);
+			List<Long> lcksNow = versionStore.findActiveAdvisoryLocks(txnId);
 			
-			if (lcks.isPresent() && !lcks.get().isEmpty()) {
+			if (!lcksBefore.isEmpty()  && !lcksNow.isEmpty()) {
 				LOGGER.warn("Possible leak - advisory locks not released for transaction {}", txnId);
-				lcks.get().stream().forEach((l) -> {
+				lcksNow.stream().forEach((l) -> {
 					LOGGER.info("Advisory lock - {}", l);
 				});
-			} else {
-				LOGGER.info("No advisory locks obtained or Advisory locks released");
+			} else if (lcksBefore.isEmpty() && lcksNow.isEmpty()){
+				LOGGER.info("No advisory locks was acquired");
+			} else if (!lcksBefore.isEmpty() && lcksNow.isEmpty()){
+				lcksBefore.stream().forEach((l) -> {
+					LOGGER.info("Advisory lock - {} released", l);
+				});
 			}
 		} catch (Throwable e) {
 			String txnId = Context.transactionIdOrNull();

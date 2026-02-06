@@ -1,7 +1,9 @@
 package com.veritynow.core.store.versionstore.repo;
 
+import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_HEAD;
 import static com.veritynow.core.store.persistence.jooq.Tables.VN_NODE_VERSION;
+import static org.jooq.impl.DSL.condition;
 import static org.jooq.impl.DSL.currentOffsetDateTime;
 import static org.jooq.impl.DSL.excluded;
 import static org.jooq.impl.DSL.field;
@@ -16,6 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.jooq.CommonTableExpression;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.InsertSetMoreStep;
@@ -23,6 +26,7 @@ import org.jooq.Record;
 import org.jooq.Record2;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
+import org.jooq.postgres.extensions.types.Ltree;
 
 import com.veritynow.core.context.Context;
 import com.veritynow.core.store.meta.VersionMeta;
@@ -31,237 +35,357 @@ import com.veritynow.core.store.txn.TransactionContext;
 
 public final class VersionMetaRepository {
 
-	private final DSLContext defaultDSL;
-	
+    private final DSLContext defaultDSL;
 
-	public VersionMetaRepository(DSLContext dsl) {
-		this.defaultDSL = Objects.requireNonNull(dsl, "dsl");
-	}
+    public VersionMetaRepository(DSLContext dsl) {
+        this.defaultDSL = Objects.requireNonNull(dsl, "dsl");
+    }
 
-	private DSLContext ensureDSL() {
-		if (!Context.isActive()) {
-			return defaultDSL;
-		}
-		String txnId = Context.transactionIdOrNull();
-		if (txnId == null) {
-			return defaultDSL;
-		}
-		Connection conn = TransactionContext.getConnection(txnId);
-		if (conn == null) {
-			return defaultDSL;
-		}
-    	
-    	return  DSL.using(conn, SQLDialect.POSTGRES);
-	}
+    private DSLContext ensureDSL() {
+        if (!Context.isActive()) {
+            return defaultDSL;
+        }
+        String txnId = Context.transactionIdOrNull();
+        if (txnId == null) {
+            return defaultDSL;
+        }
+        Connection conn = TransactionContext.getConnection(txnId);
+        if (conn == null) {
+            return defaultDSL;
+        }
+        // txn-bound DSL (no singleton leakage)
+        return DSL.using(conn, SQLDialect.POSTGRES);
+    }
 
-	public List<VersionMeta> findAllByInodeIdOrderByTimestampDescIdDesc(Long inodeId) {
-		Objects.requireNonNull(inodeId, "inodeId");
+    // -------------------------
+    // Existing API
+    // -------------------------
 
-		DSLContext dsl = ensureDSL();
+    public List<VersionMeta> findAllByInodeIdOrderByTimestampDescIdDesc(Long inodeId) {
+        Objects.requireNonNull(inodeId, "inodeId");
+        DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION).where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
-				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
-	}
+        return dsl.selectFrom(VN_NODE_VERSION)
+                .where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+                .orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
+                .fetch(this::nodeVersionToVersionMeta);
+    }
 
-	public VersionMeta save(VersionMeta vm, Long inodeId) {
-		Objects.requireNonNull(vm, "vme");
-		Objects.requireNonNull(inodeId, "inodeId");
+    public VersionMeta save(VersionMeta vm, Long inodeId) {
+        Objects.requireNonNull(vm, "vme");
+        Objects.requireNonNull(inodeId, "inodeId");
 
-		DSLContext dsl = ensureDSL();
+        DSLContext dsl = ensureDSL();
 
-		VnNodeVersionRecord inserted = dsl.insertInto(VN_NODE_VERSION).set(VN_NODE_VERSION.INODE_ID, inodeId)
-				// .set(VN_NODE_VERSION.TIMESTAMP, DBTime.nowEpochMs()) set by DB
-				.set(VN_NODE_VERSION.PATH, vm.path()).set(VN_NODE_VERSION.OPERATION, vm.operation())
-				.set(VN_NODE_VERSION.PRINCIPAL, vm.principal()).set(VN_NODE_VERSION.CORRELATION_ID, vm.correlationId())
-				.set(VN_NODE_VERSION.WORKFLOW_ID, vm.workflowId()).set(VN_NODE_VERSION.CONTEXT_NAME, vm.contextName())
-				.set(VN_NODE_VERSION.TRANSACTION_ID, vm.transactionId())
-				.set(VN_NODE_VERSION.TRANSACTION_RESULT, vm.transactionResult())
-				.set(VN_NODE_VERSION.HASH_ALGORITHM, vm.hashAlgorithm()).set(VN_NODE_VERSION.HASH, vm.hash())
-				.set(VN_NODE_VERSION.NAME, vm.name()).set(VN_NODE_VERSION.MIME_TYPE, vm.mimeType())
-				.set(VN_NODE_VERSION.SIZE, vm.size()).returning(VN_NODE_VERSION.fields()) // <-- key change
-				.fetchOneInto(VnNodeVersionRecord.class);
+        VnNodeVersionRecord inserted = dsl.insertInto(VN_NODE_VERSION)
+                .set(VN_NODE_VERSION.INODE_ID, inodeId)
+                .set(VN_NODE_VERSION.PATH, vm.path())
+                .set(VN_NODE_VERSION.OPERATION, vm.operation())
+                .set(VN_NODE_VERSION.PRINCIPAL, vm.principal())
+                .set(VN_NODE_VERSION.CORRELATION_ID, vm.correlationId())
+                .set(VN_NODE_VERSION.WORKFLOW_ID, vm.workflowId())
+                .set(VN_NODE_VERSION.CONTEXT_NAME, vm.contextName())
+                .set(VN_NODE_VERSION.TRANSACTION_ID, vm.transactionId())
+                .set(VN_NODE_VERSION.TRANSACTION_RESULT, vm.transactionResult())
+                .set(VN_NODE_VERSION.HASH_ALGORITHM, vm.hashAlgorithm())
+                .set(VN_NODE_VERSION.HASH, vm.hash())
+                .set(VN_NODE_VERSION.NAME, vm.name())
+                .set(VN_NODE_VERSION.MIME_TYPE, vm.mimeType())
+                .set(VN_NODE_VERSION.SIZE, vm.size())
+                .returning(VN_NODE_VERSION.fields())
+                .fetchOneInto(VnNodeVersionRecord.class);
 
-		if (inserted == null || inserted.getId() == null) {
-			throw new IllegalStateException("Insert into vn_node_version did not return an id");
-		}
+        if (inserted == null || inserted.getId() == null) {
+            throw new IllegalStateException("Insert into vn_node_version did not return an id");
+        }
 
-		return nodeVersionToVersionMeta(inserted);
+        return nodeVersionToVersionMeta(inserted);
+    }
 
-	}
+    public Optional<VersionMeta> findLatestVersionByInodeId(Long inodeId) {
+        Objects.requireNonNull(inodeId, "inodeId");
 
-	public Optional<VersionMeta> findLatestVersionByInodeId(Long inodeId) {
-		Objects.requireNonNull(inodeId, "inodeId");
+        DSLContext dsl = ensureDSL();
 
-		DSLContext dsl = ensureDSL();
+        return dsl.select(VN_NODE_VERSION.fields())
+                .from(VN_NODE_HEAD)
+                .join(VN_NODE_VERSION).on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID))
+                .where(VN_NODE_HEAD.INODE_ID.eq(inodeId))
+                .fetchOptional(this::fromHeadVersiontoVersionMeta);
+    }
 
-		return dsl.select(VN_NODE_VERSION.fields()).from(VN_NODE_HEAD).join(VN_NODE_VERSION)
-				.on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID)).where(VN_NODE_HEAD.INODE_ID.eq(inodeId))
-				.fetchOptional(this::fromHeadVersiontoVersionMeta); // mapper reads VN_NODE_VERSION only
-	}
+    public List<VersionMeta> findByTransactionId(String transactionId) {
+        Objects.requireNonNull(transactionId, "transactionId");
+        DSLContext dsl = ensureDSL();
 
-	public List<VersionMeta> findByTransactionId(String transactionId) {
-		Objects.requireNonNull(transactionId, "transactionId");
+        return dsl.selectFrom(VN_NODE_VERSION)
+                .where(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId))
+                .orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
+                .fetch(this::nodeVersionToVersionMeta);
+    }
 
-		DSLContext dsl = ensureDSL();
+    public List<VersionMeta> findByCorrelationId(String correlationId) {
+        Objects.requireNonNull(correlationId, "correlationId");
+        DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION).where(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId))
-				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
-	}
+        return dsl.selectFrom(VN_NODE_VERSION)
+                .where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId))
+                .orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
+                .fetch(this::nodeVersionToVersionMeta);
+    }
 
-	public List<VersionMeta> findByCorrelationId(String correlationId) {
-		Objects.requireNonNull(correlationId, "correlationId");
+    public List<VersionMeta> findByCorrelationIdAndTransactionId(String correlationId, String transactionId) {
+        Objects.requireNonNull(correlationId, "correlationId");
+        Objects.requireNonNull(transactionId, "transactionId");
+        DSLContext dsl = ensureDSL();
 
-		DSLContext dsl = ensureDSL();
+        return dsl.selectFrom(VN_NODE_VERSION)
+                .where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId)
+                        .and(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId)))
+                .orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
+                .fetch(this::nodeVersionToVersionMeta);
+    }
 
-		return dsl.selectFrom(VN_NODE_VERSION).where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId))
-				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
-	}
+    public List<VersionMeta> findByWorkflowId(String workflowId) {
+        Objects.requireNonNull(workflowId, "workflowId");
+        DSLContext dsl = ensureDSL();
 
-	public List<VersionMeta> findByCorrelationIdAndTransactionId(String correlationId, String transactionId) {
-		Objects.requireNonNull(correlationId, "correlationId");
-		Objects.requireNonNull(transactionId, "transactionId");
+        return dsl.selectFrom(VN_NODE_VERSION)
+                .where(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId))
+                .orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
+                .fetch(this::nodeVersionToVersionMeta);
+    }
 
-		DSLContext dsl = ensureDSL();
+    public List<VersionMeta> findByWorkflowIdAndCorrelationId(String workflowId, String correlationId) {
+        Objects.requireNonNull(workflowId, "workflowId");
+        Objects.requireNonNull(correlationId, "correlationId");
+        DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId)
-						.and(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId)))
-				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
-	}
+        return dsl.selectFrom(VN_NODE_VERSION)
+                .where(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId)
+                        .and(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId)))
+                .orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
+                .fetch(this::nodeVersionToVersionMeta);
+    }
 
-	public List<VersionMeta> findByWorkflowId(String workflowId) {
-		Objects.requireNonNull(workflowId, "workflowId");
+    public List<VersionMeta> findByWorkflowIdAndCorrelationIdAndTransactionId(
+            String workflowId, String correlationId, String transactionId) {
 
-		DSLContext dsl = ensureDSL();
+        Objects.requireNonNull(workflowId, "workflowId");
+        Objects.requireNonNull(correlationId, "correlationId");
+        Objects.requireNonNull(transactionId, "transactionId");
+        DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION).where(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId))
-				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
-	}
+        return dsl.selectFrom(VN_NODE_VERSION)
+                .where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId)
+                        .and(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId)
+                                .and(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId))))
+                .orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
+                .fetch(this::nodeVersionToVersionMeta);
+    }
 
-	public List<VersionMeta> findByWorkflowIdAndCorrelationId(String workflowId, String correlationId) {
-		Objects.requireNonNull(workflowId, "workflowId");
-		Objects.requireNonNull(correlationId, "correlationId");
+    public int saveAndPublish(VersionMeta vm, Long inodeId) {
+        Objects.requireNonNull(vm, "vm");
+        Objects.requireNonNull(inodeId, "inodeId");
 
-		DSLContext dsl = ensureDSL();
+        CommonTableExpression<Record2<Long, Long>> ins = name("ins")
+                .fields("version_id", "inode_id")
+                .as(insertVersionMeta(vm, inodeId)
+                        .returningResult(VN_NODE_VERSION.ID, VN_NODE_VERSION.INODE_ID));
 
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId).and(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId)))
-				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
-	}
+        Field<Long> vId = field(name("ins", "version_id"), Long.class);
+        Field<Long> iId = field(name("ins", "inode_id"), Long.class);
+        Field<OffsetDateTime> now = currentOffsetDateTime();
 
-	public List<VersionMeta> findByWorkflowIdAndCorrelationIdAndTransactionId(String workflowId, String correlationId,
-			String transactionId) {
-		Objects.requireNonNull(workflowId, "workflowId");
-		Objects.requireNonNull(correlationId, "correlationId");
-		Objects.requireNonNull(transactionId, "transactionId");
+        DSLContext dsl = ensureDSL();
 
-		DSLContext dsl = ensureDSL();
+        return dsl.with(ins)
+                .insertInto(VN_NODE_HEAD, VN_NODE_HEAD.INODE_ID, VN_NODE_HEAD.VERSION_ID, VN_NODE_HEAD.UPDATED_AT)
+                .select(select(iId, vId, now).from(table(name("ins"))))
+                .onConflict(VN_NODE_HEAD.INODE_ID)
+                .doUpdate()
+                .set(VN_NODE_HEAD.VERSION_ID, excluded(VN_NODE_HEAD.VERSION_ID))
+                .set(VN_NODE_HEAD.UPDATED_AT, now)
+                .execute();
+    }
 
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId)
-						.and(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId)
-								.and(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId))))
-				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
-	}
+    List<VersionMeta> getWorkflows(Long inodeId) {
+        DSLContext dsl = ensureDSL();
 
-	public int saveAndPublishMeta(VersionMeta vm, Long inodeId) {
-		Objects.requireNonNull(vm, "vm");
-		Objects.requireNonNull(inodeId, "inodeId");
+        return dsl.selectFrom(VN_NODE_VERSION)
+                .where(VN_NODE_VERSION.WORKFLOW_ID.in(
+                        dsl.select(VN_NODE_VERSION.WORKFLOW_ID)
+                                .from(VN_NODE_VERSION)
+                                .where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+                                .and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())
+                ))
+                .orderBy(VN_NODE_VERSION.WORKFLOW_ID.asc(),
+                        VN_NODE_VERSION.TIMESTAMP.desc(),
+                        VN_NODE_VERSION.ID.desc())
+                .fetch(this::nodeVersionToVersionMeta);
+    }
 
-		// Insert the new version row, then move HEAD in".
-		// Update is only allowed if the existing head is also unfenced.
-		CommonTableExpression<Record2<Long, Long>> ins = name("ins").fields("version_id", "inode_id")
-				.as(insertVersionMeta(vm, inodeId).returningResult(VN_NODE_VERSION.ID, VN_NODE_VERSION.INODE_ID));
+    List<VersionMeta> getCorrelations(Long inodeId) {
+        DSLContext dsl = ensureDSL();
 
-		Field<Long> vId = field(name("ins", "version_id"), Long.class);
-		Field<Long> iId = field(name("ins", "inode_id"), Long.class);
-		Field<OffsetDateTime> now = currentOffsetDateTime();
+        return dsl.selectFrom(VN_NODE_VERSION)
+                .where(VN_NODE_VERSION.CORRELATION_ID.in(
+                        dsl.select(VN_NODE_VERSION.CORRELATION_ID)
+                                .from(VN_NODE_VERSION)
+                                .where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+                                .and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())
+                ))
+                .orderBy(VN_NODE_VERSION.WORKFLOW_ID.asc(),
+                        VN_NODE_VERSION.TIMESTAMP.desc(),
+                        VN_NODE_VERSION.ID.desc())
+                .fetch(this::nodeVersionToVersionMeta);
+    }
 
-		DSLContext dsl = ensureDSL();
-		
-		int rows = dsl.with(ins)
-				.insertInto(VN_NODE_HEAD, VN_NODE_HEAD.INODE_ID, VN_NODE_HEAD.VERSION_ID, VN_NODE_HEAD.UPDATED_AT)
-				.select(select(iId, vId, now).from(table(name("ins")))).onConflict(VN_NODE_HEAD.INODE_ID).doUpdate()
-				.set(VN_NODE_HEAD.VERSION_ID, excluded(VN_NODE_HEAD.VERSION_ID)).set(VN_NODE_HEAD.UPDATED_AT, now)
-				.execute();
+    List<VersionMeta> getTransactions(Long inodeId) {
+        DSLContext dsl = ensureDSL();
 
-		return rows;
-	}
+        return dsl.selectFrom(VN_NODE_VERSION)
+                .where(VN_NODE_VERSION.TRANSACTION_ID.in(
+                        dsl.select(VN_NODE_VERSION.TRANSACTION_ID)
+                                .from(VN_NODE_VERSION)
+                                .where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+                                .and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())
+                ))
+                .orderBy(VN_NODE_VERSION.WORKFLOW_ID.asc(),
+                        VN_NODE_VERSION.TIMESTAMP.desc(),
+                        VN_NODE_VERSION.ID.desc())
+                .fetch(this::nodeVersionToVersionMeta);
+    }
 
-	List<VersionMeta> getWorkflows(Long inodeId) {
+    // -------------------------
+    // New: bulk head fetch (fix N+1)
+    // -------------------------
 
-		DSLContext dsl = ensureDSL();
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.WORKFLOW_ID.in(dsl.select(VN_NODE_VERSION.WORKFLOW_ID).from(VN_NODE_VERSION)
-						.where(VN_NODE_VERSION.INODE_ID.eq(inodeId)).and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())))
-				.orderBy(VN_NODE_VERSION.WORKFLOW_ID.asc(), VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
-	}
+    public List<VersionMeta> findLatestVersionsByInodeIds(List<Long> inodeIds) {
+        Objects.requireNonNull(inodeIds, "inodeIds");
+        if (inodeIds.isEmpty()) return List.of();
 
-	List<VersionMeta> getCorrelations(Long inodeId) {
+        DSLContext dsl = ensureDSL();
 
-		DSLContext dsl = ensureDSL();
+        return dsl.select(VN_NODE_VERSION.fields())
+                .from(VN_NODE_HEAD)
+                .join(VN_NODE_VERSION).on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID))
+                .where(VN_NODE_HEAD.INODE_ID.in(inodeIds))
+                .fetch(this::fromHeadVersiontoVersionMeta);
+    }
 
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.CORRELATION_ID.in(dsl.select(VN_NODE_VERSION.CORRELATION_ID)
-						.from(VN_NODE_VERSION).where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
-						.and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())))
-				.orderBy(VN_NODE_VERSION.WORKFLOW_ID.asc(), VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
-	}
+    // -------------------------
+    // New: ltree-powered traversal via scope_key
+    // -------------------------
 
-	List<VersionMeta> getTransactions(Long inodeId) {
+    /**
+     * Latest versions for every inode in the subtree rooted at {@code rootScopeKey},
+     * including the root itself.
+     *
+     * Uses: vn_inode.scope_key <@ rootScopeKey
+     */
+    public List<VersionMeta> findLatestVersionsInSubtree(String rootScopeKey) {
+        Objects.requireNonNull(rootScopeKey, "rootScopeKey");
 
-		DSLContext dsl = ensureDSL();
+        DSLContext dsl = ensureDSL();
+        Ltree root = Ltree.ltree(rootScopeKey);
 
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.TRANSACTION_ID.in(dsl.select(VN_NODE_VERSION.TRANSACTION_ID)
-						.from(VN_NODE_VERSION).where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
-						.and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())))
-				.orderBy(VN_NODE_VERSION.WORKFLOW_ID.asc(), VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
-	}
+        Condition inSubtree = condition("{0} <@ {1}", VN_INODE.SCOPE_KEY, root);
 
-	private InsertSetMoreStep<VnNodeVersionRecord> insertVersionMeta(VersionMeta vm, Long inodeId) {
-		DSLContext dsl = ensureDSL();
+        return dsl.select(VN_NODE_VERSION.fields())
+                .from(VN_INODE)
+                .join(VN_NODE_HEAD).on(VN_NODE_HEAD.INODE_ID.eq(VN_INODE.ID))
+                .join(VN_NODE_VERSION).on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID))
+                .where(inSubtree)
+                .fetch(this::fromHeadVersiontoVersionMeta);
+    }
 
-		return dsl.insertInto(VN_NODE_VERSION).set(VN_NODE_VERSION.INODE_ID, inodeId).
-		// set(VN_NODE_VERSION.TIMESTAMP, DBTime.nowEpochMs()). set by DB
-				set(VN_NODE_VERSION.PATH, vm.path()).set(VN_NODE_VERSION.OPERATION, vm.operation())
-				.set(VN_NODE_VERSION.PRINCIPAL, vm.principal()).set(VN_NODE_VERSION.CORRELATION_ID, vm.correlationId())
-				.set(VN_NODE_VERSION.WORKFLOW_ID, vm.workflowId()).set(VN_NODE_VERSION.CONTEXT_NAME, vm.contextName())
-				.set(VN_NODE_VERSION.TRANSACTION_ID, vm.transactionId())
-				.set(VN_NODE_VERSION.TRANSACTION_RESULT, vm.transactionResult())
-				.set(VN_NODE_VERSION.HASH_ALGORITHM, vm.hashAlgorithm()).set(VN_NODE_VERSION.HASH, vm.hash())
-				.set(VN_NODE_VERSION.NAME, vm.name()).set(VN_NODE_VERSION.MIME_TYPE, vm.mimeType())
-				.set(VN_NODE_VERSION.SIZE, vm.size());
-	}
+    /**
+     * Latest versions for the *immediate children* of {@code parentScopeKey}.
+     *
+     * Uses:
+     *  - scope_key <@ parent
+     *  - nlevel(scope_key) = nlevel(parent) + 1
+     */
+    public List<VersionMeta> findLatestVersionsOfChildren(String parentScopeKey) {
+        Objects.requireNonNull(parentScopeKey, "parentScopeKey");
 
-	private VersionMeta fromHeadVersiontoVersionMeta(Record r) {
-		Long size = r.get(VN_NODE_VERSION.SIZE);
-		return new VersionMeta(r.get(VN_NODE_VERSION.HASH_ALGORITHM), r.get(VN_NODE_VERSION.HASH),
-				r.get(VN_NODE_VERSION.NAME), r.get(VN_NODE_VERSION.MIME_TYPE), size == null ? 0L : size,
-				r.get(VN_NODE_VERSION.PATH), r.get(VN_NODE_VERSION.TIMESTAMP), r.get(VN_NODE_VERSION.OPERATION),
-				r.get(VN_NODE_VERSION.PRINCIPAL), r.get(VN_NODE_VERSION.CORRELATION_ID),
-				r.get(VN_NODE_VERSION.WORKFLOW_ID), r.get(VN_NODE_VERSION.CONTEXT_NAME),
-				r.get(VN_NODE_VERSION.TRANSACTION_ID), r.get(VN_NODE_VERSION.TRANSACTION_RESULT));
-	}
+        DSLContext dsl = ensureDSL();
+        Ltree parent = Ltree.ltree(parentScopeKey);
 
-	private VersionMeta nodeVersionToVersionMeta(VnNodeVersionRecord r) {
-		Long size = r.getSize();
-		return new VersionMeta(r.getHashAlgorithm(), r.getHash(), r.getName(), r.getMimeType(),
-				size == null ? 0L : size,
+        Condition inSubtree = condition("{0} <@ {1}", VN_INODE.SCOPE_KEY, parent);
+        Condition depthIsChild = condition("nlevel({0}) = nlevel({1}) + 1", VN_INODE.SCOPE_KEY, parent);
 
-				r.getPath(), r.getTimestamp(), // safe now (not null)
-				r.getOperation(), r.getPrincipal(), r.getCorrelationId(), r.getWorkflowId(), r.getContextName(),
-				r.getTransactionId(), r.getTransactionResult());
-	}
+        return dsl.select(VN_NODE_VERSION.fields())
+                .from(VN_INODE)
+                .join(VN_NODE_HEAD).on(VN_NODE_HEAD.INODE_ID.eq(VN_INODE.ID))
+                .join(VN_NODE_VERSION).on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID))
+                .where(inSubtree.and(depthIsChild))
+                .orderBy(VN_INODE.SCOPE_KEY.asc())
+                .fetch(this::fromHeadVersiontoVersionMeta);
+    }
 
+    // -------------------------
+    // Internals
+    // -------------------------
+
+    private InsertSetMoreStep<VnNodeVersionRecord> insertVersionMeta(VersionMeta vm, Long inodeId) {
+        DSLContext dsl = ensureDSL();
+
+        return dsl.insertInto(VN_NODE_VERSION)
+                .set(VN_NODE_VERSION.INODE_ID, inodeId)
+                .set(VN_NODE_VERSION.PATH, vm.path())
+                .set(VN_NODE_VERSION.OPERATION, vm.operation())
+                .set(VN_NODE_VERSION.PRINCIPAL, vm.principal())
+                .set(VN_NODE_VERSION.CORRELATION_ID, vm.correlationId())
+                .set(VN_NODE_VERSION.WORKFLOW_ID, vm.workflowId())
+                .set(VN_NODE_VERSION.CONTEXT_NAME, vm.contextName())
+                .set(VN_NODE_VERSION.TRANSACTION_ID, vm.transactionId())
+                .set(VN_NODE_VERSION.TRANSACTION_RESULT, vm.transactionResult())
+                .set(VN_NODE_VERSION.HASH_ALGORITHM, vm.hashAlgorithm())
+                .set(VN_NODE_VERSION.HASH, vm.hash())
+                .set(VN_NODE_VERSION.NAME, vm.name())
+                .set(VN_NODE_VERSION.MIME_TYPE, vm.mimeType())
+                .set(VN_NODE_VERSION.SIZE, vm.size());
+    }
+
+    private VersionMeta fromHeadVersiontoVersionMeta(Record r) {
+        Long size = r.get(VN_NODE_VERSION.SIZE);
+        return new VersionMeta(
+                r.get(VN_NODE_VERSION.HASH_ALGORITHM),
+                r.get(VN_NODE_VERSION.HASH),
+                r.get(VN_NODE_VERSION.NAME),
+                r.get(VN_NODE_VERSION.MIME_TYPE),
+                size == null ? 0L : size,
+                r.get(VN_NODE_VERSION.PATH),
+                r.get(VN_NODE_VERSION.TIMESTAMP),
+                r.get(VN_NODE_VERSION.OPERATION),
+                r.get(VN_NODE_VERSION.PRINCIPAL),
+                r.get(VN_NODE_VERSION.CORRELATION_ID),
+                r.get(VN_NODE_VERSION.WORKFLOW_ID),
+                r.get(VN_NODE_VERSION.CONTEXT_NAME),
+                r.get(VN_NODE_VERSION.TRANSACTION_ID),
+                r.get(VN_NODE_VERSION.TRANSACTION_RESULT)
+        );
+    }
+
+    private VersionMeta nodeVersionToVersionMeta(VnNodeVersionRecord r) {
+        Long size = r.getSize();
+        return new VersionMeta(
+                r.getHashAlgorithm(),
+                r.getHash(),
+                r.getName(),
+                r.getMimeType(),
+                size == null ? 0L : size,
+                r.getPath(),
+                r.getTimestamp(),
+                r.getOperation(),
+                r.getPrincipal(),
+                r.getCorrelationId(),
+                r.getWorkflowId(),
+                r.getContextName(),
+                r.getTransactionId(),
+                r.getTransactionResult()
+        );
+    }
 }

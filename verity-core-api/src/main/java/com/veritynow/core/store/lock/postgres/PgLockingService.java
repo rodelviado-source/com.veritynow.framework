@@ -5,7 +5,6 @@ import static com.veritynow.core.store.persistence.jooq.Tables.VN_INODE;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -15,6 +14,7 @@ import javax.sql.DataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jooq.DSLContext;
+import org.jooq.Param;
 import org.jooq.SQLDialect;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
@@ -61,7 +61,7 @@ public class PgLockingService implements LockingService {
 	
 	private final DataSource dataSource;
     private final DSLContext defaultDSL;
-	
+    private final int maxDelay = 1000;
 
 	// No background renewal thread.
 	// We rely on the DB-visible expires_at field (and the conflict query ignores
@@ -126,12 +126,12 @@ public class PgLockingService implements LockingService {
 	 * If no transaction-bound connection exists (non-txn / probe usage), this
 	 * method is a no-op and hard-locking falls back to nearest existing ancestors.
 	 */
-	private void tryAcquireCreateAdvisoryLockNowait(String txnId, String scopeKeyString) {
+	private void tryAcquireCreateAdvisoryLockNowait(String txnId, String scopeKeyString, DSLContext dsl) {
 		if (!hasTxnConnection()) return; // advisory_xact_lock only makes sense inside a real txn
 		
 		long key = PathKeyCodec.scopeKeyToLockKey(scopeKeyString);
 
-		if (!acquireAdvisoryLock(key)) {
+		if (!acquireAdvisoryLock(key, dsl)) {
 			throw new IllegalStateException("Lock conflict");
 		}
 		TransactionContext.putLock(txnId, key);
@@ -139,8 +139,7 @@ public class PgLockingService implements LockingService {
 
 	
 	
-	private boolean acquireAdvisoryLock(Long key) {
-		DSLContext dsl = ensureDSL();
+	private boolean acquireAdvisoryLock(Long key, DSLContext dsl) {
 		Boolean ok = dsl.select(
 				DSL.function(PG_ADVISORY_LOCK, Boolean.class, DSL.val(key))
 			).fetchOne(0, Boolean.class);
@@ -148,9 +147,9 @@ public class PgLockingService implements LockingService {
 		return false;		
 	}
 	
-	private Long resolveExactInodeId(String scopeKeyString) {
+	private Long resolveExactInodeId(String scopeKeyString, DSLContext dsl) {
 		if (scopeKeyString == null || scopeKeyString.isBlank()) return null;
-		DSLContext dsl = ensureDSL();
+		
 		return dsl.select(VN_INODE.ID)
 				.from(VN_INODE)
 				.where(VN_INODE.SCOPE_KEY.eq(Ltree.ltree(scopeKeyString)))
@@ -196,21 +195,18 @@ public class PgLockingService implements LockingService {
 	}
 
 	@Override
-	public Optional<List<Long>> findActiveAdvisoryLocks(String txnId) {
+	public List<Long> findActiveAdvisoryLocks(String txnId) {
 		return TransactionContext.getActiveAdvisoryLocks(txnId);
 	}
 
 	@Override
 	public Optional<Long> findActiveAdvisoryLock(String txnId, String path) {
-		Optional<List<Long>> ls = findActiveAdvisoryLocks(txnId);
-		if (ls.isPresent()) {
-			List<Long> l = ls.get();
+		List<Long> ls = findActiveAdvisoryLocks(txnId);
 			Long key = PathKeyCodec.pathToLockKey(path);
-			int idx = l.indexOf(key);
+			int idx = ls.indexOf(key);
 			if (idx > -1) {
-				return Optional.of(l.get(idx));
+				return Optional.of(ls.get(idx));
 			}
-		}
 		return Optional.empty();
 	}
 	
@@ -227,7 +223,7 @@ public class PgLockingService implements LockingService {
 				tries--;
 				if (tries <= 0)
 					throw e;
-				ProcessUtil.sleep(ProcessUtil.backoffWithJitter(delayBetweenAttemptsMs, attempt, 1000));
+				ProcessUtil.sleep(ProcessUtil.backoffWithJitter(delayBetweenAttemptsMs, attempt, maxDelay));
 			}
 		}
 	}
@@ -249,17 +245,19 @@ public class PgLockingService implements LockingService {
 		// chain.
 		// (e.g. when the exact path doesn't exist yet, we lock the closest existing
 		// parent.)
+		DSLContext dsl = ensureDSL();
+		
 		List<Long> rootIds = new ArrayList<>(scopeKeyStrings.size());
 		for (String scopeKey : scopeKeyStrings) {
 			// If the exact path doesn't exist yet, we cannot hard-lock a leaf inode row.
 			// Bridge the create-race by taking a txn-scoped advisory lock on the scope key.
-			Long exact = resolveExactInodeId(scopeKey);
+			Long exact = resolveExactInodeId(scopeKey, dsl);
 			if (exact == null) {
-				tryAcquireCreateAdvisoryLockNowait(txnId, scopeKey);
+				tryAcquireCreateAdvisoryLockNowait(txnId, scopeKey, dsl);
 			}
 			
 			
-			Long id = (exact != null) ? exact : resolveNearestExistingInodeId(scopeKey);
+			Long id = (exact != null) ? exact : resolveNearestExistingInodeId(scopeKey, dsl);
 			if (id == null) {
 				throw new IllegalStateException("No inode exists for scopeKey='" + scopeKey + "' or any ancestor");
 			}
@@ -269,8 +267,7 @@ public class PgLockingService implements LockingService {
 		// Deterministic lock order.
 		rootIds = rootIds.stream().distinct().sorted().toList();
 
-		DSLContext dsl = ensureDSL();
-		
+	
 		try {
 			// Lock order is by inode_id for determinism.
 			dsl.select(VN_INODE.ID).from(VN_INODE).where(VN_INODE.ID.in(rootIds)).orderBy(VN_INODE.ID.asc()).forUpdate()
@@ -285,30 +282,24 @@ public class PgLockingService implements LockingService {
 	}
 
 	/**
-	 * Best-effort: resolve the exact inode by scope_key; if missing, walk up the
-	 * ltree label chain and return the nearest ancestor inode id.
+	 * Resolve the nearest existing inode id for the requested scope.
+	 * <p>
+	 * Uses {@code ltree} containment to find the deepest ancestor (including the
+	 * node itself if it exists).
 	 */
-	private Long resolveNearestExistingInodeId(String scopeKeyString) {
-		if (scopeKeyString == null || scopeKeyString.isBlank())
-			return null;
-		// Fast path: exact match.
-		DSLContext dsl = ensureDSL();
-		
-		Long id = dsl.select(VN_INODE.ID).from(VN_INODE).where(VN_INODE.SCOPE_KEY.eq(Ltree.ltree(scopeKeyString)))
-				.fetchOne(VN_INODE.ID);
-		if (id != null)
-			return id;
+	private Long resolveNearestExistingInodeId(String scopeKeyString, DSLContext dsl) {
+		if (scopeKeyString == null || scopeKeyString.isBlank()) return null;
 
-		// Walk up: "a.b.c" -> "a.b" -> "a".
-		String[] labels = scopeKeyString.split("\\.");
-		for (int n = labels.length - 1; n >= 1; n--) {
-			String anc = String.join(".", Arrays.copyOf(labels, n));
-			id = dsl.select(VN_INODE.ID).from(VN_INODE).where(VN_INODE.SCOPE_KEY.eq(Ltree.ltree(anc)))
-					.fetchOne(VN_INODE.ID);
-			if (id != null)
-				return id;
-		}
-		return null;
+		 
+		Param<Ltree> target = DSL.val(Ltree.ltree(scopeKeyString), VN_INODE.SCOPE_KEY.getDataType());
+
+		return dsl
+		  .select(VN_INODE.ID)
+		  .from(VN_INODE)
+		  .where(DSL.condition("{0} @> {1}", VN_INODE.SCOPE_KEY, target))
+		  .orderBy(DSL.function("nlevel", Integer.class, VN_INODE.SCOPE_KEY).desc())
+		  .limit(1)
+		  .fetchOne(VN_INODE.ID);
 	}
 
 	// ---------- jOOQ kernel ops ----------

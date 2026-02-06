@@ -231,39 +231,31 @@ language plpgsql
 as $$
 declare
   s ltree;
-  lvl int;
-  i int;
-  anc ltree;
-  dummy int;
+  expected int;
+  got int;
 begin
-  -- Read canonical scope from vn_inode (no hashing here)
-  select scope_key into s
-  from public.vn_inode
-  where id = p_inode_id;
+  select scope_key into s from public.vn_inode where id = p_inode_id;
+  if s is null then return; end if;
 
-  if s is null then
-    -- If you allow null scopes (bootstrap/root), nothing to enforce
-    return;
+  expected := nlevel(s);
+
+  with locked as (
+  select id   from public.vn_inode
+  where scope_key @> s
+  for update nowait
+ )
+ 
+ select count(*) into got from locked;
+ 
+  if got <> expected then
+    raise exception 'Scope chain incomplete for inode %, scope %, expected %, got %',
+      p_inode_id, s::text, expected, got;
   end if;
-
-  lvl := nlevel(s);
-
-  -- Lock all ancestors including self: subpath(s, 0, i), i=1..lvl
-  for i in 1..lvl loop
-    anc := subpath(s, 0, i);
-
-    -- Row-lock the inode representing this ancestor scope
-    -- NOWAIT => fail fast on conflict
-    select 1 into dummy
-    from public.vn_inode
-    where scope_key = anc
-    for update nowait;
-
-    -- If the row isn't found, we just continue.
-    -- (If you want strict structural enforcement, raise exception here.)
-  end loop;
 end;
+
 $$;
+
+
 
 create or replace function public.vn_trg_node_head_strict_lock()
 returns trigger

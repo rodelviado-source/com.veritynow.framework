@@ -37,7 +37,10 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     private final ImmutableBackingStore<String, BlobMeta> backingStore;
     private final ContextAwareTransactionManager txnManager;
     private final LockingService lockingService;
-    
+
+    private final int maxAttempts=5;
+    private final int delayBetweenAttempts=100;
+     
     
 	private final RepositoryManager repositoryManager;
 
@@ -103,11 +106,11 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 
 
 	@Override
-	public Optional<List<Long>> findActiveAdvisoryLocks(String txnId) {
+	public List<Long> findActiveAdvisoryLocks(String txnId) {
 		if (lockingService != null) {
 			return lockingService.findActiveAdvisoryLocks(txnId);
 		}
-		return Optional.empty();
+		return List.of();
 	}
 
 	@Override
@@ -126,16 +129,22 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 				return clh;
 		}
 			 
-		return null;
+		LOGGER.warn("Unable to acquire lock for path {}", paths);
+    	throw new IllegalStateException("Unable to acquire lock");
+	}
+	
+	@Override
+	public CloseableLockHandle tryAcquireLock(List<String> paths) {
+		if (lockingService != null) {
+				LockHandle lh = lockingService.tryAcquireLock(paths, maxAttempts, delayBetweenAttempts);
+				CloseableLockHandle clh = new CloseableLockHandle(lockingService, lh); 
+				return clh;
+		}
+		
+		LOGGER.warn("Unable to acquire lock for path {}", paths);
+    	throw new IllegalStateException("Unable to acquire lock");
 	}
 
-	@Override
-	public CloseableLockHandle tryAcquireLock(String path) {
-    	if (lockingService != null)
-    		return tryAcquireLock(List.of(path),5, 100);
-    	LOGGER.warn("Unable to acquire lock for path {}", path);
-    	throw new IllegalStateException("Unable to acquire lock");
-    }
 	
 	@Override
 	public void release(CloseableLockHandle handle) {

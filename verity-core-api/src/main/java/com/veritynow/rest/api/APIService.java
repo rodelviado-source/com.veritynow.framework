@@ -132,6 +132,16 @@ public class APIService {
 	}
 
 	
+	public Optional<VersionMeta> restore(String path, String hash, String algo) throws IOException {
+
+		//At the present parameter algo is ignored, the store's default algo is used instead
+		Optional<BlobMeta> bm = versionStore.restore(new PK(path, hash));
+		if (bm.isPresent()) {
+			return versionStore.getLatestVersion(path);
+		}
+	return Optional.empty();
+}
+	
 
 	private static String lastSegment(String path) {
 		int i = path.lastIndexOf('/');
