@@ -116,11 +116,6 @@ public class VnNodeVersion extends TableImpl<VnNodeVersionRecord> {
     public final TableField<VnNodeVersionRecord, String> OPERATION = createField(DSL.name("operation"), SQLDataType.VARCHAR(255), this, "");
 
     /**
-     * The column <code>public.vn_node_version.path</code>.
-     */
-    public final TableField<VnNodeVersionRecord, String> PATH = createField(DSL.name("path"), SQLDataType.VARCHAR(255), this, "");
-
-    /**
      * The column <code>public.vn_node_version.principal</code>.
      */
     public final TableField<VnNodeVersionRecord, String> PRINCIPAL = createField(DSL.name("principal"), SQLDataType.VARCHAR(255), this, "");

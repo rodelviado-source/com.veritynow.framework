@@ -91,7 +91,6 @@ create table if not exists "public"."vn_node_version" (
   "mime_type" varchar(255),
   "name" varchar(255),
   "operation" varchar(255),
-  "path" varchar(255),
   "principal" varchar(255),
 
   "transaction_id" varchar(255),

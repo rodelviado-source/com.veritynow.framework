@@ -91,7 +91,6 @@ create table if not exists "public"."vn_node_version" (
   "mime_type" varchar(255),
   "name" varchar(255),
   "operation" varchar(255),
-  "path" varchar(255),
   "principal" varchar(255),
 
   "transaction_id" varchar(255),
@@ -214,78 +213,62 @@ $$;
 -- =========================
 -- STRICT ROW-LOCK ENFORCEMENT (trigger)
 -- =========================
---
 -- Model:
---   - acquireLock(scopes) is implemented by SELECT ... FROM vn_inode WHERE scope_key IN (...) FOR UPDATE NOWAIT
+--   - acquireLock(scopes) = SELECT ... FROM vn_inode ... FOR UPDATE NOWAIT
 --   - mutation = head move (INSERT/UPDATE vn_node_head)
---   - trigger enforces subtree lock by attempting to lock ALL ancestors (including self) in vn_inode FOR UPDATE NOWAIT
+--   - trigger enforces subtree lock by locking ALL ancestors (including self) in vn_inode FOR UPDATE NOWAIT
 --
 -- Behavior:
---   - if any ancestor inode row is locked by a different txn, NOWAIT causes immediate failure -> "Lock conflict"
---   - if caller already locked the ancestor(s), this is a no-op (re-entrant at DB row-lock level)
+--   - if any ancestor inode row is locked by a different txn, NOWAIT fails fast -> lock conflict
+--   - if caller already holds the row locks, this is a no-op (DB-level re-entrancy)
 --
--- This does NOT require any auxiliary lock tables.
---
+-- No auxiliary lock tables required.
 
-create or replace function "public"."vn_lock_inode_ancestors_nowait"(p_inode_id bigint)
+create or replace function public.vn_lock_inode_ancestors_nowait(p_inode_id bigint)
 returns void
 language plpgsql
 as $$
 declare
   s ltree;
-  lvl int;
-  i int;
-  anc ltree;
-  dummy int;
+  expected int;
+  got int;
 begin
-  -- Read canonical scope from vn_inode (no recomputation, no hashing here)
-  select scope_key into s
-  from public.vn_inode
-  where id = p_inode_id;
+  select scope_key into s from public.vn_inode where id = p_inode_id;
+  if s is null then return; end if;
 
-  if s is null then
-    -- If you ever allow null scopes (e.g. bootstrap root), nothing to enforce.
-    return;
+  expected := nlevel(s);
+
+  with locked as (
+  select id   from public.vn_inode
+  where scope_key @> s
+  for update nowait
+ )
+ 
+ select count(*) into got from locked;
+ 
+  if got <> expected then
+    raise exception 'Scope chain incomplete for inode %, scope %, expected %, got %',
+      p_inode_id, s::text, expected, got;
   end if;
-
-  lvl := nlevel(s);
-
-  -- Lock all ancestors including self: subpath(s, 0, i)
-  -- i = 1..lvl
-  for i in 1..lvl loop
-    anc := subpath(s, 0, i);
-
-    -- Row-lock the inode representing this ancestor scope.
-    -- NOWAIT => fail fast if any conflicting lock exists.
-    select 1 into dummy
-    from public.vn_inode
-    where scope_key = anc
-    for update nowait;
-
-    -- If not found, it means ancestor inode row is missing (should not happen if your tree is consistent).
-    -- We choose to just continue; alternatively, raise to catch structural bugs.
-  end loop;
 end;
+
 $$;
 
-drop trigger if exists "tr_vn_node_head_strict_lock" on "public"."vn_node_head";
 
-create trigger "tr_vn_node_head_strict_lock"
-before insert or update on "public"."vn_node_head"
-for each row
-execute function "public"."vn_trg_node_head_strict_lock"();
 
-create or replace function "public"."vn_trg_node_head_strict_lock"()
+create or replace function public.vn_trg_node_head_strict_lock()
 returns trigger
 language plpgsql
 as $$
 begin
-  -- Enforce strict subtree lock (ancestor inode row locks).
   perform public.vn_lock_inode_ancestors_nowait(new.inode_id);
   return new;
 end;
 $$;
 
--- NOTE:
--- If you also "move head" via DELETE+INSERT patterns, the INSERT is covered.
--- If you ever mutate heads through other tables, attach the same enforcement there.
+drop trigger if exists tr_vn_node_head_strict_lock on public.vn_node_head;
+
+create trigger tr_vn_node_head_strict_lock
+before insert or update on public.vn_node_head
+for each row
+execute function public.vn_trg_node_head_strict_lock();

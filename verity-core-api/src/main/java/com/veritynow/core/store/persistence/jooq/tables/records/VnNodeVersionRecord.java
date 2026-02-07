@@ -173,73 +173,59 @@ public class VnNodeVersionRecord extends UpdatableRecordImpl<VnNodeVersionRecord
     }
 
     /**
-     * Setter for <code>public.vn_node_version.path</code>.
-     */
-    public void setPath(String value) {
-        set(11, value);
-    }
-
-    /**
-     * Getter for <code>public.vn_node_version.path</code>.
-     */
-    public String getPath() {
-        return (String) get(11);
-    }
-
-    /**
      * Setter for <code>public.vn_node_version.principal</code>.
      */
     public void setPrincipal(String value) {
-        set(12, value);
+        set(11, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.principal</code>.
      */
     public String getPrincipal() {
-        return (String) get(12);
+        return (String) get(11);
     }
 
     /**
      * Setter for <code>public.vn_node_version.transaction_id</code>.
      */
     public void setTransactionId(String value) {
-        set(13, value);
+        set(12, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.transaction_id</code>.
      */
     public String getTransactionId() {
-        return (String) get(13);
+        return (String) get(12);
     }
 
     /**
      * Setter for <code>public.vn_node_version.transaction_result</code>.
      */
     public void setTransactionResult(String value) {
-        set(14, value);
+        set(13, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.transaction_result</code>.
      */
     public String getTransactionResult() {
-        return (String) get(14);
+        return (String) get(13);
     }
 
     /**
      * Setter for <code>public.vn_node_version.workflow_id</code>.
      */
     public void setWorkflowId(String value) {
-        set(15, value);
+        set(14, value);
     }
 
     /**
      * Getter for <code>public.vn_node_version.workflow_id</code>.
      */
     public String getWorkflowId() {
-        return (String) get(15);
+        return (String) get(14);
     }
 
     // -------------------------------------------------------------------------
@@ -265,7 +251,7 @@ public class VnNodeVersionRecord extends UpdatableRecordImpl<VnNodeVersionRecord
     /**
      * Create a detached, initialised VnNodeVersionRecord
      */
-    public VnNodeVersionRecord(Long id, Long inodeId, Long size, Long timestamp, String contextName, String correlationId, String hashAlgorithm, String hash, String mimeType, String name, String operation, String path, String principal, String transactionId, String transactionResult, String workflowId) {
+    public VnNodeVersionRecord(Long id, Long inodeId, Long size, Long timestamp, String contextName, String correlationId, String hashAlgorithm, String hash, String mimeType, String name, String operation, String principal, String transactionId, String transactionResult, String workflowId) {
         super(VnNodeVersion.VN_NODE_VERSION);
 
         setId(id);
@@ -279,7 +265,6 @@ public class VnNodeVersionRecord extends UpdatableRecordImpl<VnNodeVersionRecord
         setMimeType(mimeType);
         setName(name);
         setOperation(operation);
-        setPath(path);
         setPrincipal(principal);
         setTransactionId(transactionId);
         setTransactionResult(transactionResult);
