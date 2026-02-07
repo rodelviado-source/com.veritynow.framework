@@ -246,10 +246,10 @@ public class APIController {
 	}
 
 	@GetMapping(params = "list")
-	public ResponseEntity<List<VersionMeta>> list(HttpServletRequest request, @RequestHeader HttpHeaders headers) {
+	public ResponseEntity<List<VersionMeta>> getChildrenLatestVersion(HttpServletRequest request, @RequestHeader HttpHeaders headers) {
 		try {
 		String path = APIUtils.applyNamespace(request, namespace);
-		 List<VersionMeta> metas = apiService.list(path);
+		 List<VersionMeta> metas = apiService.getChildrenLatestVersion(path);
 		List<VersionMeta> clientMetas = metas.stream().map((vm) -> {return APIUtils.toClientVersionMeta(vm, namespace);}).toList();
 		return ResponseEntity.ok(clientMetas);
 		} catch (Exception e) {

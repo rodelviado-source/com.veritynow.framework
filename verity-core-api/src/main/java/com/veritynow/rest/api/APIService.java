@@ -95,7 +95,7 @@ public class APIService {
 		return Optional.empty();
 	}
 
-	public List<VersionMeta> list(String path) throws IOException {
+	public List<VersionMeta> getChildrenLatestVersion(String path) throws IOException {
 		
 			List<VersionMeta> bms = versionStore.getChildrenLatestVersion(path);
 			return bms.stream().filter(bm -> !StoreOperation.Deleted().equals(bm.operation())).toList();
