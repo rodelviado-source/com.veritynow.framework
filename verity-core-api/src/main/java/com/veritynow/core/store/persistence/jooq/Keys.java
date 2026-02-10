@@ -4,6 +4,13 @@
 package com.veritynow.core.store.persistence.jooq;
 
 
+import org.jooq.ForeignKey;
+import org.jooq.TableField;
+import org.jooq.UniqueKey;
+import org.jooq.impl.DSL;
+import org.jooq.impl.Internal;
+import org.jooq.impl.QOM.ForeignKeyRule;
+
 import com.veritynow.core.store.persistence.jooq.tables.VnBlob;
 import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
 import com.veritynow.core.store.persistence.jooq.tables.VnInode;
@@ -16,13 +23,6 @@ import com.veritynow.core.store.persistence.jooq.tables.records.VnInodePathSegme
 import com.veritynow.core.store.persistence.jooq.tables.records.VnInodeRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeHeadRecord;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnNodeVersionRecord;
-
-import org.jooq.ForeignKey;
-import org.jooq.TableField;
-import org.jooq.UniqueKey;
-import org.jooq.impl.DSL;
-import org.jooq.impl.Internal;
-import org.jooq.impl.QOM.ForeignKeyRule;
 
 
 /**

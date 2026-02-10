@@ -15,9 +15,15 @@ import static org.jooq.impl.DSL.table;
 
 import java.sql.Connection;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import org.jooq.CommonTableExpression;
 import org.jooq.Condition;
@@ -66,36 +72,55 @@ public final class VersionMetaRepository {
 	// -------------------------
 
 	public List<VersionMeta> findAllByInodeIdOrderByTimestampDescIdDesc(Long inodeId) {
+
 		Objects.requireNonNull(inodeId, "inodeId");
 		DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION).where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+		// Single inode: materialize path once, then map rows (avoid N+1).
+		final String path = materializePath(inodeId);
+
+		List<VnNodeVersionRecord> rows = dsl.selectFrom(VN_NODE_VERSION)
+				.where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
 				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
+				.fetchInto(VnNodeVersionRecord.class);
+
+		List<VersionMeta> out = new ArrayList<>(rows.size());
+		for (VnNodeVersionRecord r : rows) {
+			out.add(nodeVersionToVersionMeta(r, path));
+		}
+		return out;
 	}
 
 	public VersionMeta save(VersionMeta vm, Long inodeId) {
+
 		Objects.requireNonNull(vm, "vme");
 		Objects.requireNonNull(inodeId, "inodeId");
 
 		DSLContext dsl = ensureDSL();
 
-		VnNodeVersionRecord inserted = dsl.insertInto(VN_NODE_VERSION).set(VN_NODE_VERSION.INODE_ID, inodeId)
-				.set(VN_NODE_VERSION.OPERATION, vm.operation()).set(VN_NODE_VERSION.PRINCIPAL, vm.principal())
+		VnNodeVersionRecord inserted = dsl.insertInto(VN_NODE_VERSION)
+				.set(VN_NODE_VERSION.INODE_ID, inodeId)
+				.set(VN_NODE_VERSION.OPERATION, vm.operation())
+				.set(VN_NODE_VERSION.PRINCIPAL, vm.principal())
 				.set(VN_NODE_VERSION.CORRELATION_ID, vm.correlationId())
-				.set(VN_NODE_VERSION.WORKFLOW_ID, vm.workflowId()).set(VN_NODE_VERSION.CONTEXT_NAME, vm.contextName())
+				.set(VN_NODE_VERSION.WORKFLOW_ID, vm.workflowId())
+				.set(VN_NODE_VERSION.CONTEXT_NAME, vm.contextName())
 				.set(VN_NODE_VERSION.TRANSACTION_ID, vm.transactionId())
 				.set(VN_NODE_VERSION.TRANSACTION_RESULT, vm.transactionResult())
-				.set(VN_NODE_VERSION.HASH_ALGORITHM, vm.hashAlgorithm()).set(VN_NODE_VERSION.HASH, vm.hash())
-				.set(VN_NODE_VERSION.NAME, vm.name()).set(VN_NODE_VERSION.MIME_TYPE, vm.mimeType())
-				.set(VN_NODE_VERSION.SIZE, vm.size()).returning(VN_NODE_VERSION.fields())
+				.set(VN_NODE_VERSION.HASH_ALGORITHM, vm.hashAlgorithm())
+				.set(VN_NODE_VERSION.HASH, vm.hash())
+				.set(VN_NODE_VERSION.NAME, vm.name())
+				.set(VN_NODE_VERSION.MIME_TYPE, vm.mimeType())
+				.set(VN_NODE_VERSION.SIZE, vm.size())
+				.returning(VN_NODE_VERSION.fields())
 				.fetchOneInto(VnNodeVersionRecord.class);
 
 		if (inserted == null || inserted.getId() == null) {
 			throw new IllegalStateException("Insert into vn_node_version did not return an id");
 		}
 
-		return nodeVersionToVersionMeta(inserted);
+		final String path = materializePath(inodeId);
+		return nodeVersionToVersionMeta(inserted, path);
 	}
 
 	public Optional<VersionMeta> findLatestVersionByInodeId(Long inodeId) {
@@ -110,68 +135,85 @@ public final class VersionMetaRepository {
 
 	public List<VersionMeta> findByTransactionId(String transactionId) {
 		Objects.requireNonNull(transactionId, "transactionId");
+
 		DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION).where(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId))
+		List<VnNodeVersionRecord> rows = dsl.selectFrom(VN_NODE_VERSION)
+				.where(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId))
 				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
+				.fetchInto(VnNodeVersionRecord.class);
+
+		return mapNodeVersionRecords(rows);
 	}
 
 	public List<VersionMeta> findByCorrelationId(String correlationId) {
 		Objects.requireNonNull(correlationId, "correlationId");
+
 		DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION).where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId))
+		List<VnNodeVersionRecord> rows = dsl.selectFrom(VN_NODE_VERSION)
+				.where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId))
 				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
+				.fetchInto(VnNodeVersionRecord.class);
+
+		return mapNodeVersionRecords(rows);
 	}
 
 	public List<VersionMeta> findByCorrelationIdAndTransactionId(String correlationId, String transactionId) {
 		Objects.requireNonNull(correlationId, "correlationId");
 		Objects.requireNonNull(transactionId, "transactionId");
+
 		DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId)
-						.and(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId)))
+		List<VnNodeVersionRecord> rows = dsl.selectFrom(VN_NODE_VERSION)
+				.where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId).and(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId)))
 				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
+				.fetchInto(VnNodeVersionRecord.class);
+
+		return mapNodeVersionRecords(rows);
 	}
 
 	public List<VersionMeta> findByWorkflowId(String workflowId) {
 		Objects.requireNonNull(workflowId, "workflowId");
+
 		DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION).where(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId))
+		List<VnNodeVersionRecord> rows = dsl.selectFrom(VN_NODE_VERSION)
+				.where(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId))
 				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
+				.fetchInto(VnNodeVersionRecord.class);
+
+		return mapNodeVersionRecords(rows);
 	}
 
 	public List<VersionMeta> findByWorkflowIdAndCorrelationId(String workflowId, String correlationId) {
 		Objects.requireNonNull(workflowId, "workflowId");
 		Objects.requireNonNull(correlationId, "correlationId");
+
 		DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION)
+		List<VnNodeVersionRecord> rows = dsl.selectFrom(VN_NODE_VERSION)
 				.where(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId).and(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId)))
 				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
+				.fetchInto(VnNodeVersionRecord.class);
+
+		return mapNodeVersionRecords(rows);
 	}
 
 	public List<VersionMeta> findByWorkflowIdAndCorrelationIdAndTransactionId(String workflowId, String correlationId,
 			String transactionId) {
-
 		Objects.requireNonNull(workflowId, "workflowId");
 		Objects.requireNonNull(correlationId, "correlationId");
 		Objects.requireNonNull(transactionId, "transactionId");
+
 		DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId)
-						.and(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId)
-								.and(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId))))
+		List<VnNodeVersionRecord> rows = dsl.selectFrom(VN_NODE_VERSION)
+				.where(VN_NODE_VERSION.CORRELATION_ID.eq(correlationId).and(VN_NODE_VERSION.WORKFLOW_ID.eq(workflowId)).and(VN_NODE_VERSION.TRANSACTION_ID.eq(transactionId)))
 				.orderBy(VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
+				.fetchInto(VnNodeVersionRecord.class);
+
+		return mapNodeVersionRecords(rows);
 	}
 
 	public int saveAndPublish(VersionMeta vm, Long inodeId) {
@@ -195,35 +237,54 @@ public final class VersionMetaRepository {
 	}
 
 	List<VersionMeta> getWorkflows(Long inodeId) {
+
 		DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.WORKFLOW_ID.in(dsl.select(VN_NODE_VERSION.WORKFLOW_ID).from(VN_NODE_VERSION)
-						.where(VN_NODE_VERSION.INODE_ID.eq(inodeId)).and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())))
+		List<VnNodeVersionRecord> rows = dsl.selectFrom(VN_NODE_VERSION)
+				.where(VN_NODE_VERSION.WORKFLOW_ID.in(
+					dsl.select(VN_NODE_VERSION.WORKFLOW_ID)
+						.from(VN_NODE_VERSION)
+						.where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+						.and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())
+				))
 				.orderBy(VN_NODE_VERSION.WORKFLOW_ID.asc(), VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
+				.fetchInto(VnNodeVersionRecord.class);
+
+		return mapNodeVersionRecords(rows);
 	}
 
 	List<VersionMeta> getCorrelations(Long inodeId) {
+
 		DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.CORRELATION_ID.in(dsl.select(VN_NODE_VERSION.CORRELATION_ID)
-						.from(VN_NODE_VERSION).where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
-						.and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())))
+		List<VnNodeVersionRecord> rows = dsl.selectFrom(VN_NODE_VERSION)
+				.where(VN_NODE_VERSION.CORRELATION_ID.in(
+					dsl.select(VN_NODE_VERSION.CORRELATION_ID)
+						.from(VN_NODE_VERSION)
+						.where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+						.and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())
+				))
 				.orderBy(VN_NODE_VERSION.WORKFLOW_ID.asc(), VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
+				.fetchInto(VnNodeVersionRecord.class);
+
+		return mapNodeVersionRecords(rows);
 	}
 
 	List<VersionMeta> getTransactions(Long inodeId) {
+
 		DSLContext dsl = ensureDSL();
 
-		return dsl.selectFrom(VN_NODE_VERSION)
-				.where(VN_NODE_VERSION.TRANSACTION_ID.in(dsl.select(VN_NODE_VERSION.TRANSACTION_ID)
-						.from(VN_NODE_VERSION).where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
-						.and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())))
+		List<VnNodeVersionRecord> rows = dsl.selectFrom(VN_NODE_VERSION)
+				.where(VN_NODE_VERSION.TRANSACTION_ID.in(
+					dsl.select(VN_NODE_VERSION.TRANSACTION_ID)
+						.from(VN_NODE_VERSION)
+						.where(VN_NODE_VERSION.INODE_ID.eq(inodeId))
+						.and(VN_NODE_VERSION.WORKFLOW_ID.isNotNull())
+				))
 				.orderBy(VN_NODE_VERSION.WORKFLOW_ID.asc(), VN_NODE_VERSION.TIMESTAMP.desc(), VN_NODE_VERSION.ID.desc())
-				.fetch(this::nodeVersionToVersionMeta);
+				.fetchInto(VnNodeVersionRecord.class);
+
+		return mapNodeVersionRecords(rows);
 	}
 
 	// -------------------------
@@ -232,14 +293,17 @@ public final class VersionMetaRepository {
 
 	public List<VersionMeta> findLatestVersionsByInodeIds(List<Long> inodeIds) {
 		Objects.requireNonNull(inodeIds, "inodeIds");
-		if (inodeIds.isEmpty())
-			return List.of();
 
+		if (inodeIds.isEmpty()) return List.of();
 		DSLContext dsl = ensureDSL();
 
-		return dsl.select(VN_NODE_VERSION.fields()).from(VN_NODE_HEAD).join(VN_NODE_VERSION)
-				.on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID)).where(VN_NODE_HEAD.INODE_ID.in(inodeIds))
-				.fetch(this::fromHeadVersiontoVersionMeta);
+		List<Record> rows = dsl.select(VN_NODE_VERSION.fields())
+				.from(VN_NODE_HEAD)
+				.join(VN_NODE_VERSION).on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID))
+				.where(VN_NODE_HEAD.INODE_ID.in(inodeIds))
+				.fetch();
+
+		return mapHeadRecords(rows);
 	}
 
 	// -------------------------
@@ -260,10 +324,14 @@ public final class VersionMetaRepository {
 
 		Condition inSubtree = condition("{0} <@ {1}", VN_INODE.SCOPE_KEY, root);
 
-		return dsl.select(VN_NODE_VERSION.fields()).from(VN_INODE).join(VN_NODE_HEAD)
-				.on(VN_NODE_HEAD.INODE_ID.eq(VN_INODE.ID)).join(VN_NODE_VERSION)
-				.on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID)).where(inSubtree)
-				.fetch(this::fromHeadVersiontoVersionMeta);
+		List<Record> rows = dsl.select(VN_NODE_VERSION.fields())
+				.from(VN_INODE)
+				.join(VN_NODE_HEAD).on(VN_NODE_HEAD.INODE_ID.eq(VN_INODE.ID))
+				.join(VN_NODE_VERSION).on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID))
+				.where(inSubtree)
+				.fetch();
+
+		return mapHeadRecords(rows);
 	}
 
 	/**
@@ -280,10 +348,15 @@ public final class VersionMetaRepository {
 		Condition inSubtree = condition("{0} <@ {1}", VN_INODE.SCOPE_KEY, parent);
 		Condition depthIsChild = condition("nlevel({0}) = nlevel({1}) + 1", VN_INODE.SCOPE_KEY, parent);
 
-		return dsl.select(VN_NODE_VERSION.fields()).from(VN_INODE).join(VN_NODE_HEAD)
-				.on(VN_NODE_HEAD.INODE_ID.eq(VN_INODE.ID)).join(VN_NODE_VERSION)
-				.on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID)).where(inSubtree.and(depthIsChild))
-				.orderBy(VN_INODE.SCOPE_KEY.asc()).fetch(this::fromHeadVersiontoVersionMeta);
+		List<Record> rows = dsl.select(VN_NODE_VERSION.fields())
+				.from(VN_INODE)
+				.join(VN_NODE_HEAD).on(VN_NODE_HEAD.INODE_ID.eq(VN_INODE.ID))
+				.join(VN_NODE_VERSION).on(VN_NODE_VERSION.ID.eq(VN_NODE_HEAD.VERSION_ID))
+				.where(inSubtree.and(depthIsChild))
+				.orderBy(VN_INODE.SCOPE_KEY.asc())
+				.fetch();
+
+		return mapHeadRecords(rows);
 	}
 
 	// -------------------------
@@ -291,7 +364,7 @@ public final class VersionMetaRepository {
 	// -------------------------
 
 	/**
-     * Materialize the (single, canonical) string path for an inode.
+     * Materialize the (single, canonical) string path for one or more inodes.
      *
      * IMPORTANT: This assumes a single-path model (no hardlinks / multiple parents).
      *
@@ -300,25 +373,49 @@ public final class VersionMetaRepository {
      *  - vn_dir_entry.name is the human-readable segment for each step
      *
      * For the root inode (no segments), returns "/".
+     *
+     * PERF: For queries that return many versions (or many inodes), always use the
+     * batch form to avoid N+1 path reconstruction queries.
      */
-    private String materializePath(Long inodeId) {
-        Objects.requireNonNull(inodeId, "inodeId");
+    @SuppressWarnings("unused")
+	private Map<Long, String> materializePaths(Collection<Long> inodeIds) {
+        Objects.requireNonNull(inodeIds, "inodeIds");
+        if (inodeIds.isEmpty()) return Map.of();
+
         DSLContext dsl = ensureDSL();
 
-        List<String> segs = dsl
-            .select(VN_DIR_ENTRY.NAME)
+        List<Record2<Long, String>> rows = dsl
+            .select(VN_INODE_PATH_SEGMENT.INODE_ID, VN_DIR_ENTRY.NAME)
             .from(VN_INODE_PATH_SEGMENT)
             .join(VN_DIR_ENTRY).on(VN_DIR_ENTRY.ID.eq(VN_INODE_PATH_SEGMENT.DIR_ENTRY_ID))
-            .where(VN_INODE_PATH_SEGMENT.INODE_ID.eq(inodeId))
-            .orderBy(VN_INODE_PATH_SEGMENT.ORD.asc())
-            .fetch(VN_DIR_ENTRY.NAME);
+            .where(VN_INODE_PATH_SEGMENT.INODE_ID.in(inodeIds))
+            .orderBy(VN_INODE_PATH_SEGMENT.INODE_ID.asc(), VN_INODE_PATH_SEGMENT.ORD.asc())
+            .fetch();
 
-        if (segs == null || segs.isEmpty()) {
-            return "/";
+        Map<Long, List<String>> segsByInode = new HashMap<>();
+        for (Record2<Long, String> row : rows) {
+            Long inodeId = row.value1();
+            String name = row.value2();
+            segsByInode.computeIfAbsent(inodeId, _k -> new ArrayList<>()).add(name);
         }
 
-        return "/" + String.join("/", segs);
+        Map<Long, String> out = new HashMap<>();
+        for (Long inodeId : inodeIds) {
+            List<String> segs = segsByInode.get(inodeId);
+            if (segs == null || segs.isEmpty()) {
+                out.put(inodeId, "/");
+            } else {
+                out.put(inodeId, "/" + String.join("/", segs));
+            }
+        }
+        return out;
     }
+
+    private String materializePath(Long inodeId) {
+        Objects.requireNonNull(inodeId, "inodeId");
+        return materializePaths(List.of(inodeId)).get(inodeId);
+    }
+
 	
 	
 	private InsertSetMoreStep<VnNodeVersionRecord> insertVersionMeta(VersionMeta vm, Long inodeId) {
@@ -338,25 +435,89 @@ public final class VersionMetaRepository {
 	
 	
 	
-	private VersionMeta fromHeadVersiontoVersionMeta(Record r) {
-		Long size = r.get(VN_NODE_VERSION.SIZE);
-		Long inodeId = r.get(VN_NODE_VERSION.INODE_ID);
-		String path = inodeId == null ? null : materializePath(inodeId);
-		return new VersionMeta(r.get(VN_NODE_VERSION.HASH_ALGORITHM), r.get(VN_NODE_VERSION.HASH),
-				r.get(VN_NODE_VERSION.NAME), r.get(VN_NODE_VERSION.MIME_TYPE), size == null ? 0L : size, path,
-				r.get(VN_NODE_VERSION.TIMESTAMP), r.get(VN_NODE_VERSION.OPERATION), r.get(VN_NODE_VERSION.PRINCIPAL),
-				r.get(VN_NODE_VERSION.CORRELATION_ID), r.get(VN_NODE_VERSION.WORKFLOW_ID),
-				r.get(VN_NODE_VERSION.CONTEXT_NAME), r.get(VN_NODE_VERSION.TRANSACTION_ID),
-				r.get(VN_NODE_VERSION.TRANSACTION_RESULT));
+	
+	private List<VersionMeta> mapNodeVersionRecords(List<VnNodeVersionRecord> rows) {
+		if (rows == null || rows.isEmpty()) return List.of();
+
+		Set<Long> inodeIds = new HashSet<>();
+		for (VnNodeVersionRecord r : rows) {
+			Long inodeId = r.getInodeId();
+			if (inodeId != null) inodeIds.add(inodeId);
+		}
+		Map<Long, String> paths = materializePaths(inodeIds);
+
+		List<VersionMeta> out = new ArrayList<>(rows.size());
+		for (VnNodeVersionRecord r : rows) {
+			Long inodeId = r.getInodeId();
+			out.add(nodeVersionToVersionMeta(r, inodeId == null ? null : paths.get(inodeId)));
+		}
+		return out;
 	}
 
-	private VersionMeta nodeVersionToVersionMeta(VnNodeVersionRecord r) {
-		Long size = r.getSize();
-		Long inodeId = r.getInodeId();
-		String path = inodeId == null ? null : materializePath(inodeId);
-		return new VersionMeta(r.getHashAlgorithm(), r.getHash(), r.getName(), r.getMimeType(),
-				size == null ? 0L : size, path, r.getTimestamp(), r.getOperation(), r.getPrincipal(),
-				r.getCorrelationId(), r.getWorkflowId(), r.getContextName(), r.getTransactionId(),
-				r.getTransactionResult());
+	private List<VersionMeta> mapHeadRecords(List<Record> rows) {
+		if (rows == null || rows.isEmpty()) return List.of();
+
+		Set<Long> inodeIds = new HashSet<>();
+		for (Record r : rows) {
+			Long inodeId = r.get(VN_NODE_VERSION.INODE_ID);
+			if (inodeId != null) inodeIds.add(inodeId);
+		}
+		Map<Long, String> paths = materializePaths(inodeIds);
+
+		List<VersionMeta> out = new ArrayList<>(rows.size());
+		for (Record r : rows) {
+			Long inodeId = r.get(VN_NODE_VERSION.INODE_ID);
+			out.add(fromHeadVersiontoVersionMeta(r, inodeId == null ? null : paths.get(inodeId)));
+		}
+		return out;
 	}
+
+	private VersionMeta fromHeadVersiontoVersionMeta(Record r, String path) {
+		Long size = r.get(VN_NODE_VERSION.SIZE);
+		return new VersionMeta(
+			r.get(VN_NODE_VERSION.HASH_ALGORITHM),
+			r.get(VN_NODE_VERSION.HASH),
+			r.get(VN_NODE_VERSION.NAME),
+			r.get(VN_NODE_VERSION.MIME_TYPE),
+			size == null ? 0L : size,
+			path,
+			r.get(VN_NODE_VERSION.TIMESTAMP),
+			r.get(VN_NODE_VERSION.OPERATION),
+			r.get(VN_NODE_VERSION.PRINCIPAL),
+			r.get(VN_NODE_VERSION.CORRELATION_ID),
+			r.get(VN_NODE_VERSION.WORKFLOW_ID),
+			r.get(VN_NODE_VERSION.CONTEXT_NAME),
+			r.get(VN_NODE_VERSION.TRANSACTION_ID),
+			r.get(VN_NODE_VERSION.TRANSACTION_RESULT)
+		);
+	}
+
+	private VersionMeta fromHeadVersiontoVersionMeta(Record r) {
+		Long inodeId = r.get(VN_NODE_VERSION.INODE_ID);
+		String path = inodeId == null ? null : materializePath(inodeId);
+		return fromHeadVersiontoVersionMeta(r, path);
+	}
+
+	private VersionMeta nodeVersionToVersionMeta(VnNodeVersionRecord r, String path) {
+		Long size = r.getSize();
+		return new VersionMeta(
+			r.getHashAlgorithm(),
+			r.getHash(),
+			r.getName(),
+			r.getMimeType(),
+			size == null ? 0L : size,
+			path,
+			r.getTimestamp(),
+			r.getOperation(),
+			r.getPrincipal(),
+			r.getCorrelationId(),
+			r.getWorkflowId(),
+			r.getContextName(),
+			r.getTransactionId(),
+			r.getTransactionResult()
+		);
+	}
+
+
 }
+

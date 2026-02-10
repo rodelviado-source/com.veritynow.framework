@@ -4,13 +4,6 @@
 package com.veritynow.core.store.persistence.jooq;
 
 
-import com.veritynow.core.store.persistence.jooq.tables.VnBlob;
-import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
-import com.veritynow.core.store.persistence.jooq.tables.VnInode;
-import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
-import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead;
-import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,6 +11,13 @@ import org.jooq.Catalog;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.impl.SchemaImpl;
+
+import com.veritynow.core.store.persistence.jooq.tables.VnBlob;
+import com.veritynow.core.store.persistence.jooq.tables.VnDirEntry;
+import com.veritynow.core.store.persistence.jooq.tables.VnInode;
+import com.veritynow.core.store.persistence.jooq.tables.VnInodePathSegment;
+import com.veritynow.core.store.persistence.jooq.tables.VnNodeHead;
+import com.veritynow.core.store.persistence.jooq.tables.VnNodeVersion;
 
 
 /**

@@ -118,6 +118,22 @@ public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBM
      * @throws IOException on I/O failure
      */
     Optional<InputStream> getContent(PK key) throws IOException;
+    
+    /**
+     * Retrieve the meta information of the content for a concrete key {@code PK}.
+     *
+     * <p>
+     * This is a key-based meta content fetch (as opposed to {@link Store#read(Object)} which may be
+     * path/latest-version based depending on {@code PK}). If the key is not resolvable, returns empty.
+     * </p>
+     *
+     * <p>
+     *
+     * @param key concrete key identifying a specific stored object instance
+     * @return meta information of the content
+     * @throws IOException on I/O failure
+     */
+    Optional<BLOBMETA> getContentMeta(PK key) throws IOException;
 
     /**
      * Determine whether the given key has a resolvable path.
@@ -131,5 +147,5 @@ public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBM
      * @return {@code true} if path exists for the key
      * @throws IOException on I/O failure
      */
-	boolean pathExists(PK key) throws IOException;
+	boolean pathExists(String  path) throws IOException;
 }

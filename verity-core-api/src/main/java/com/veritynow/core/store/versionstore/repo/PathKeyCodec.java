@@ -20,6 +20,20 @@ public final class PathKeyCodec {
 
     private PathKeyCodec() {}
 
+    
+    /**
+     * Converts path into an ltree with hash as labels.
+     *
+     * @param path   logical path 
+     * @return path in ltree form  
+     * 
+     *  <ul>
+     * 				 <li>/x/y/z</li>
+	 *   			 <li>	→ h(x).h(y).h(z)</li>
+	 *   			 <li>	→ h1.h2.h3</li>
+	 *   			 <li>where h(s) → is the default-hash-function applied on s</li>
+	 *   </ul>
+     **/
     public static String toLTree(String path) {
         String p = PathUtils.normalizePath(path);
 

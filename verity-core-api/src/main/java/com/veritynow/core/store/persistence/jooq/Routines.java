@@ -4,9 +4,9 @@
 package com.veritynow.core.store.persistence.jooq;
 
 
-import com.veritynow.core.store.persistence.jooq.routines.VnLockInodeAncestorsNowait;
-
 import org.jooq.Configuration;
+
+import com.veritynow.core.store.persistence.jooq.routines.VnLockInodeAncestorsNowait;
 
 
 /**

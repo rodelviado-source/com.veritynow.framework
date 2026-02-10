@@ -158,14 +158,15 @@ public final class InodeRepository {
     boolean pathExists(String path) {
     	Objects.requireNonNull(path, "path");	
     DSLContext dsl = ensureDSL();
-    String scopeKey = PathKeyCodec.toLTree(path); // whatever you already use
-
+  
+    String sk = PathKeyCodec.toLTree(path);
+	Param<Ltree> scopeKey = DSL.val(Ltree.ltree(sk), VN_INODE.SCOPE_KEY.getDataType());
+    		
     return dsl.fetchExists(
         dsl.selectOne()
            .from(VN_INODE)
-           .where(VN_INODE.SCOPE_KEY.eq(
-               DSL.val(Ltree.ltree(scopeKey), VN_INODE.SCOPE_KEY.getDataType())
-           ))
+           .where(VN_INODE.SCOPE_KEY.eq(scopeKey)
+           )
     );
     }
 

@@ -2,6 +2,7 @@ package com.veritynow.core.context;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 public final class ContextResolvers {
@@ -9,6 +10,7 @@ public final class ContextResolvers {
     private ContextResolvers() {}
 
     // ---- Header keys (canonical) ----
+    public static final String HDR_TRANSACTION_ID = "X-Transaction-Id";
     public static final String HDR_CORRELATION_ID = "X-Correlation-Id";
     public static final String HDR_WORKFLOW_ID    = "X-Workflow-Id";
     public static final String HDR_PRINCIPAL      = "X-Principal";
@@ -16,19 +18,26 @@ public final class ContextResolvers {
 
     // ---- HTTP ----
 
-    public static ContextSnapshot fromHttpHeaders(Map<String, String> headers) {
+    public static ContextSnapshot fromHttpHeaders(Map<String, String> headers, String txnId) {
         String correlationId = get(headers, HDR_CORRELATION_ID);
         String workflowId    = get(headers, HDR_WORKFLOW_ID);
+        String transactionId   = get(headers, HDR_TRANSACTION_ID);
         String principal     = get(headers, HDR_PRINCIPAL);
         String contextName   = get(headers, HDR_CONTEXT_NAME);
+        
 
         boolean propagated =
+        		transactionId != null ||
                 correlationId != null ||
                 workflowId    != null ||
                 principal     != null ||
                 contextName   != null;
 
         return ContextSnapshot.builder()
+        		.transactionId(
+                        transactionId != null ? transactionId : 
+                        	(Context.transactionIdOrNull() != null ? Context.transactionIdOrNull() : txnId)
+                )
                 .correlationId(
                         correlationId != null ? correlationId : Context.correlationId()
                 )

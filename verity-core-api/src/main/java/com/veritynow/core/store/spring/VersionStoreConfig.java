@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Primary;
 
 import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.store.HashingService;
-import com.veritynow.core.store.ImmutableBackingStore;
+import com.veritynow.core.store.ImmutableStore;
 import com.veritynow.core.store.TransactionAndLockingAware;
 import com.veritynow.core.store.base.DefaultHashingService;
 import com.veritynow.core.store.base.PK;
@@ -85,7 +85,7 @@ public class VersionStoreConfig {
 	
 	// Root directory for filesystem blobs, configurable via application.properties/yaml
     @Bean
-    public ImmutableBackingStore<String, BlobMeta> immutableBackingStore(
+    public ImmutableStore<String, BlobMeta> immutableBackingStore(
             @Value("${verity.immutable.blobs.fs-root:./data}") String rootDir,
             HashingService hs, ImmutableRepository repo
     ) {
@@ -112,7 +112,7 @@ public class VersionStoreConfig {
     @Bean
     @Primary
     public TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope, CloseableLockHandle> versionStore(
-    		ImmutableBackingStore<String, BlobMeta> backingStore,
+    		ImmutableStore<String, BlobMeta> backingStore,
     		DSLContext dsl,
 			RepositoryManager repositoryManager,
             ContextAwareTransactionManager txnManager,

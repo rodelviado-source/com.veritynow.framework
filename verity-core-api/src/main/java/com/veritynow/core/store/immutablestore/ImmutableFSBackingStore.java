@@ -13,7 +13,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.tika.Tika;
 
 import com.veritynow.core.store.HashingService;
-import com.veritynow.core.store.ImmutableBackingStore;
+import com.veritynow.core.store.ImmutableStore;
 import com.veritynow.core.store.base.AbstractStore;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnBlobRecord;
@@ -22,7 +22,7 @@ import util.FSUtil;
 import util.JSON;
 
 public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
-		implements ImmutableBackingStore<String, BlobMeta> {
+		implements ImmutableStore<String, BlobMeta> {
 
 	private final Path blobDirectory;
 	private final String algo;
@@ -256,5 +256,10 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 		vr.setName(bm.name());
 		vr.setSize(bm.size());
 		return vr;
+	}
+
+	@Override
+	public Optional<BlobMeta> getMeta(String key) throws IOException {
+		return readOnly(key, null);
 	}
 }

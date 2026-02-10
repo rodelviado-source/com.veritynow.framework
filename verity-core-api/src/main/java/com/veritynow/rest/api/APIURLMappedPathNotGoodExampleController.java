@@ -1,5 +1,6 @@
 package com.veritynow.rest.api;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
@@ -29,17 +30,18 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import util.HttpUtils;
+import util.JSON;
 
 @RestController
 @RequestMapping("/api/**")
-public class APIController {
+public class APIURLMappedPathNotGoodExampleController {
 
 	private static final Logger LOGGER = LogManager.getLogger();
 	
 	private final String namespace;
-	private final APIService apiService;
+	private final APIURLMappedPathNotGoodExampleService apiService;
 
-	public APIController(APIService apiService, @Value("${verity.api.namespace:/vn}") String namespace) {
+	public APIURLMappedPathNotGoodExampleController(APIURLMappedPathNotGoodExampleService apiService, @Value("${verity.api.namespace:/vn}") String namespace) {
 		this.apiService = apiService;
 		this.namespace = PathUtils.normalizeNamespace(namespace);
 	}
@@ -161,32 +163,6 @@ public class APIController {
 	}
 
 	
-	@GetMapping (produces = { MediaType.APPLICATION_OCTET_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE})
-	public void getLatestVersion(HttpServletRequest request, HttpServletResponse response) {
-
-		String path = APIUtils.applyNamespace(request, namespace);
-		Optional<InputStream> opt;
-		try {
-			
-			opt = apiService.getLatestVersion(path);
-			if (opt.isEmpty()) {
-				response.setStatus(HttpStatus.NOT_FOUND.value());
-				return;
-			}
-		 	
-		
-			try (ServletOutputStream sos = response.getOutputStream(); InputStream payload = opt.get();) {
-				StreamUtils.copy(payload, sos);
-				response.setStatus(HttpStatus.OK.value());
-		        response.flushBuffer();
-			}
-		
-		}catch (Exception e) {
-			LOGGER.error("Get failed", e);
-			response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-		}
-	}
-	
 
 	@DeleteMapping
 	public ResponseEntity<BlobMeta> delete(HttpServletRequest request, @RequestHeader HttpHeaders headers,
@@ -245,19 +221,7 @@ public class APIController {
 
 	}
 
-	@GetMapping(params = "list")
-	public ResponseEntity<List<VersionMeta>> getChildrenLatestVersion(HttpServletRequest request, @RequestHeader HttpHeaders headers) {
-		try {
-		String path = APIUtils.applyNamespace(request, namespace);
-		 List<VersionMeta> metas = apiService.getChildrenLatestVersion(path);
-		List<VersionMeta> clientMetas = metas.stream().map((vm) -> {return APIUtils.toClientVersionMeta(vm, namespace);}).toList();
-		return ResponseEntity.ok(clientMetas);
-		} catch (Exception e) {
-			LOGGER.error("List failed", e);
-			return ResponseEntity.internalServerError().build();
-		}
-		
-	}
+	
 	
 	
 	
