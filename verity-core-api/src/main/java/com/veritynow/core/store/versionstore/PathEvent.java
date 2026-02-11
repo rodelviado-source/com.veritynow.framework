@@ -1,8 +1,11 @@
-package com.veritynow.core.store.base;
+package com.veritynow.core.store.versionstore;
 
 import static com.veritynow.core.store.txn.TransactionResult.AUTO_COMMITTED;
 
 import org.apache.tika.utils.StringUtils;
+
+import com.veritynow.core.store.base.StoreContext;
+import com.veritynow.core.store.base.StoreUtils;
 
 
 

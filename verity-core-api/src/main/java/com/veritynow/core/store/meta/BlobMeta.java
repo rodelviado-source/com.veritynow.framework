@@ -7,12 +7,9 @@ public record BlobMeta(
         String mimeType,
         long   size
 ) {
-	
-	public BlobMeta(String name,  String mimeType,  long   size) {
-		this(null, null, name, mimeType, size);
+			
+	public BlobMeta(String name,  String mimeType) {
+		this(null, null, name, mimeType, 0);
 	}
 	
-	public static BlobMeta empty() {
-		return new BlobMeta(null,null,null,null,0l);
-	}
 }

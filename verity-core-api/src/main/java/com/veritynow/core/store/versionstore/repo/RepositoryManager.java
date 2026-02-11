@@ -29,10 +29,10 @@ public class RepositoryManager {
         LOGGER.info("Inode backed Repository Manger started");
     }
 
-    public List<VersionMeta> getWorkflows(String nodePath) {
-        Objects.requireNonNull(nodePath, "nodePath");
-        nodePath = PathUtils.normalizePath(nodePath);
-        Optional<Long> inodeId = inodeRepo.resolveInodeId(nodePath);
+    public List<VersionMeta> getWorkflows(String path) {
+        Objects.requireNonNull(path, "nodePath");
+        path = PathUtils.normalizePath(path);
+        Optional<Long> inodeId = inodeRepo.resolveInodeId(path);
         if (inodeId.isPresent())
             return verRepo.getWorkflows(inodeId.get());
         return List.of();

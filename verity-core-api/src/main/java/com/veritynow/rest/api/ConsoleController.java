@@ -1,26 +1,22 @@
 package com.veritynow.rest.api;
 
-import java.io.InputStream;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.veritynow.core.store.base.PathEvent;
 import com.veritynow.core.store.meta.VersionMeta;
+import com.veritynow.core.store.versionstore.PathEvent;
 import com.veritynow.core.store.versionstore.PathUtils;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 public class ConsoleController {
@@ -51,10 +47,15 @@ public class ConsoleController {
 		return List.of();
 	}
 	
-	@GetMapping("/api/audit/workflows")
-	public List<VersionMeta> getWorkflows(@RequestParam(name="path", required=true) String path) {
+	@PostMapping(path ="/api/audit/workflows", 
+			produces = MediaType.APPLICATION_JSON_VALUE)
+	public List<VersionMeta> getWorkflows(
+			@RequestBody Map<String, String> request
+			) {
+		
+		String path = request.get("path");
+		Objects.requireNonNull(path, "path");
 		try {
-			
 			path =  PathUtils.normalizeAndApplyNamespace(path, namespace);
 			
 			List<VersionMeta> vs = consoleService.getWorkflows(path);
@@ -159,49 +160,6 @@ public class ConsoleController {
 	}
 	
 
-	@GetMapping(value = "/api/**", params = "versions=true", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<List<VersionMeta>> versions(HttpServletRequest req) {
-
-		String merklePath = APIUtils.applyNamespace(req, namespace);
-		try {
-			Optional<List<VersionMeta>> opt = consoleService.getAllVersions(merklePath);
-
-			if (opt.isPresent()) {
-				return ResponseEntity.ok(opt.get());
-			}
-		} catch (Exception e) {
-			LOGGER.error("Failed to get versions {}", APIUtils.decodePathFromHttpRequest(req));
-			return ResponseEntity.internalServerError().build();
-		}
-
-		return ResponseEntity.ok(List.of());
-
-	}
-
-	/**
-	 * GET /api/_content/{hash}
-	 *
-	 * This is what RemoteTransport.getBytesByHash() calls. Embedded never uses this
-	 * endpoint (it reads OPFS directly).
-	 */
-	@GetMapping(value = "/api/_content/{hash}")
-	public ResponseEntity<InputStreamResource> loadBytesByHash(HttpServletRequest req,
-			@PathVariable("hash") String hash) {
-
-		Optional<InputStream> opt;
-		try {
-			opt = consoleService.loadBytesByHash(hash);
-			if (opt.isEmpty())
-				return ResponseEntity.notFound().build();
-		} catch (Exception e) {
-			LOGGER.error("Failed to get content {}", APIUtils.decodePathFromHttpRequest(req));
-			return ResponseEntity.internalServerError().build();
-		}
-
-		HttpHeaders h = new HttpHeaders();
-		h.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-		return ResponseEntity.ok().headers(h).body(new InputStreamResource(opt.get()));
-	}
 
 	
 }

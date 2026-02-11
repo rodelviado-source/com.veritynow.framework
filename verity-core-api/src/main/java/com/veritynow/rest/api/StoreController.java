@@ -11,16 +11,14 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,14 +29,12 @@ import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextResolvers;
 import com.veritynow.core.context.ContextScope;
 import com.veritynow.core.context.ContextSnapshot;
-import com.veritynow.core.store.base.PathEvent;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.PathMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.versionstore.PathUtils;
 
-import jakarta.servlet.http.HttpServletRequest;
-import util.HttpUtils;
+import jakarta.servlet.http.Part;
 import util.JSON;
 import util.StringUtils;
 
@@ -92,6 +88,35 @@ public class StoreController {
 		
 	}
 	
+	/**
+	 * Retrieve the meta information of the content via its hash 
+	 * 
+	 * @param request - the meta of the blob content 
+	 * @return the meta of the content of the blob addressed by its hash 
+	 */
+	@PostMapping(value = "/api/read/content/meta", 
+			consumes = MediaType.APPLICATION_JSON_VALUE,
+			produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<BlobMeta> getContentMeta(@RequestBody Map<String, String> request) {
+
+		String hash = null;
+		try {
+			hash  = request.get("hash");
+			Objects.requireNonNull(hash, "hash");
+
+			Optional<BlobMeta> bm = storeService.getContentMeta(hash);
+			if (bm.isPresent()) {
+				return ResponseEntity.ok(bm.get());
+			}
+			return ResponseEntity.notFound().build();
+		} catch (Exception e) {
+			LOGGER.error("Failed to get content hash={}", hash,e);
+			return ResponseEntity.internalServerError().build();
+		}
+		
+	}
+	
+	
 	@PostMapping(path="/api/read/children/latest/version",
 			consumes = MediaType.APPLICATION_JSON_VALUE,
 			produces = MediaType.APPLICATION_JSON_VALUE)
@@ -101,7 +126,7 @@ public class StoreController {
 		Objects.requireNonNull(path, "path");
 		String storePath = PathUtils.normalizeAndApplyNamespace(path, namespace);
 	     List<VersionMeta> vms = storeService.getChildrenLatestVersion(storePath);
-		List<VersionMeta> clientVms = vms.stream().map((vm) -> {return APIUtils.toClientVersionMeta(vm, namespace);}).toList();
+		List<VersionMeta> clientVms = APIUtils.toClientVersionMeta(vms, namespace);
 		return ResponseEntity.ok(clientVms);
 		} catch (Exception e) {
 			LOGGER.error("getChildrenLatestVersion failed", e);
@@ -145,7 +170,7 @@ public class StoreController {
 		String storePath = PathUtils.normalizeAndApplyNamespace(path, namespace);
 		 
 		List<VersionMeta> vms = storeService.getAllVersions(storePath);
-		List<VersionMeta> clientVms = vms.stream().map((vm) -> {return APIUtils.toClientVersionMeta(vm, namespace);}).toList();
+		List<VersionMeta> clientVms = APIUtils.toClientVersionMeta(vms, namespace);
 		
 		return ResponseEntity.ok(clientVms);
 		
@@ -157,11 +182,11 @@ public class StoreController {
 	
 	
 	@PostMapping(path="/api/read/blob/content/latest/version",
-			consumes = MediaType.APPLICATION_JSON_VALUE,
-			produces = { MediaType.APPLICATION_OCTET_STREAM_VALUE, 
-					    MediaType.APPLICATION_JSON_VALUE} )
+			consumes = MediaType.APPLICATION_JSON_VALUE
+			 )
 	public ResponseEntity<InputStreamResource> getBlobContentLatestVersion(@RequestBody Map<String, String> request) {
 		try {
+		
 		String path = request.get("path");
 		Objects.requireNonNull(path, "path");
 		
@@ -222,13 +247,8 @@ public class StoreController {
 			if (fixedChildren != null) {
 				fixedChildren = m.children().stream().map((s) -> PathUtils.lastSegment(s)).toList();
 			}
-
-			List<VersionMeta> fixedVersions = m.versions().stream().map((v) -> {
-				String vmPath = PathUtils.removeNamespace(v.path(), namespace);
-				return new VersionMeta(v.blobMeta(), new PathEvent(vmPath, v.timestamp(), v.operation(), v.principal(),
-						v.correlationId(), v.workflowId(), v.contextName(), v.transactionId(), v.transactionResult()));
-
-			}).toList();
+			
+			List<VersionMeta> fixedVersions = APIUtils.toClientVersionMeta(m.versions(), namespace);
 
 			PathMeta mx = new PathMeta(fixedPath, fixedChildren, fixedVersions);
 
@@ -239,47 +259,59 @@ public class StoreController {
 		return ResponseEntity.badRequest().build();
 	}
 	
-
-	@PostMapping(path="/api/processor", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<VersionMeta> create(
-			@RequestPart("operation") String operation,
-			@RequestPart("path") String path,
-			@RequestPart("hash") String hash,
-            @RequestPart("file") MultipartFile file   
-			) {
-
-		try (InputStream inputStream = file.getInputStream()) {
-			String name = StringUtils.isEmpty(file.getOriginalFilename())  ? 
-					"blob": file.getOriginalFilename();
-			
-			String contentType = StringUtils.isEmpty(file.getContentType()) ? 
-					MediaType.APPLICATION_OCTET_STREAM_VALUE : file.getContentType();
-			
-			String lastSegment = UUID.randomUUID().toString();
-			String storePath = path +"/" +lastSegment;
-			
-			storePath = PathUtils.normalizeAndApplyNamespace(storePath, namespace);
-			
-			Optional<VersionMeta> opt = storeService.createExactPath(storePath, inputStream, contentType, name);
-			
-			if (opt.isPresent()) {
-				VersionMeta vm = opt.get();
-				return ResponseEntity.status(HttpStatus.CREATED).body(APIUtils.toClientVersionMeta(vm, namespace));
-			}
-					
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-			
-		} catch (Exception e) {
-			LOGGER.error("Create failed", e);
-			return ResponseEntity.internalServerError().build();
-		}
-	}
 	
+	@PostMapping(path = "/api/processor", 
+			consumes = {MediaType.MULTIPART_FORM_DATA_VALUE},
+			produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<VersionMeta> processMultipart(@RequestPart("intent") String intentJson,
+			MultipartHttpServletRequest request) throws Exception 
+	
+	 {
+		
+		Map<String, String> action = JSON.MAPPER.readValue(intentJson, new TypeReference<Map<String, String>>() {
+		});
+			 
+			Map<String, MultipartFile> fileMap = request.getFileMap();
+		     
+			String path = action.get("path");
+			String operation = action.get("operation");
+			
+			MultipartFile file = fileMap.get("blob");
+			
+			if (file == null) {
+				file = fileMap.get("file");
+			}
+			Objects.requireNonNull(path);
+			Objects.requireNonNull(operation);
+
+			path = PathUtils.normalizeAndApplyNamespace(path, namespace);
+			
+			final InputStream is;
+			String name = "blob";
+			String mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+		
+			if (file != null) {
+				is = file.getInputStream();
+				name = file.getOriginalFilename() != null ?  file.getOriginalFilename() : name; 
+				mimeType = StringUtils.isEmpty(file.getContentType()) ? mimeType : file.getContentType();
+			} else {
+				is = null;
+			}
+			try (is) {
+				Optional<VersionMeta> vm = storeService.process(operation, path, new BlobMeta(name, mimeType) , is);
+				if (vm.isPresent())
+					return ResponseEntity.ok(APIUtils.toClientVersionMeta(vm.get(), namespace));
+			}	
+		    
+		
+		return ResponseEntity.notFound().build();
+	}
+
 	
 	@PostMapping(path = "/api/txn/processor", 
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE, 
 			produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<Map<String, Object>> txnMultipart(@RequestPart("transactions") String transactionsJson,
+	public ResponseEntity<Map<String, Object>> processTransactionMultipart(@RequestPart("transactions") String transactionsJson,
 			MultipartHttpServletRequest request) throws Exception {
 
 		List<Transaction> txns = JSON.MAPPER.readValue(transactionsJson, new TypeReference<List<Transaction>>() {
@@ -304,13 +336,26 @@ public class StoreController {
 		}
 
 		// Build your APITransaction (InputStreams are per-file)
-		java.util.Map<String, InputStream> blobs = new LinkedHashMap<>();
+		Map<String, InputStream> blobs = new LinkedHashMap<>();
+		Map<String, BlobMeta> metas = new LinkedHashMap<>();
+		
 		for (var e : fileMap.entrySet()) {
-			blobs.put(e.getKey(), e.getValue().getInputStream());
+			String blobRef = e.getKey();
+			MultipartFile f = e.getValue();
+			
+			blobs.put(blobRef, f.getInputStream());
+			
+			String ct = f.getContentType();
+			if (StringUtils.isEmpty(ct))   ct = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+			
+			String name = f.getOriginalFilename();
+			if (StringUtils.isEmpty(name)) name = blobRef;
+			
+			metas.put(blobRef, new BlobMeta(name, ct));
 		}
 		
+		//apply namespace to paths
 		List<Transaction> namespacetxns = new ArrayList<>();
-		
 		for (Transaction t : txns) {
 			namespacetxns.add(new Transaction(
 				PathUtils.normalizeAndApplyNamespace(t.path(), namespace),
@@ -320,7 +365,7 @@ public class StoreController {
 			));
 		}
 		
-		APITransaction apiTxn = new APITransaction(namespacetxns, blobs);
+		APITransaction apiTxn = new APITransaction(namespacetxns,  blobs);
 
 		// ---- TEST HARNESS PLACEHOLDER ----
 		// Consume streams here (or pass MultipartFile instead).
@@ -337,9 +382,24 @@ public class StoreController {
 				UUID.randomUUID().toString()
 		);
 		
+		
 		try (ContextScope scope = Context.scope(ctx)) {
 			
-			storeService.processTransaction(apiTxn, fileMap);
+			List<VersionMeta> before = storeService.processTransaction(apiTxn, metas);
+			
+			summary.put("before", APIUtils.toClientVersionMeta(before, namespace));
+			
+			List<VersionMeta> after = new ArrayList<>();
+			
+			for (Transaction t : apiTxn.transactions()) {
+				Optional<VersionMeta> opt = storeService.getLatestVersion(t.path());
+				if (opt.isPresent()) {
+					after.add(APIUtils.toClientVersionMeta(opt.get(), namespace));
+				}	
+			}
+			
+			summary.put("after", after);
+			
 		} finally {
 			// Cleanup to avoid multipart stream leaks
 			for (InputStream is : apiTxn.blobs().values()) {
@@ -349,6 +409,8 @@ public class StoreController {
 			}
 		}
 
+		
+		
 		return ResponseEntity.ok(summary);
 	}
 

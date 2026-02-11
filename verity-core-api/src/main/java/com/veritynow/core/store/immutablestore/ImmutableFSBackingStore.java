@@ -48,7 +48,7 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 
 	@Override
 	public Optional<BlobMeta> save(String name, String mimetype, InputStream is) throws IOException {
-		return create(null, new BlobMeta(name, mimetype, 0l), is);
+		return create(null, new BlobMeta(name, mimetype), is);
 	}
 
 	// ----------------------------

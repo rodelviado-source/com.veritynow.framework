@@ -20,7 +20,6 @@ import com.veritynow.core.store.StoreOperation;
 import com.veritynow.core.store.TransactionAndLockingAware;
 import com.veritynow.core.store.base.AbstractStore;
 import com.veritynow.core.store.base.PK;
-import com.veritynow.core.store.base.PathEvent;
 import com.veritynow.core.store.base.StoreContext;
 import com.veritynow.core.store.lock.LockHandle;
 import com.veritynow.core.store.lock.LockingService;

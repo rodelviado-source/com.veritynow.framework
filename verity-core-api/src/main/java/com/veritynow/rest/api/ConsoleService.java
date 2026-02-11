@@ -78,23 +78,23 @@ public class ConsoleService {
 	}
 
 
-	public Optional<List<VersionMeta>> getAllVersions(String nodePath) throws IOException {
-		List<VersionMeta> l = versionStore.getAllVersions(nodePath);
-		return Optional.of(l);
+	public List<VersionMeta> getAllVersions(String path) throws IOException {
+		Objects.requireNonNull(path, "path");
+		return versionStore.getAllVersions(path);
 	}
 
-	public Optional<InputStream> loadBytesByHash(String hash) throws IOException {
+	public Optional<InputStream> getContent(String hash) throws IOException {
 		Optional<InputStream> opt = versionStore.getContent(new PK(null, hash));
 		if (opt.isPresent())
 			return opt;
 		return Optional.empty();
 	}
 
-	public Optional<BlobMeta> undelete(String path) {
+	public Optional<VersionMeta> undelete(String path) {
 		try {
 			Optional<BlobMeta> opt = versionStore.undelete(new PK(path, null));
-			BlobMeta m = opt.get();
-			return Optional.of(m);
+			if (opt.isPresent())
+				return versionStore.getLatestVersion(path);
 		} catch (IOException e) {
 			LOGGER.error("Unable to delete {}", path, e);
 		}

@@ -1,6 +1,6 @@
 package com.veritynow.core.store.meta;
 
-import com.veritynow.core.store.base.PathEvent;
+import com.veritynow.core.store.versionstore.PathEvent;
 
 public record VersionMeta(
 		String hashAlgorithm,
@@ -38,7 +38,8 @@ public record VersionMeta(
 		
 	    public VersionMeta(BlobMeta bm, PathEvent pe) {
 	    	this(bm.hashAlgorithm(),  bm.hash(), bm.name(), bm.mimeType(), bm.size(),
-	    			pe.path(), pe.timestamp(),pe.operation(),pe.principal(),pe.correlationId(), pe.workflowId(), pe.contextName(), pe.transactionId(), pe.transactionResult());
+	    			pe.path(), pe.timestamp(),pe.operation(),pe.principal(),
+	    			pe.correlationId(), pe.workflowId(), pe.contextName(), pe.transactionId(), pe.transactionResult());
 	    }
 	
 	    public BlobMeta blobMeta() {

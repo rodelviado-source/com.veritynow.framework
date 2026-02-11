@@ -1,8 +1,6 @@
 package com.veritynow.rest.api;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,26 +9,19 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.versionstore.PathUtils;
 
-import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import util.HttpUtils;
-import util.JSON;
 
 @RestController
 @RequestMapping("/api/**")
@@ -165,13 +156,13 @@ public class APIURLMappedPathNotGoodExampleController {
 	
 
 	@DeleteMapping
-	public ResponseEntity<BlobMeta> delete(HttpServletRequest request, @RequestHeader HttpHeaders headers,
+	public ResponseEntity<VersionMeta> delete(HttpServletRequest request, @RequestHeader HttpHeaders headers,
 			@RequestParam(name = "reason", required = false) String reason) {
 
 		try {
 		String path = APIUtils.applyNamespace(request, namespace);
 
-		Optional<BlobMeta> opt = apiService.delete(path, reason);
+		Optional<VersionMeta> opt = apiService.delete(path, reason);
 		if (opt.isPresent())
 			return ResponseEntity.ok(opt.get());
 		} catch (Exception e) {

@@ -9,7 +9,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
-import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 
 
@@ -48,7 +47,7 @@ public class APIURLMappedPathNotGoodExampleService {
 	}
 
 	
-	public Optional<BlobMeta> delete(String path, String reason) throws IOException {
+	public Optional<VersionMeta> delete(String path, String reason) throws IOException {
 		return storeService.delete(path, reason);
 	}
 

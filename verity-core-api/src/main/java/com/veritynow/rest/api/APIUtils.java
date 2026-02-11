@@ -1,6 +1,7 @@
 package com.veritynow.rest.api;
 
 import java.net.URI;
+import java.util.List;
 
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.versionstore.PathUtils;
@@ -46,4 +47,10 @@ public class APIUtils {
 				clientPath, vm.timestamp(), vm.operation(), vm.principal(), vm.correlationId(), vm.workflowId(), vm.contextName(), vm.transactionId(), vm.transactionResult());
 	}
 
+	
+	public static List<VersionMeta> toClientVersionMeta(List<VersionMeta> l, String namespace) {
+		return l.stream().map(
+				(vm) -> {return APIUtils.toClientVersionMeta(vm, namespace);}
+			).toList();
+	}
 }

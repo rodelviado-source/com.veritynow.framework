@@ -2,7 +2,6 @@ package com.veritynow.core.context;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 
 public final class ContextResolvers {
