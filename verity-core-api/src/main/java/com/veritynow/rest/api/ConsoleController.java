@@ -57,14 +57,8 @@ public class ConsoleController {
 		Objects.requireNonNull(path, "path");
 		try {
 			path =  PathUtils.normalizeAndApplyNamespace(path, namespace);
-			
 			List<VersionMeta> vs = consoleService.getWorkflows(path);
-			return vs.stream().map((v) -> {
-				String vmPath = PathUtils.removeNamespace(v.path(), namespace);
-				return new VersionMeta(v.blobMeta(), new PathEvent(vmPath, v.timestamp(), v.operation(), v.principal(),
-						v.correlationId(), v.workflowId(), v.contextName(), v.transactionId(), v.transactionResult()));
-
-			}).toList();
+			return APIUtils.toClientVersionMeta(vs,namespace);
 		} catch (Exception e) {
 			LOGGER.error("Unable to get workflows for path = {}", path, e);
 		}
@@ -77,12 +71,7 @@ public class ConsoleController {
 			@PathVariable String correlationId) {
 		try {
 			List<VersionMeta> vs = consoleService.getVersionsByWorkflowIdAndCorrelationId(workflowId, correlationId);
-			return vs.stream().map((v) -> {
-				String vmPath = PathUtils.removeNamespace(v.path(), namespace);
-				return new VersionMeta(v.blobMeta(), new PathEvent(vmPath, v.timestamp(), v.operation(), v.principal(),
-						v.correlationId(), v.workflowId(), v.contextName(), v.transactionId(), v.transactionResult()));
-
-			}).toList();
+			return APIUtils.toClientVersionMeta(vs,namespace);
 		} catch (Exception e) {
 			LOGGER.error("Unable to get versions for workflow/correlation = {}/{}", workflowId, correlationId, e);
 		}
@@ -95,12 +84,7 @@ public class ConsoleController {
 		try {
 			List<VersionMeta> vs = consoleService.getVersionsByWorkflowIdAndCorrelationIdAndTransationId(workflowId,
 					correlationId, transactionId);
-			return vs.stream().map((v) -> {
-				String vmPath = PathUtils.removeNamespace(v.path(), namespace);
-				return new VersionMeta(v.blobMeta(), new PathEvent(vmPath, v.timestamp(), v.operation(), v.principal(),
-						v.correlationId(), v.workflowId(), v.contextName(), v.transactionId(), v.transactionResult()));
-
-			}).toList();
+			return APIUtils.toClientVersionMeta(vs,namespace);
 		} catch (Exception e) {
 			LOGGER.error("Unable to get versions for workflow/correlation/tranasaction = {}/{}/{}", workflowId,
 					correlationId, transactionId, e);
@@ -112,12 +96,7 @@ public class ConsoleController {
 	public List<VersionMeta> getVersionsByCorrelation(@PathVariable String correlationId) {
 		try {
 			List<VersionMeta> vs = consoleService.getVersionsByCorrelationId(correlationId);
-			return vs.stream().map((v) -> {
-				String vmPath = PathUtils.removeNamespace(v.path(), namespace);
-				return new VersionMeta(v.blobMeta(), new PathEvent(vmPath, v.timestamp(), v.operation(), v.principal(),
-						v.correlationId(), v.workflowId(), v.contextName(), v.transactionId(), v.transactionResult()));
-
-			}).toList();
+			return APIUtils.toClientVersionMeta(vs,namespace);
 		} catch (Exception e) {
 			LOGGER.error("Unable to get versions for correlation= {}", correlationId, e);
 		}
@@ -130,12 +109,7 @@ public class ConsoleController {
 		try {
 			List<VersionMeta> vs = consoleService.getVersionsByCorrelationIdAndTransaction(correlationId,
 					transactionId);
-			return vs.stream().map((v) -> {
-				String vmPath = PathUtils.removeNamespace(v.path(), namespace);
-				return new VersionMeta(v.blobMeta(), new PathEvent(vmPath, v.timestamp(), v.operation(), v.principal(),
-						v.correlationId(), v.workflowId(), v.contextName(), v.transactionId(), v.transactionResult()));
-
-			}).toList();
+			return APIUtils.toClientVersionMeta(vs,namespace);
 		} catch (Exception e) {
 			LOGGER.error("Unable to get versions for correlation/tranasaction = {}/{}", correlationId, transactionId,
 					e);
@@ -147,12 +121,7 @@ public class ConsoleController {
 	public List<VersionMeta> getVersionsByTransaction(@PathVariable String transactionId) {
 		try {
 			List<VersionMeta> vs = consoleService.getVersionsByTransactionId(transactionId);
-			return vs.stream().map((v) -> {
-				String vmPath = PathUtils.removeNamespace(v.path(), namespace);
-				return new VersionMeta(v.blobMeta(), new PathEvent(vmPath, v.timestamp(), v.operation(), v.principal(),
-						v.correlationId(), v.workflowId(), v.contextName(), v.transactionId(), v.transactionResult()));
-
-			}).toList();
+			return APIUtils.toClientVersionMeta(vs,namespace);
 		} catch (Exception e) {
 			LOGGER.error("Unable to get versions for tranasaction = {}", transactionId, e);
 		}
