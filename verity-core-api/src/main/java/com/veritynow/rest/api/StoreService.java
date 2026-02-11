@@ -79,16 +79,16 @@ public class StoreService {
 
 	// interface to the hash keyed immutable store
 	public Optional<InputStream> getContent(String hash) throws IOException {
-		return versionStore.getContent(new PK(null, hash));
+		return versionStore.getContent(PK.hash(hash));
 	}
 
 	// interface to the hash keyed immutable store
 	public Optional<BlobMeta> getContentMeta(String hash) throws IOException {
-		return versionStore.getContentMeta(new PK(null, hash));
+		return versionStore.getContentMeta(PK.hash(hash));
 	}
 
 	public Optional<VersionMeta> create(String path, InputStream is, String mimeType, String name) throws IOException {
-		Optional<BlobMeta> opt = versionStore.create(new PK(path, null), new BlobMeta(name, mimeType), is);
+		Optional<BlobMeta> opt = versionStore.create(PK.path(path), new BlobMeta(name, mimeType), is);
 		if (opt.isPresent()) {
 			Optional<VersionMeta> latest = versionStore.getLatestVersion(path);
 			return latest;
@@ -100,7 +100,7 @@ public class StoreService {
 			throws IOException {
 		String parent = path.substring(0, path.lastIndexOf("/"));
 		String lastSegment = lastSegment(path);
-		Optional<BlobMeta> opt = versionStore.create(new PK(parent, null), new BlobMeta(name, mimeType), is,
+		Optional<BlobMeta> opt = versionStore.create(PK.path(parent), new BlobMeta(name, mimeType), is,
 				lastSegment);
 
 		if (opt.isPresent()) {
@@ -111,14 +111,14 @@ public class StoreService {
 
 	public Optional<VersionMeta> update(String path, InputStream is, String mimeType, String name) throws IOException {
 
-		Optional<BlobMeta> opt = versionStore.update(new PK(path, null), is);
+		Optional<BlobMeta> opt = versionStore.update(PK.path(path), is);
 		if (opt.isPresent())
 			return versionStore.getLatestVersion(path);
 		return Optional.empty();
 	}
 
 	public Optional<VersionMeta> delete(String path, String reason) throws IOException {
-		Optional<BlobMeta> bm = versionStore.delete(new PK(path, null));
+		Optional<BlobMeta> bm = versionStore.delete(PK.path(path));
 		if (bm.isPresent()) {
 			return  getLatestVersionIncludeDeleted(path);
 		}
@@ -127,7 +127,7 @@ public class StoreService {
 
 	public Optional<VersionMeta> undelete(String path) throws IOException {
 
-		Optional<BlobMeta> bm = versionStore.undelete(new PK(path, null));
+		Optional<BlobMeta> bm = versionStore.undelete(PK.path(path));
 		if (bm.isPresent()) {
 			return versionStore.getLatestVersion(path);
 		}
@@ -168,7 +168,7 @@ public class StoreService {
 			case "UPSERT":
 			case "UPSERT?exactPath":
 				Objects.requireNonNull(is);
-				if (versionStore.exists(new PK(path, null))) {
+				if (versionStore.exists(PK.path(path))) {
 					return update(path, is, mimeType, name);
 				} else {
 					return createExactPath(path, is, mimeType, name);

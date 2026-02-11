@@ -84,7 +84,7 @@ public class ConsoleService {
 	}
 
 	public Optional<InputStream> getContent(String hash) throws IOException {
-		Optional<InputStream> opt = versionStore.getContent(new PK(null, hash));
+		Optional<InputStream> opt = versionStore.getContent(PK.hash(hash));
 		if (opt.isPresent())
 			return opt;
 		return Optional.empty();
@@ -92,7 +92,7 @@ public class ConsoleService {
 
 	public Optional<VersionMeta> undelete(String path) {
 		try {
-			Optional<BlobMeta> opt = versionStore.undelete(new PK(path, null));
+			Optional<BlobMeta> opt = versionStore.undelete(PK.path(path));
 			if (opt.isPresent())
 				return versionStore.getLatestVersion(path);
 		} catch (IOException e) {

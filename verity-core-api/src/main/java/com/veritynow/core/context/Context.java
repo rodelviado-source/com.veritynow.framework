@@ -9,6 +9,7 @@ import util.StringUtils;
  */
 public final class Context {
 
+	public static String ANONYMOUS = "anonymous";
     private static volatile ContextManager INSTANCE = ContextBootstrap.defaultManager();
 
     private Context() {}
@@ -82,6 +83,7 @@ public final class Context {
         ContextSnapshot cs;
         if (!isActive()) {
             cs = ContextSnapshot.builder()
+            		.principal(ANONYMOUS)
                     .workflowId(UUID.randomUUID().toString())
                     .correlationId(UUID.randomUUID().toString())
                     .transactionId(UUID.randomUUID().toString())
@@ -89,12 +91,14 @@ public final class Context {
                     .propagated(false)
                     .build();
         } else {
+        	boolean prinEmpty = StringUtils.isEmpty(Context.principalOrNull());
             boolean wfIdEmpty = StringUtils.isEmpty(Context.workflowIdOrNull());
             boolean txnIdEmpty = StringUtils.isEmpty(Context.transactionIdOrNull());
             boolean ctxNameEmpty = StringUtils.isEmpty(Context.contextNameOrNull());
             boolean propagate = wfIdEmpty || txnIdEmpty || ctxNameEmpty;
 
             cs = ContextSnapshot.builder()
+            		.principal(prinEmpty ? ANONYMOUS : Context.principalOrNull())
                     .workflowId(wfIdEmpty ? UUID.randomUUID().toString() : Context.workflowIdOrNull())
                     // correlationId() is guaranteed non-null by the ContextManager (generated if absent)
                     .correlationId(Context.correlationId())

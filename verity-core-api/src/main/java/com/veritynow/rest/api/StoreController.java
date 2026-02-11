@@ -297,7 +297,16 @@ public class StoreController {
 			} else {
 				is = null;
 			}
-			try (is) {
+
+			
+			//get context from headers if any
+			//if transactionId was not provided use the provided UUID
+			ContextSnapshot ctx = ContextResolvers.fromHttpHeaders(
+					request.getRequestHeaders().toSingleValueMap(),
+					null
+			);
+			
+			try (is; ContextScope scope = Context.scope(ctx)) {
 				Optional<VersionMeta> vm = storeService.process(operation, path, new BlobMeta(name, mimeType) , is);
 				if (vm.isPresent())
 					return ResponseEntity.ok(APIUtils.toClientVersionMeta(vm.get(), namespace));
@@ -382,9 +391,8 @@ public class StoreController {
 				UUID.randomUUID().toString()
 		);
 		
-		
 		try (ContextScope scope = Context.scope(ctx)) {
-			
+		
 			List<VersionMeta> before = storeService.processTransaction(apiTxn, metas);
 			
 			summary.put("before", APIUtils.toClientVersionMeta(before, namespace));

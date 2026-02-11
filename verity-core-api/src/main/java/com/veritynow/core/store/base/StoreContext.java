@@ -17,9 +17,6 @@ public record StoreContext(
 ) {
 
 
-	
-	public final static String ANONYMOUS = "anonymous";
-		
 	public StoreContext {
 		
 	StoreUtils.enforceRequired(principal, "principal");
@@ -43,7 +40,7 @@ public record StoreContext(
 	}
 
 	public StoreContext(ContextSnapshot snap, String operation) {
-		this(   StoreUtils.setOrDefault(snap.principalOrNull(), ANONYMOUS),
+		this(   StoreUtils.setOrDefault(snap.principalOrNull(), Context.ANONYMOUS),
 				StoreUtils.setRequired(snap.correlationId(), "correlationId"),
 				StoreUtils.setOrDefault(snap.workflowIdOrNull(), snap.correlationId()),
 				StoreUtils.setRequired(operation, "operation"),
@@ -54,7 +51,7 @@ public record StoreContext(
 	}
 	
 	public StoreContext(ContextSnapshot snap, String operation, String transactionResult) {
-		this(   StoreUtils.setOrDefault(snap.principalOrNull(), ANONYMOUS),
+		this(   StoreUtils.setOrDefault(snap.principalOrNull(), Context.ANONYMOUS),
 				StoreUtils.setRequired(snap.correlationId(), "correlationId"),
 				StoreUtils.setOrDefault(snap.workflowIdOrNull(), snap.correlationId()),
 				StoreUtils.setRequired(operation, "operation"),
@@ -69,7 +66,7 @@ public record StoreContext(
 			return new StoreContext(Context.snapshot(),operation); 
 		}
 		String cid = UUID.randomUUID().toString();
-		return new StoreContext(ANONYMOUS, cid,cid,operation, operation + "-" + AUTO_COMMITTED, null, AUTO_COMMITTED);
+		return new StoreContext(Context.ANONYMOUS, cid,cid,operation, operation + "-" + AUTO_COMMITTED, null, AUTO_COMMITTED);
 	}
 
 	private static String defaultContextName(String operation, ContextSnapshot snap) {
