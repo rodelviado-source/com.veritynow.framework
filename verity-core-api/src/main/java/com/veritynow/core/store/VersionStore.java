@@ -45,7 +45,7 @@ import java.util.Optional;
  * @param <BLOBMETA>    metadata type returned by {@link Store} CRUD operations
  * @param <VERSIONMETA> metadata type describing individual versions for a path
  */
-public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBMETA> {
+public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBMETA, VERSIONMETA> {
 
     /**
      * Resolve the latest version metadata for the given logical path.
@@ -59,7 +59,7 @@ public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBM
      * @return latest version metadata if resolvable
      * @throws IOException on I/O failure
      */
-    Optional<VERSIONMETA> getLatestVersion(String path) throws IOException;
+    Optional<VERSIONMETA> getLatestVersion(PK key) throws IOException;
 
     /**
      * Return all version metadata entries for the given logical path.
@@ -73,7 +73,7 @@ public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBM
      * @return all version metadata entries for the path (possibly empty)
      * @throws IOException on I/O failure
      */
-    List<VERSIONMETA> getAllVersions(String path) throws IOException;
+    List<VERSIONMETA> getAllVersions(PK key) throws IOException;
 
     /**
      * List the latest versions of blobs directly under the given logical path (non-recursive).
@@ -87,7 +87,7 @@ public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBM
      * @return latest version metadata for direct children (possibly empty)
      * @throws IOException on I/O failure
      */
-    List<VERSIONMETA> getChildrenLatestVersion(String path) throws IOException;
+    List<VERSIONMETA> getChildrenLatestVersion(PK key) throws IOException;
 
     /**
      * List the direct child names/segments under the given logical path (non-recursive).
@@ -101,7 +101,7 @@ public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBM
      * @return direct child names/segments (possibly empty)
      * @throws IOException on I/O failure
      */
-    List<String> getChildrenPath(String path) throws IOException;
+    List<String> getChildrenPath(PK key) throws IOException;
 
     /**
      * Retrieve the binary content for a concrete key {@code PK}.
@@ -147,5 +147,5 @@ public interface VersionStore<PK, BLOBMETA, VERSIONMETA> extends Store<PK, BLOBM
      * @return {@code true} if path exists for the key
      * @throws IOException on I/O failure
      */
-	boolean pathExists(String  path) throws IOException;
+	boolean pathExists(PK  key) throws IOException;
 }

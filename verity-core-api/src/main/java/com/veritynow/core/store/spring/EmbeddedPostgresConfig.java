@@ -24,13 +24,13 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.veritynow.core.store.tools.schema.SchemaManager;
+import com.veritynow.util.FSUtil;
+import com.veritynow.util.JSON;
+import com.veritynow.util.ProcessUtil;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
-import util.FSUtil;
-import util.JSON;
-import util.ProcessUtil;
 
 @Component
 @Profile("embedded-postgres")

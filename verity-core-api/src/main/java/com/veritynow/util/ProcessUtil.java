@@ -1,4 +1,4 @@
-package util;
+package com.veritynow.util;
 
 import java.time.Duration;
 import java.util.Random;

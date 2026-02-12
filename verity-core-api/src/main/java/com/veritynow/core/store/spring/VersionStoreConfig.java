@@ -85,7 +85,7 @@ public class VersionStoreConfig {
 	
 	// Root directory for filesystem blobs, configurable via application.properties/yaml
     @Bean
-    public ImmutableStore<String, BlobMeta> immutableBackingStore(
+    public ImmutableStore<String, BlobMeta, BlobMeta> immutableBackingStore(
             @Value("${verity.immutable.blobs.fs-root:./data}") String rootDir,
             HashingService hs, ImmutableRepository repo
     ) {
@@ -112,7 +112,7 @@ public class VersionStoreConfig {
     @Bean
     @Primary
     public TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope, CloseableLockHandle> versionStore(
-    		ImmutableStore<String, BlobMeta> backingStore,
+    		ImmutableStore<String, BlobMeta, BlobMeta> backingStore,
     		DSLContext dsl,
 			RepositoryManager repositoryManager,
             ContextAwareTransactionManager txnManager,

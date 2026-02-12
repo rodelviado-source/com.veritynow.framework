@@ -42,38 +42,27 @@ public class StoreService {
 
 	// retrieves all version including deleted ones
 	public List<VersionMeta> getAllVersions(String path) throws IOException {
-		return versionStore.getAllVersions(path);
+		return versionStore.getAllVersions(PK.path(path));
 	}
 
 	public Optional<VersionMeta> getLatestVersion(String path) throws IOException {
 
-		Optional<VersionMeta> opt = versionStore.getLatestVersion(path);
+		Optional<VersionMeta> opt = versionStore.getLatestVersion(PK.path(path));
 		if (opt.isPresent()) {
 			VersionMeta vm = opt.get();
-
 			if (StoreOperation.Deleted().equals(vm.operation())) {
 				LOGGER.error("Attempt to get a deleted path {}", path);
 				return Optional.empty();
 			}
-			return Optional.of(vm);
+			return opt;
 		}
 		return Optional.empty();
 	}
 
-	public Optional<VersionMeta> getLatestVersionIncludeDeleted(String path) throws IOException {
-
-		Optional<VersionMeta> opt = versionStore.getLatestVersion(path);
-		if (opt.isPresent()) {
-			VersionMeta vm = opt.get();
-			return Optional.of(vm);
-		}
-		return Optional.empty();
-	}
-	
 	
 	public List<VersionMeta> getChildrenLatestVersion(String path) throws IOException {
 
-		List<VersionMeta> bms = versionStore.getChildrenLatestVersion(path);
+		List<VersionMeta> bms = versionStore.getChildrenLatestVersion(PK.path(path));
 		return bms.stream().filter(bm -> !StoreOperation.Deleted().equals(bm.operation())).toList();
 	}
 
@@ -88,59 +77,31 @@ public class StoreService {
 	}
 
 	public Optional<VersionMeta> create(String path, InputStream is, String mimeType, String name) throws IOException {
-		Optional<BlobMeta> opt = versionStore.create(PK.path(path), new BlobMeta(name, mimeType), is);
-		if (opt.isPresent()) {
-			Optional<VersionMeta> latest = versionStore.getLatestVersion(path);
-			return latest;
-		}
-		return Optional.empty();
+		return versionStore.create(PK.path(path), new BlobMeta(name, mimeType), is);
 	}
 
 	public Optional<VersionMeta> createExactPath(String path, InputStream is, String mimeType, String name)
 			throws IOException {
 		String parent = path.substring(0, path.lastIndexOf("/"));
 		String lastSegment = lastSegment(path);
-		Optional<BlobMeta> opt = versionStore.create(PK.path(parent), new BlobMeta(name, mimeType), is,
+		return versionStore.create(PK.path(parent), new BlobMeta(name, mimeType), is,
 				lastSegment);
-
-		if (opt.isPresent()) {
-			return versionStore.getLatestVersion(path);
-		}
-		return Optional.empty();
 	}
 
 	public Optional<VersionMeta> update(String path, InputStream is, String mimeType, String name) throws IOException {
-
-		Optional<BlobMeta> opt = versionStore.update(PK.path(path), is);
-		if (opt.isPresent())
-			return versionStore.getLatestVersion(path);
-		return Optional.empty();
+		return versionStore.update(PK.path(path), is);
 	}
 
 	public Optional<VersionMeta> delete(String path, String reason) throws IOException {
-		Optional<BlobMeta> bm = versionStore.delete(PK.path(path));
-		if (bm.isPresent()) {
-			return  getLatestVersionIncludeDeleted(path);
-		}
-		return Optional.empty();
+		return versionStore.delete(PK.path(path));
 	}
 
 	public Optional<VersionMeta> undelete(String path) throws IOException {
-
-		Optional<BlobMeta> bm = versionStore.undelete(PK.path(path));
-		if (bm.isPresent()) {
-			return versionStore.getLatestVersion(path);
-		}
-		return Optional.empty();
+		return versionStore.undelete(PK.path(path));
 	}
 
 	public Optional<VersionMeta> restore(String path, String hash) throws IOException {
-
-		Optional<BlobMeta> bm = versionStore.restore(new PK(path, hash));
-		if (bm.isPresent()) {
-			return versionStore.getLatestVersion(path);
-		}
-		return Optional.empty();
+		return versionStore.restore(new PK(path, hash));
 	}
 
 	public Optional<VersionMeta> restore(String path, String hash, String algo) throws IOException {
@@ -305,8 +266,8 @@ public class StoreService {
 		try {
 			String p = PathUtils.normalizePath(path);
 			// --- HEAD (payload at this exact path, if any)
-			List<String> children = versionStore.getChildrenPath(p);
-			List<VersionMeta> versions = versionStore.getAllVersions(p);
+			List<String> children = versionStore.getChildrenPath(PK.path(p));
+			List<VersionMeta> versions = versionStore.getAllVersions(PK.path(p));
 
 			PathMeta nm = new PathMeta(p, children, versions);
 

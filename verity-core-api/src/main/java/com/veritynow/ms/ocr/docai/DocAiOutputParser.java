@@ -14,8 +14,7 @@ import com.google.cloud.documentai.v1.ProcessResponse;
 import com.veritynow.ms.ocr.OcrField;
 import com.veritynow.ms.pdf.FieldInfo;
 import com.veritynow.ms.pdf.FormTemplate;
-
-import util.JSON;
+import com.veritynow.util.JSON;
 
 public class DocAiOutputParser {
 
@@ -90,7 +89,7 @@ public class DocAiOutputParser {
 
 			}
 
-			System.out.println("OCR Results " + JSON.MAPPER.writeValueAsString(results));
+			System.out.println("OCR Results " + JSON.writeValueAsString(results));
 			return results;
 
 		} catch (Exception e) {

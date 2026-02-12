@@ -11,7 +11,6 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -33,10 +32,8 @@ import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.meta.PathMeta;
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.versionstore.PathUtils;
-
-import jakarta.servlet.http.Part;
-import util.JSON;
-import util.StringUtils;
+import com.veritynow.util.JSON;
+import com.veritynow.util.StringUtils;
 
 @RestController
 public class StoreController {
@@ -268,7 +265,7 @@ public class StoreController {
 	
 	 {
 		
-		Map<String, String> action = JSON.MAPPER.readValue(intentJson, new TypeReference<Map<String, String>>() {
+		Map<String, String> action = JSON.readValue(intentJson, new TypeReference<Map<String, String>>() {
 		});
 			 
 			Map<String, MultipartFile> fileMap = request.getFileMap();
@@ -306,7 +303,8 @@ public class StoreController {
 					null
 			);
 			
-			try (is; ContextScope scope = Context.scope(ctx)) {
+			try (is; @SuppressWarnings("unused")
+			ContextScope scope = Context.scope(ctx)) {
 				Optional<VersionMeta> vm = storeService.process(operation, path, new BlobMeta(name, mimeType) , is);
 				if (vm.isPresent())
 					return ResponseEntity.ok(APIUtils.toClientVersionMeta(vm.get(), namespace));
@@ -323,7 +321,7 @@ public class StoreController {
 	public ResponseEntity<Map<String, Object>> processTransactionMultipart(@RequestPart("transactions") String transactionsJson,
 			MultipartHttpServletRequest request) throws Exception {
 
-		List<Transaction> txns = JSON.MAPPER.readValue(transactionsJson, new TypeReference<List<Transaction>>() {
+		List<Transaction> txns = JSON.readValue(transactionsJson, new TypeReference<List<Transaction>>() {
 		});
 
 		// Exact multipart parts as uploaded: partName -> MultipartFile

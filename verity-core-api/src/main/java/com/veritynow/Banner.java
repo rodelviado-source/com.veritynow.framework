@@ -9,7 +9,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 
-import util.JSON;
+import com.veritynow.util.JSON;
 
 @Configuration
 public class Banner {

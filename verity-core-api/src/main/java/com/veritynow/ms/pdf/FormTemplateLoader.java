@@ -5,7 +5,7 @@ import java.io.InputStream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import util.JSON;
+import com.veritynow.util.JSON;
 
 @Component
 public class FormTemplateLoader {
@@ -21,7 +21,7 @@ public class FormTemplateLoader {
                 throw new RuntimeException("OCR template not found: " + path);
             }
 
-            return JSON.MAPPER.readValue(in, FormTemplate.class);
+            return JSON.readValue(in, FormTemplate.class);
 
         } catch (Exception e) {
             throw new RuntimeException("Failed loading OCR template config", e);

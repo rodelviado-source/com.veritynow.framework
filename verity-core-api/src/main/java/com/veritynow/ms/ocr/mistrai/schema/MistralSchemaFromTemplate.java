@@ -4,21 +4,19 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.veritynow.ms.pdf.FieldInfo;
 import com.veritynow.ms.pdf.FormTemplate;
-
-import util.JSON;
+import com.veritynow.util.JSON;
 
 @Component
 public class MistralSchemaFromTemplate {
 
-    public static ObjectMapper mapper = JSON.MAPPER;
+    
 
     public static ObjectNode buildResponseFormat(FormTemplate tpl) {
-        ObjectNode root = mapper.createObjectNode();
+        ObjectNode root = JSON.createObjectNode();
 
         ObjectNode responseFormat = root.putObject("response_format");
         responseFormat.put("type", "json_schema");

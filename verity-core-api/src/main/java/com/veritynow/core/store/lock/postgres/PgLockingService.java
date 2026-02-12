@@ -28,8 +28,7 @@ import com.veritynow.core.store.lock.LockingService;
 import com.veritynow.core.store.txn.TransactionContext;
 import com.veritynow.core.store.versionstore.PathUtils;
 import com.veritynow.core.store.versionstore.repo.PathKeyCodec;
-
-import util.ProcessUtil;
+import com.veritynow.util.ProcessUtil;
 
 /**
  * Postgres locking kernel: exclusive subtree locking using ltree scope keys.

@@ -1,4 +1,4 @@
-package util;
+package com.veritynow.util;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;

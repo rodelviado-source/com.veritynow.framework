@@ -7,8 +7,7 @@ import java.util.UUID;
 
 import com.veritynow.core.context.Context;
 import com.veritynow.core.context.ContextSnapshot;
-
-import util.StringUtils;
+import com.veritynow.util.StringUtils;
 
 public record StoreContext(
 		String principal, String correlationId, String workflowId, String operation,

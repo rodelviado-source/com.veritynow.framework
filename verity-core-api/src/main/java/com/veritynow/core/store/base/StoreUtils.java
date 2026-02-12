@@ -1,6 +1,6 @@
 package com.veritynow.core.store.base;
 
-import util.StringUtils;
+import com.veritynow.util.StringUtils;
 
 public class StoreUtils {
 	public static  String setOrDefault(String s, String def) {

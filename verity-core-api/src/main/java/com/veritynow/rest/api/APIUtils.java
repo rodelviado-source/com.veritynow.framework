@@ -1,12 +1,9 @@
 package com.veritynow.rest.api;
 
-import java.net.URI;
 import java.util.List;
 
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.versionstore.PathUtils;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 public class APIUtils {
 
@@ -14,21 +11,6 @@ public class APIUtils {
 	 * ========================================================= HTTP → internal
 	 * (Ingress) =========================================================
 	 */
-
-	
-	public static String applyNamespace(HttpServletRequest request, String namespace) {
-		// 1) Decode HTTP path correctly (percent-decoding, '+' preserved)
-		String decodedPath = decodePathFromHttpRequest(request);
-
-		// 2) Apply namespace (internal prefix)
-		return PathUtils.normalizeAndApplyNamespace(decodedPath, namespace);
-	}
-
-	public static String decodePathFromHttpRequest(HttpServletRequest request) {
-		URI uri = URI.create(request.getRequestURI());
-		return uri.getPath(); // decoded, no query, no fragment
-	}
-	
 
 	/**
 	 * Convert a Merkle-level BlobMeta (whose path includes the namespace) back into

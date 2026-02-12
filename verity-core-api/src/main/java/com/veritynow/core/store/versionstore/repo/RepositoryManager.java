@@ -1,7 +1,6 @@
 package com.veritynow.core.store.versionstore.repo;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,7 +62,7 @@ public class RepositoryManager {
         if (inodeIdOpt.isEmpty()) return Optional.empty();
 
         Long inodeId = inodeIdOpt.get();
-        return verRepo.findLatestVersionByInodeId(inodeId);
+        return verRepo.findLatestVersionByInodeId(inodeId, nodePath);
     }
 
     public boolean pathExists(String path) {
@@ -88,13 +87,9 @@ public class RepositoryManager {
 
         List<DirEntry> children = inodeRepo.findAllByParentIdOrderByNameAsc(inodeId);
         if (children.isEmpty()) return List.of();
+        
 
-        List<Long> childIds = new ArrayList<>(children.size());
-        for (DirEntry child : children) {
-            childIds.add(child.child().id());
-        }
-
-        return verRepo.findLatestVersionsByInodeIds(childIds);
+        return verRepo.findLatestVersionsForDirectChildren(nodePath, children);
     }
 
     public List<String> getChildrenPath(String nodePath) throws IOException {
@@ -119,20 +114,21 @@ public class RepositoryManager {
         Optional<Long> inodeIdOpt = inodeRepo.resolveInodeId(nodePath);
         if (inodeIdOpt.isEmpty()) return List.of();
         Long inodeId = inodeIdOpt.get();
-        return verRepo.findAllByInodeIdOrderByTimestampDescIdDesc(inodeId);
+        return verRepo.findAllByInodeIdWithPath(inodeId, nodePath);
     }
 
     public VersionMeta persist(VersionMeta vm) {
         Inode inode = inodeRepo.resolveOrCreateInode(vm.path());
-        return verRepo.save(vm, inode.id());
+        return verRepo.persist(vm, inode.id());
     }
 
+    public VersionMeta persistAndPublish(VersionMeta vm) {
+        Inode inode = inodeRepo.resolveOrCreateInode(vm.path());
+        return verRepo.persistAndPublish(vm, inode.id());
+    }
+    
     public void ensureRootInode() {
         inodeRepo.ensureRootInode();
     }
 
-    public void persistAndPublish(VersionMeta vm) {
-        Inode inode = inodeRepo.resolveOrCreateInode(vm.path());
-        verRepo.saveAndPublish(vm, inode.id());
-    }
 }

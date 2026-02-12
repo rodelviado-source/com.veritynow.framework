@@ -80,7 +80,7 @@ public class ConsoleService {
 
 	public List<VersionMeta> getAllVersions(String path) throws IOException {
 		Objects.requireNonNull(path, "path");
-		return versionStore.getAllVersions(path);
+		return versionStore.getAllVersions(PK.path(path));
 	}
 
 	public Optional<InputStream> getContent(String hash) throws IOException {
@@ -89,20 +89,6 @@ public class ConsoleService {
 			return opt;
 		return Optional.empty();
 	}
-
-	public Optional<VersionMeta> undelete(String path) {
-		try {
-			Optional<BlobMeta> opt = versionStore.undelete(PK.path(path));
-			if (opt.isPresent())
-				return versionStore.getLatestVersion(path);
-		} catch (IOException e) {
-			LOGGER.error("Unable to delete {}", path, e);
-		}
-		return Optional.empty();
-	}
-
-
-
 	
 
 }

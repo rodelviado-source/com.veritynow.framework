@@ -1,4 +1,4 @@
-package util;
+package com.veritynow.ms.pdf;
 
 import java.io.FileInputStream;
 import java.nio.file.Path;
@@ -12,8 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.veritynow.ms.ocr.mistrai.schema.MistralSchemaFromTemplate;
-import com.veritynow.ms.pdf.FormTemplate;
-import com.veritynow.ms.pdf.PDFExtractorService;
 
 /**
  * Extracts PDF form fields into a JSON-friendly structure suitable
@@ -29,7 +27,7 @@ import com.veritynow.ms.pdf.PDFExtractorService;
  *   - Use the static method {@link #extractFromDocument(PDDocument)} offline,
  *     e.g. from tools, tests, or other code that already has a PDDocument
  */
-public class PDFExtractorServiceTest {
+public class PDFExtractorTest {
 
         
 	

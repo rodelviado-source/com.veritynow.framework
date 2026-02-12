@@ -1,6 +1,7 @@
 package com.veritynow.rest.api;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,9 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.veritynow.core.store.meta.VersionMeta;
 import com.veritynow.core.store.versionstore.PathUtils;
+import com.veritynow.util.HttpUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
-import util.HttpUtils;
 
 @RestController
 @RequestMapping("/api/**")
@@ -56,7 +57,7 @@ public class APIURLMappedPathNotGoodExampleController {
 			}
 
 			// Here, request URI is the *collection* path, e.g. "/api/agents/A/clients"
-			String parentPath = APIUtils.applyNamespace(request, namespace);
+			String parentPath = applyNamespace(request, namespace);
 			String lastSegment = UUID.randomUUID().toString();
 			parentPath = parentPath +"/" +lastSegment;
 			
@@ -95,7 +96,7 @@ public class APIURLMappedPathNotGoodExampleController {
 			}
 
 			// Here, request URI is the *collection* path, e.g. "/api/agents/A/clients/{id}"
-			String parentPath = APIUtils.applyNamespace(request, namespace);
+			String parentPath = applyNamespace(request, namespace);
 			
 			 Optional<VersionMeta> opt = apiService.createExactPath(parentPath, inputStream, contentType, name);
 			
@@ -135,7 +136,7 @@ public class APIURLMappedPathNotGoodExampleController {
 
 			// Here, request URI is the *identity* path, e.g.
 			// "/api/agents/A/clients/{clientId}"
-			String identityPath = APIUtils.applyNamespace(request, namespace);
+			String identityPath = applyNamespace(request, namespace);
 
 			 Optional<VersionMeta> opt = apiService.update(identityPath, inputStream, contentType, name);
 			
@@ -160,7 +161,7 @@ public class APIURLMappedPathNotGoodExampleController {
 			@RequestParam(name = "reason", required = false) String reason) {
 
 		try {
-		String path = APIUtils.applyNamespace(request, namespace);
+		String path = applyNamespace(request, namespace);
 
 		Optional<VersionMeta> opt = apiService.delete(path, reason);
 		if (opt.isPresent())
@@ -178,7 +179,7 @@ public class APIURLMappedPathNotGoodExampleController {
 			) {
 
 		try {
-		String path = APIUtils.applyNamespace(request, namespace);
+		String path = applyNamespace(request, namespace);
 		 Optional<VersionMeta> opt = apiService.undelete(path);
 		if (opt.isPresent()) {
 			VersionMeta vm = opt.get();
@@ -197,7 +198,7 @@ public class APIURLMappedPathNotGoodExampleController {
 	 {
 		
 		try {
-		String path = APIUtils.applyNamespace(request, namespace);
+		String path = applyNamespace(request, namespace);
 
 		 Optional<VersionMeta> opt = apiService.restore(path, hash);
 		if (opt.isPresent()) {
@@ -213,7 +214,18 @@ public class APIURLMappedPathNotGoodExampleController {
 	}
 
 	
-	
+	private static String applyNamespace(HttpServletRequest request, String namespace) {
+		// 1) Decode HTTP path correctly (percent-decoding, '+' preserved)
+		String decodedPath = decodePathFromHttpRequest(request);
+
+		// 2) Apply namespace (internal prefix)
+		return PathUtils.normalizeAndApplyNamespace(decodedPath, namespace);
+	}
+
+	private static String decodePathFromHttpRequest(HttpServletRequest request) {
+		URI uri = URI.create(request.getRequestURI());
+		return uri.getPath(); // decoded, no query, no fragment
+	}
 	
 	
 }

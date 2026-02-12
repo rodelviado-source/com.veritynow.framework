@@ -77,9 +77,9 @@ import java.util.Optional;
  * </p>
  *
  * @param <KEY>  logical identifier for stored objects (e.g. path, composite key)
- * @param <META> immutable metadata describing a stored version
+ * @param <I> immutable metadata describing a stored version
  */
-public interface Store<KEY, META> {
+public interface Store<KEY, I, O> {
 
     /**
      * Key/value pair used for bulk creation.
@@ -99,7 +99,7 @@ public interface Store<KEY, META> {
      * @return metadata of the created version, or empty if no version was created
      * @throws IOException on I/O failure
      */
-    Optional<META> create(KEY key, META meta, InputStream in) throws IOException;
+    Optional<O> create(KEY key, I meta, InputStream in) throws IOException;
 
     /**
      * Create a new object with an explicit version identifier.
@@ -116,7 +116,7 @@ public interface Store<KEY, META> {
      * @return metadata of the created version, or empty if no version was created
      * @throws IOException on I/O failure
      */
-    Optional<META> create(KEY key, META meta, InputStream in, String id) throws IOException;
+    Optional<O> create(KEY key, I meta, InputStream in, String id) throws IOException;
 
     /**
      * Read the current content associated with the given key.
@@ -135,7 +135,7 @@ public interface Store<KEY, META> {
      * @return metadata of the new version, or empty if no update occurred
      * @throws IOException on I/O failure
      */
-    Optional<META> update(KEY key, InputStream is) throws IOException;
+    Optional<O> update(KEY key, InputStream is) throws IOException;
 
     /**
      * Soft-delete the object associated with the given key.
@@ -144,7 +144,7 @@ public interface Store<KEY, META> {
      * @return metadata of the delete operation, or empty if no change occurred
      * @throws IOException on I/O failure
      */
-    Optional<META> delete(KEY key) throws IOException;
+    Optional<O> delete(KEY key) throws IOException;
 
     /**
      * Reverse a prior delete operation.
@@ -153,7 +153,7 @@ public interface Store<KEY, META> {
      * @return metadata of the undelete operation, or empty if not applicable
      * @throws IOException on I/O failure
      */
-    Optional<META> undelete(KEY key) throws IOException;
+    Optional<O> undelete(KEY key) throws IOException;
 
     /**
      * Restore the object at the given key to a prior version.
@@ -168,7 +168,7 @@ public interface Store<KEY, META> {
      * @return metadata of the restored version, or empty if no restore occurred
      * @throws IOException on I/O failure
      */
-    Optional<META> restore(KEY key) throws IOException;
+    Optional<O> restore(KEY key) throws IOException;
     
     /**
      * Create multiple objects in a single call.
@@ -177,7 +177,7 @@ public interface Store<KEY, META> {
      * @return list of metadata for created versions
      * @throws IOException on I/O failure
      */
-    List<META> bulkCreate(Map<KEY, KV<META>> kis) throws IOException;
+    List<O> bulkCreate(Map<KEY, KV<I>> kis) throws IOException;
 
     /**
      * Create multiple objects with explicit version identifiers.
@@ -187,7 +187,7 @@ public interface Store<KEY, META> {
      * @return list of metadata for created versions
      * @throws IOException on I/O failure
      */
-    List<META> bulkCreate(Map<KEY, KV<META>> kais, List<String> ids) throws IOException;
+    List<O> bulkCreate(Map<KEY, KV<I>> kais, List<String> ids) throws IOException;
 
     /**
      * Read the current content of multiple keys.
@@ -205,7 +205,7 @@ public interface Store<KEY, META> {
      * @return list of metadata for updated versions
      * @throws IOException on I/O failure
      */
-    List<META> bulkUpdate(Map<KEY, InputStream> mis) throws IOException;
+    List<O> bulkUpdate(Map<KEY, InputStream> mis) throws IOException;
 
     /**
      * Soft-delete multiple keys.
@@ -214,7 +214,7 @@ public interface Store<KEY, META> {
      * @return list of metadata for delete operations
      * @throws IOException on I/O failure
      */
-    List<META> bulkDelete(List<KEY> keys) throws IOException;
+    List<O> bulkDelete(List<KEY> keys) throws IOException;
 
     /**
      * Reverse deletion for multiple keys.
@@ -223,7 +223,7 @@ public interface Store<KEY, META> {
      * @return list of metadata for undelete operations
      * @throws IOException on I/O failure
      */
-    List<META> bulkUndelete(List<KEY> keys) throws IOException;
+    List<O> bulkUndelete(List<KEY> keys) throws IOException;
 
     /**
      * Restore multiple keys to prior versions.
@@ -237,7 +237,7 @@ public interface Store<KEY, META> {
      * @return list of metadata for restored versions
      * @throws IOException on I/O failure
      */
-    List<META> bulkRestore(List<KEY> keys) throws IOException;
+    List<O> bulkRestore(List<KEY> keys) throws IOException;
 
     /**
      * Determine whether the given key has a resolvable latest version.

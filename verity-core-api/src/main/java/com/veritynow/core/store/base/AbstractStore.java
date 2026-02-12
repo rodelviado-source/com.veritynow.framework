@@ -15,7 +15,7 @@ import com.veritynow.core.store.StoreCapabilities;
 
 
 
-public abstract class AbstractStore<KEY, META> implements Store<KEY, META> {
+public abstract class AbstractStore<KEY, I, O> implements Store<KEY, I, O> {
 
 			
 	private final Set<StoreCapabilities> capabilities;
@@ -65,10 +65,10 @@ public abstract class AbstractStore<KEY, META> implements Store<KEY, META> {
 	 * **/
 	
 	@Override
-	public List<META> bulkCreate(Map<KEY, KV<META>> mis) throws IOException {
-		List<META> out = new ArrayList<META>();
+	public List<O> bulkCreate(Map<KEY, KV<I>> mis) throws IOException {
+		List<O> out = new ArrayList<>();
 		mis.forEach((m, kv) -> {
-			Optional<META> opt;
+			Optional<O> opt;
 			try {
 				opt = create(m, kv.meta(), kv.inputStream());
 				if (opt.isPresent()) {
@@ -84,10 +84,10 @@ public abstract class AbstractStore<KEY, META> implements Store<KEY, META> {
 	}
 	
 	@Override
-	public List<META> bulkCreate(Map<KEY, KV<META>> mis, List<String> ids) throws IOException {
-		List<META> out = new ArrayList<META>();
+	public List<O> bulkCreate(Map<KEY, KV<I>> mis, List<String> ids) throws IOException {
+		List<O> out = new ArrayList<>();
 		mis.forEach((m, kv) -> {
-			Optional<META> opt;
+			Optional<O> opt;
 			int idx = 0;
 			try {
 				opt = create(m, kv.meta(), kv.inputStream(), ids.get(idx++));
@@ -124,13 +124,13 @@ public abstract class AbstractStore<KEY, META> implements Store<KEY, META> {
 	}
 
 	@Override
-	public List<META> bulkUpdate(Map<KEY, InputStream> mis) throws IOException {
-		List<META> out = new ArrayList<META>();
+	public List<O> bulkUpdate(Map<KEY, InputStream> mis) throws IOException {
+		List<O> out = new ArrayList<>();
 		mis.forEach((m, i) -> {
 			
-			META cm = null;
+			O cm = null;
 			try {
-				Optional<META> cmo = update(m, i);
+				Optional<O> cmo = update(m, i);
 				if (cmo.isPresent()) cm = cmo.get();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -144,13 +144,13 @@ public abstract class AbstractStore<KEY, META> implements Store<KEY, META> {
 	}
 
 	@Override
-	public List<META> bulkDelete(List<KEY> keys) throws IOException {
-		List<META> out = new ArrayList<META>();
+	public List<O> bulkDelete(List<KEY> keys) throws IOException {
+		List<O> out = new ArrayList<>();
 		keys.forEach((m) -> {
 			
-			META cm = null;
+			O cm = null;
 			try {
-				Optional<META> cmo = delete(m);
+				Optional<O> cmo = delete(m);
 				if (cmo.isPresent()) cm = cmo.get();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -164,13 +164,13 @@ public abstract class AbstractStore<KEY, META> implements Store<KEY, META> {
 	}
 
 	@Override
-	public List<META> bulkUndelete(List<KEY> keys) throws IOException {
-		List<META> out = new ArrayList<META>();
+	public List<O> bulkUndelete(List<KEY> keys) throws IOException {
+		List<O> out = new ArrayList<>();
 		keys.forEach((m) -> {
 			
-			META cm = null;
+			O cm = null;
 			try {
-				Optional<META> cmo = undelete(m);
+				Optional<O> cmo = undelete(m);
 				if (cmo.isPresent()) cm = cmo.get();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -184,13 +184,13 @@ public abstract class AbstractStore<KEY, META> implements Store<KEY, META> {
 	}
 
 	@Override
-	public List<META> bulkRestore(List<KEY> keys) throws IOException {
-		List<META> out = new ArrayList<META>();
+	public List<O> bulkRestore(List<KEY> keys) throws IOException {
+		List<O> out = new ArrayList<>();
 		keys.forEach((m) -> {
 			
-			META cm = null;
+			O cm = null;
 			try {
-				Optional<META> cmo = restore(m);
+				Optional<O> cmo = restore(m);
 				if (cmo.isPresent()) cm = cmo.get();
 			} catch (IOException e) {
 				e.printStackTrace();

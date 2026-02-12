@@ -29,11 +29,11 @@ import com.veritynow.core.store.txn.jooq.ContextAwareTransactionManager;
 import com.veritynow.core.store.versionstore.repo.RepositoryManager;
 
 
-public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope, CloseableLockHandle>  {
+public class DBVersionStore extends AbstractStore<PK, BlobMeta, VersionMeta> implements  TransactionAndLockingAware<PK, BlobMeta, VersionMeta, ContextScope, CloseableLockHandle>  {
     
     private static final Logger LOGGER = LogManager.getLogger();
     
-    private final ImmutableStore<String, BlobMeta> backingStore;
+    private final ImmutableStore<String, BlobMeta, BlobMeta> backingStore;
     private final ContextAwareTransactionManager txnManager;
     private final LockingService lockingService;
 
@@ -44,7 +44,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 	private final RepositoryManager repositoryManager;
 
     public DBVersionStore(
-            ImmutableStore<String, BlobMeta> backingStore,
+            ImmutableStore<String, BlobMeta, BlobMeta> backingStore,
 			DSLContext dsl,
 			RepositoryManager repositoryManager,
             ContextAwareTransactionManager txnManager,
@@ -186,21 +186,22 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     public boolean exists(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
-        return getLatestVersion(key.path()).isPresent();
+        return getLatestVersion(key).isPresent();
     }
 
     
     @Override
-    public boolean pathExists(String  path) throws IOException {
-        Objects.requireNonNull(path, "path");
-        return repositoryManager.pathExists(path);
+    public boolean pathExists(PK  key) throws IOException {
+    	Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(key.path(), "path");
+        return repositoryManager.pathExists(key.path());
     }
     
     // ----------------------------
  	// CREATE - create a new version with new UUID(storeId) , under path/{storeId}
  	// 
     @Override
-    public Optional<BlobMeta> create(PK key, BlobMeta meta, InputStream content) throws IOException {
+    public Optional<VersionMeta> create(PK key, BlobMeta meta, InputStream content) throws IOException {
     	Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "path");
         Objects.requireNonNull(content, "content");
@@ -212,7 +213,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
  	//          if id is null will generate a new UUID{storeId} and create a new version under path/{storeId}
  	//
     @Override
-	public Optional<BlobMeta> create(PK key, BlobMeta meta, InputStream content, String id) throws IOException {
+	public Optional<VersionMeta> create(PK key, BlobMeta meta, InputStream content, String id) throws IOException {
     	Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "path");
         Objects.requireNonNull(content, "content");
@@ -220,13 +221,13 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 	}
 
 	@Override
-    public Optional<BlobMeta> update(PK key, InputStream content) throws IOException {
+    public Optional<VersionMeta> update(PK key, InputStream content) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
         Objects.requireNonNull(content, "content");
 
         String path = PathUtils.normalizePath(key.path());
-        Optional<VersionMeta> opt = getLatestVersion(path);
+        Optional<VersionMeta> opt = getLatestVersion(PK.path(path));
         if (opt.isEmpty()) {
         	LOGGER.warn("Cannot update a non-exisitent path {}", path);
         	return Optional.empty();
@@ -245,7 +246,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
         Objects.requireNonNull(key.path(), "key.path");
 
         String path = PathUtils.normalizePath(key.path());
-        Optional<VersionMeta> opt = getLatestVersion(path);
+        Optional<VersionMeta> opt = getLatestVersion(PK.path(path));
 
         if (opt.isPresent()) {
         	VersionMeta mx = opt.get();
@@ -260,12 +261,12 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     }
 
     @Override
-    public Optional<BlobMeta> delete(PK key) throws IOException {
+    public Optional<VersionMeta> delete(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
 
         String path = PathUtils.normalizePath(key.path());
-        Optional<VersionMeta> opt = getLatestVersion(path);
+        Optional<VersionMeta> opt = getLatestVersion(PK.path(path));
 
         if (opt.isEmpty()) {
             LOGGER.warn("Nothing to delete at path {}" , path);
@@ -280,12 +281,12 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     }
 
     @Override
-    public Optional<BlobMeta> undelete(PK key) throws IOException {
+    public Optional<VersionMeta> undelete(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
 
         String path = PathUtils.normalizePath(key.path());
-        Optional<VersionMeta> opt = getLatestVersion(path);
+        Optional<VersionMeta> opt = getLatestVersion(PK.path(path));
 
         if (opt.isEmpty()) {
             LOGGER.warn("Unable to undelete {}" , path);
@@ -301,7 +302,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 
     
     @Override
-    public Optional<BlobMeta> restore(PK key) throws IOException {
+    public Optional<VersionMeta> restore(PK key) throws IOException {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(key.path(), "key.path");
         Objects.requireNonNull(key.hash(), "key.hash");
@@ -309,7 +310,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
         String path = PathUtils.normalizePath(key.path());
         String hash = key.hash();
         
-        List<VersionMeta> l = getAllVersions(path);
+        List<VersionMeta> l = getAllVersions(PK.path(path));
         
         Optional<VersionMeta> opt = l.stream().filter((m) -> hash.equals(m.hash())).findFirst();
 
@@ -326,29 +327,32 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     
     
     @Override
-    public Optional<VersionMeta> getLatestVersion(String path) throws IOException {
-        Objects.requireNonNull(path, "path");
-        return repositoryManager.getLatestVersion(path);
+    public Optional<VersionMeta> getLatestVersion(PK key) throws IOException {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(key.path(), "key.path");
+        return repositoryManager.getLatestVersion(key.path());
     }
 
     @Override
-    public List<VersionMeta> getChildrenLatestVersion(String path) throws IOException {
-        Objects.requireNonNull(path, "path");
-        return repositoryManager.getChildrenLatestVersion(path);
+    public List<VersionMeta> getChildrenLatestVersion(PK key) throws IOException {
+    	Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(key.path(), "key.path");
+        return repositoryManager.getChildrenLatestVersion(key.path());
      }
 
     @Override
-    public List<String> getChildrenPath(String path) throws IOException {
-        Objects.requireNonNull(path, "path");
-        return repositoryManager.getChildrenPath(path);
+    public List<String> getChildrenPath(PK key) throws IOException {
+    	Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(key.path(), "key.path");
+        return repositoryManager.getChildrenPath(key.path());
     }
 
     @Override
-    public List<VersionMeta> getAllVersions(String path) throws IOException {
-    	return repositoryManager.getAllVersions(path);
+    public List<VersionMeta> getAllVersions(PK key) throws IOException {
+    	return repositoryManager.getAllVersions(key.path());
     }
    
-    private Optional<BlobMeta> createNewVersion(
+    private Optional<VersionMeta> createNewVersion(
             PK key,
             BlobMeta meta,
             InputStream content,
@@ -359,7 +363,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
     }
     
     
-    private Optional<BlobMeta> createNewVersion(
+    private Optional<VersionMeta> createNewVersion(
             PK key,
             BlobMeta meta,
             InputStream content,
@@ -377,12 +381,12 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
         // Save payload in immutable store, store is authority for attr/hash (same as FS) :contentReference[oaicite:13]{index=13}
         BlobMeta blobMeta = backingStore.save(meta, content).orElseThrow();
 
-        persistAndPublish(path, blobMeta, operation);
+        return Optional.of(persistAndPublish(path, blobMeta, operation));
         
-        return Optional.of(blobMeta);
+        
     }
 
-    private Optional<BlobMeta> appendVersion(
+    private Optional<VersionMeta> appendVersion(
             InputStream content,
             StoreOperation operation,
             VersionMeta current,
@@ -409,14 +413,13 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
                 throw new IOException("Invalid Store Operation " + operation.name());
         }
 
-        persistAndPublish(path, blobMeta, operation);
+        return Optional.of(persistAndPublish(path, blobMeta, operation));
         
-        return Optional.of(blobMeta);
     }
 
     
     
-    private void persistAndPublish(String path, BlobMeta blobMeta,  StoreOperation operation) throws IOException {
+    private VersionMeta persistAndPublish(String path, BlobMeta blobMeta,  StoreOperation operation) throws IOException {
     	//Capture global context/transaction context, if no active context then create a store context 
     	//with sane defaults
     	
@@ -433,7 +436,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 //        		@SuppressWarnings("unused")	CloseableLockHandle lock = tryAcquireLock(path)
 //        				) {
 	        if (AUTO_COMMITTED.equals(sc.transactionResult())) {
-	        		repositoryManager.persistAndPublish(vm); 
+	        		return repositoryManager.persistAndPublish(vm); 
 	        } else if (IN_FLIGHT.equals(sc.transactionResult())) {
 	        	// Under an explicit store transaction, this write must NOT be committed yet.
 	        	// There is exactly one DB commit, and it is only legal at transaction finalization.
@@ -443,7 +446,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta> implements  Tran
 	        	//
 	        	// If this IN_FLIGHT write is ever made durable before explicit finalization,
 	        	// that indicates an illegal early DB commit and is a bug / red flag.
-        		repositoryManager.persist(vm);
+        		return repositoryManager.persist(vm);
 	        } 
 	        else throw new IllegalStateException("Expecting " + IN_FLIGHT + "  got " + sc.transactionResult() + " instead");
 //        } catch (Exception e) {

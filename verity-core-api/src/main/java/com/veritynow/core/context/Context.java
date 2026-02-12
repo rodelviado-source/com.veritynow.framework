@@ -2,7 +2,7 @@ package com.veritynow.core.context;
 
 import java.util.UUID;
 
-import util.StringUtils;
+import com.veritynow.util.StringUtils;
 
 /**
  * Static access point for the current ContextManager.

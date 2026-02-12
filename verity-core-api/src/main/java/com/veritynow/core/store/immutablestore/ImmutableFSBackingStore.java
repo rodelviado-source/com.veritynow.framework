@@ -17,12 +17,11 @@ import com.veritynow.core.store.ImmutableStore;
 import com.veritynow.core.store.base.AbstractStore;
 import com.veritynow.core.store.meta.BlobMeta;
 import com.veritynow.core.store.persistence.jooq.tables.records.VnBlobRecord;
+import com.veritynow.util.FSUtil;
+import com.veritynow.util.JSON;
 
-import util.FSUtil;
-import util.JSON;
-
-public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
-		implements ImmutableStore<String, BlobMeta> {
+public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta, BlobMeta>
+		implements ImmutableStore<String, BlobMeta, BlobMeta> {
 
 	private final Path blobDirectory;
 	private final String algo;
@@ -95,7 +94,7 @@ public class ImmutableFSBackingStore extends AbstractStore<String, BlobMeta>
 						}
 						;
 						LOGGER.error("Collission detected computed[hash({}) size({})],  current[stored {}]", hash, size,
-								JSON.MAPPER.writeValueAsString(bm));
+								JSON.writeValueAsString(bm));
 						throw new IOException("Collission detected");
 					}
 					// no collison
