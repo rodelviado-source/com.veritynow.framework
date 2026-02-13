@@ -132,6 +132,23 @@ public class StoreController {
 		
 	}
 	
+	@PostMapping(path="/api/read/children/path",
+			consumes = MediaType.APPLICATION_JSON_VALUE,
+			produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<List<String>> getChildrenPath(@RequestBody Map<String, String> request) {
+		try {
+		String path = request.get("path");
+		Objects.requireNonNull(path, "path");
+		String storePath = PathUtils.normalizeAndApplyNamespace(path, namespace);
+	     List<String> paths = storeService.getChildrenPath(storePath);
+		return ResponseEntity.ok(paths);
+		} catch (Exception e) {
+			LOGGER.error("getChildrenLatestPath failed", e);
+			return ResponseEntity.internalServerError().build();
+		}
+		
+	}
+	
 	@PostMapping(path="/api/read/latest/version",
 			consumes = MediaType.APPLICATION_JSON_VALUE,
 			produces = MediaType.APPLICATION_JSON_VALUE)

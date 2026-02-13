@@ -100,12 +100,12 @@ public class RepositoryManager {
         if (inodeIdOpt.isEmpty()) return List.of();
 
         Long inodeId = inodeIdOpt.get();
-        String np = PathUtils.trimEndingSlash(nodePath);
 
         List<DirEntry> children = inodeRepo.findAllByParentIdOrderByNameAsc(inodeId);
-        return children.stream()
-                .map(de -> np + "/" + de.name())
-                .collect(Collectors.toList());
+        if (children.isEmpty()) return List.of();
+        
+        List<String> r = children.stream().map(de -> de.name()).toList();
+        return r;        
     }
 
     public List<VersionMeta> getAllVersions(String nodePath) throws IOException {

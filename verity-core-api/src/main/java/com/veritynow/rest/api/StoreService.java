@@ -103,6 +103,10 @@ public class StoreService {
 	public Optional<VersionMeta> restore(String path, String hash) throws IOException {
 		return versionStore.restore(new PK(path, hash));
 	}
+	
+	public List<String> getChildrenPath(String path) throws IOException {
+		return versionStore.getChildrenPath(PK.path(path));
+	}
 
 	public Optional<VersionMeta> restore(String path, String hash, String algo) throws IOException {
 		// At the present parameter algo is ignored, the store's default algo is used
