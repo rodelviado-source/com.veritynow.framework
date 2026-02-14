@@ -313,7 +313,12 @@ public class StoreController {
 	 * @param intentJson the mapping for intent { "path":"inputpath", "operation":inputoperation }
 	 * @param blob  optional  multipartfile depending on operation 
 	 * @param file  optional  multipartfile depending on operation
-	 * @param request the http request tha can be used to add context in header
+	 * @param request the http request that can be used to add context in header see {@link ContextResolvers}
+	  				    <li>HDR_TRANSACTION_ID = "X-Transaction-Id"</li>
+    					<li>HDR_CORRELATION_ID = "X-Correlation-Id"</li>
+    					<li>HDR_WORKFLOW_ID    = "X-Workflow-Id"</li>
+    					<li>HDR_PRINCIPAL      = "X-Principal"</li>
+    					<li>HDR_CONTEXT_NAME   = "X-Context-Name"</li>
 	 * @return the version result of the operation
 	 * @throws Exception
 	 */
@@ -374,6 +379,18 @@ public class StoreController {
 		return ResponseEntity.notFound().build();
 	}
 
+	/**
+	 * 
+	 * @param transactionsJson the List of Transaction see {@link Transaction}
+	 * 				<li>Each transaction can attach a file referenced by blobRef</li>
+	 * @param request the http request that can be used to to add context in header see {@link ContextResolvers}
+	  				    <li>HDR_TRANSACTION_ID = "X-Transaction-Id"</li>
+    					<li>HDR_CORRELATION_ID = "X-Correlation-Id"</li>
+    					<li>HDR_WORKFLOW_ID    = "X-Workflow-Id"</li>
+    					<li>HDR_PRINCIPAL      = "X-Principal"</li>
+	 * @return a summary result of the transaction
+	 * @throws Exception
+	 */
 	
 	@PostMapping(path = "/api/txn/processor", 
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE, 
