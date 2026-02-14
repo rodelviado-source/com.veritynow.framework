@@ -49,10 +49,19 @@ public class StoreController {
 	}
 	
 	/**
-	 * Retrieve the content of the blob via its hash 
-	 * 
-	 * @param request - the hash of the blob's content 
-	 * @return the InputStream content of the blob addressed by its hash 
+	 * Read raw blob bytes by content hash.
+	 *
+	 * <p>Request body:</p>
+	 * <pre>{@code
+	 * { "hash": "<content-hash>" }
+	 * }</pre>
+	 *
+	 * <p>Responses:</p>
+	 * <ul>
+	 *   <li><b>200</b> with the blob bytes (Content-Type derived from stored {@link BlobMeta} when available; otherwise
+	 *       {@code application/octet-stream}).</li>
+	 *   <li><b>404</b> if the hash is unknown.</li>
+	 * </ul>
 	 */
 	@PostMapping(value = "/api/read/content", consumes = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<InputStreamResource> getContent(@RequestBody Map<String, String> request) {
@@ -86,11 +95,19 @@ public class StoreController {
 	}
 	
 	/**
-	 * Retrieve the meta information of the content via its hash 
-	 * 
-	 * @param request - the meta of the blob content 
-	 * @return the meta of the content of the blob addressed by its hash 
-	 */
+ * Read stored {@link BlobMeta} by content hash.
+ *
+ * <p>Request body:</p>
+ * <pre>{@code
+ * { "hash": "<content-hash>" }
+ * }</pre>
+ *
+ * <p>Responses:</p>
+ * <ul>
+ *   <li><b>200</b> with {@link BlobMeta}.</li>
+ *   <li><b>404</b> if the hash is unknown.</li>
+ * </ul>
+ */
 	@PostMapping(value = "/api/read/content/meta", 
 			consumes = MediaType.APPLICATION_JSON_VALUE,
 			produces = MediaType.APPLICATION_JSON_VALUE)
@@ -114,11 +131,20 @@ public class StoreController {
 	}
 	
 	/**
-	 * Retrieve the latest versions of the direct children of path 
-	 * 
-	 * @param request - the mapping { "path":"inputpath" } in the request body 
-	 * @return latest versions of the direct children 
-	 */
+ * Read the latest (HEAD) {@link VersionMeta} for each <em>direct</em> child of a path.
+ *
+ * <p>This endpoint is query-like: it always returns a JSON array (possibly empty) and never {@code null}.</p>
+ *
+ * <p>Request body:</p>
+ * <pre>{@code
+ * { "path": "<identity-path>" }
+ * }</pre>
+ *
+ * <p>Responses:</p>
+ * <ul>
+ *   <li><b>200</b> with {@code List<VersionMeta>} (empty if the path has no children or does not exist).</li>
+ * </ul>
+ */
 	@PostMapping(path="/api/read/children/latest/version",
 			consumes = MediaType.APPLICATION_JSON_VALUE,
 			produces = MediaType.APPLICATION_JSON_VALUE)
@@ -138,11 +164,20 @@ public class StoreController {
 	}
 	
 	/**
-	 * Retrieve the path segment of the direct children of path 
-	 * 
-	 * @param request - the mapping { "path":"inputpath" } in the request body 
-	 * @return the path segment of the direct children of path 
-	 */
+ * Read the direct child path segments (names) of a path.
+ *
+ * <p>This endpoint is query-like: it always returns a JSON array (possibly empty) and never {@code null}.</p>
+ *
+ * <p>Request body:</p>
+ * <pre>{@code
+ * { "path": "<identity-path>" }
+ * }</pre>
+ *
+ * <p>Responses:</p>
+ * <ul>
+ *   <li><b>200</b> with {@code List<String>} (empty if the path has no children or does not exist).</li>
+ * </ul>
+ */
 	@PostMapping(path="/api/read/children/path",
 			consumes = MediaType.APPLICATION_JSON_VALUE,
 			produces = MediaType.APPLICATION_JSON_VALUE)
@@ -161,11 +196,19 @@ public class StoreController {
 	}
 	
 	/**
-	 * Retrieve the latest version of path 
-	 * 
-	 * @param request - the mapping { "path":"inputpath" } in the request body 
-	 * @return the latest version of path 
-	 */
+ * Read the latest (HEAD) {@link VersionMeta} for a path.
+ *
+ * <p>Request body:</p>
+ * <pre>{@code
+ * { "path": "<identity-path>" }
+ * }</pre>
+ *
+ * <p>Responses (Optional semantics):</p>
+ * <ul>
+ *   <li><b>200</b> with {@link VersionMeta} if present.</li>
+ *   <li><b>404</b> if the path does not exist or has no versions.</li>
+ * </ul>
+ */
 	@PostMapping(path="/api/read/latest/version",
 			consumes = MediaType.APPLICATION_JSON_VALUE,
 			produces = MediaType.APPLICATION_JSON_VALUE)
@@ -191,11 +234,20 @@ public class StoreController {
 	}
 	
 	/**
-	 * Retrieve all versions of path 
-	 * 
-	 * @param request - the mapping { "path":"inputpath" } in the request body 
-	 * @return all versions of path 
-	 */
+ * Read all versions for a path (newest first).
+ *
+ * <p>This endpoint is query-like: it always returns a JSON array (possibly empty) and never {@code null}.</p>
+ *
+ * <p>Request body:</p>
+ * <pre>{@code
+ * { "path": "<identity-path>" }
+ * }</pre>
+ *
+ * <p>Responses:</p>
+ * <ul>
+ *   <li><b>200</b> with {@code List<VersionMeta>} (empty if the path has no versions or does not exist).</li>
+ * </ul>
+ */
 	@PostMapping(path="/api/read/all/versions", 
 			consumes = MediaType.APPLICATION_JSON_VALUE, 
 			produces = MediaType.APPLICATION_JSON_VALUE)
@@ -219,11 +271,19 @@ public class StoreController {
 	
 	
 	/**
-	 * Retrieve the content of the latest version of path 
-	 * 
-	 * @param request - the mapping { "path":"inputpath" } in the request body 
-	 * @return the InputStream containing the content of the latest version of path 
-	 */
+ * Convenience: read the raw content bytes of the latest (HEAD) version at a path.
+ *
+ * <p>Request body:</p>
+ * <pre>{@code
+ * { "path": "<identity-path>" }
+ * }</pre>
+ *
+ * <p>Responses (Optional semantics):</p>
+ * <ul>
+ *   <li><b>200</b> with the blob bytes for the latest version.</li>
+ *   <li><b>404</b> if the path does not exist, has no versions, or the underlying content hash is missing.</li>
+ * </ul>
+ */
 	@PostMapping(path="/api/read/blob/content/latest/version",
 			consumes = MediaType.APPLICATION_JSON_VALUE
 			 )
@@ -263,11 +323,19 @@ public class StoreController {
 	}
 	
 	/**
-	 * Retrieve the meta information of path 
-	 * 
-	 * @param request - the mapping { "path":"inputpath" } in the request body 
-	 * @return the meta information see {@link PathMeta} of path 
-	 */
+ * Read {@link PathMeta} for a path (children + version listing as configured by the store).
+ *
+ * <p>Request body:</p>
+ * <pre>{@code
+ * { "path": "<identity-path>" }
+ * }</pre>
+ *
+ * <p>Responses (Optional semantics):</p>
+ * <ul>
+ *   <li><b>200</b> with {@link PathMeta} if present.</li>
+ *   <li><b>404</b> if the path does not exist.</li>
+ * </ul>
+ */
 	@PostMapping(path = "/api/read/path/meta", 
 			   consumes = MediaType.APPLICATION_JSON_VALUE, 
 			   produces = MediaType.APPLICATION_JSON_VALUE )
@@ -305,22 +373,27 @@ public class StoreController {
 		} catch (Exception e) {
 			LOGGER.error("Unable to get meta for {}", path, e);
 		}
-		return ResponseEntity.badRequest().build();
+		return ResponseEntity.internalServerError().build();
 	}
 	
 	/**
-	 * 
-	 * @param intentJson the mapping for intent { "path":"inputpath", "operation":inputoperation }
-	 * @param blob  optional  multipartfile depending on operation 
-	 * @param file  optional  multipartfile depending on operation
-	 * @param request the http request that can be used to add context in header see {@link ContextResolvers}
-	  				    <li>HDR_TRANSACTION_ID = "X-Transaction-Id"</li>
-    					<li>HDR_CORRELATION_ID = "X-Correlation-Id"</li>
-    					<li>HDR_WORKFLOW_ID    = "X-Workflow-Id"</li>
-    					<li>HDR_PRINCIPAL      = "X-Principal"</li>
-    					<li>HDR_CONTEXT_NAME   = "X-Context-Name"</li>
-	 * @return the version result of the operation
-	 * @throws Exception
+	 * Single-operation multipart processor (legacy / convenience endpoint).
+	 *
+	 * <p>Consumes {@code multipart/form-data} with:</p>
+	 * <ul>
+	 *   <li>{@code intent}: JSON map {@code {"path":"...","operation":"..."}}</li>
+	 *   <li>{@code blob} or {@code file}: optional uploaded content (depends on operation)</li>
+	 * </ul>
+	 *
+	 * <p>Context headers (optional) are parsed via {@link ContextResolvers}:
+	 * {@code X-Transaction-Id}, {@code X-Correlation-Id}, {@code X-Workflow-Id}, {@code X-Principal},
+	 * {@code X-Context-Name}.</p>
+	 *
+	 * <p>Responses (Optional semantics):</p>
+	 * <ul>
+	 *   <li><b>200</b> with {@link VersionMeta} if the operation produced a version.</li>
+	 *   <li><b>404</b> if no version was produced (e.g., target not found).</li>
+	 * </ul>
 	 */
 	@PostMapping(path = "/api/processor", 
 			consumes = {MediaType.MULTIPART_FORM_DATA_VALUE},
@@ -380,17 +453,26 @@ public class StoreController {
 	}
 
 	/**
-	 * 
-	 * @param transactionsJson the List of Transaction see {@link Transaction}
-	 * 				<li>Each transaction can attach a file referenced by blobRef</li>
-	 * @param request the http request that can be used to to add context in header see {@link ContextResolvers}
-	  				    <li>HDR_TRANSACTION_ID = "X-Transaction-Id"</li>
-    					<li>HDR_CORRELATION_ID = "X-Correlation-Id"</li>
-    					<li>HDR_WORKFLOW_ID    = "X-Workflow-Id"</li>
-    					<li>HDR_PRINCIPAL      = "X-Principal"</li>
-	 * @return a summary result of the transaction
-	 * @throws Exception
-	 */
+ * Transaction batch processor (demo authority).
+ *
+ * <p>Consumes {@code multipart/form-data} with:</p>
+ * <ul>
+ *   <li>{@code transactions}: JSON array of {@link Transaction}</li>
+ *   <li>zero or more file parts, where the part name equals {@link Transaction#blobRef()}</li>
+ * </ul>
+ *
+ * <p>Contract:</p>
+ * <ul>
+ *   <li>If a transaction references {@code blobRef}, the multipart request must include a part with that exact name,
+ *       otherwise <b>400</b> is returned.</li>
+ *   <li>All context headers are optional and parsed via {@link ContextResolvers}
+ *       ({@code X-Transaction-Id}, {@code X-Correlation-Id}, {@code X-Workflow-Id}, {@code X-Principal}).</li>
+ * </ul>
+ *
+ * <p>Response is a small JSON summary (debug-friendly) rather than a domain DTO.</p>
+ *
+ * @throws Exception on processing failures (mapped by Spring exception handling)
+ */
 	
 	@PostMapping(path = "/api/txn/processor", 
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE, 
