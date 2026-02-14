@@ -113,7 +113,12 @@ public class StoreController {
 		
 	}
 	
-	
+	/**
+	 * Retrieve the latest versions of the direct children of path 
+	 * 
+	 * @param request - the mapping { "path":"inputpath" } in the request body 
+	 * @return latest versions of the direct children 
+	 */
 	@PostMapping(path="/api/read/children/latest/version",
 			consumes = MediaType.APPLICATION_JSON_VALUE,
 			produces = MediaType.APPLICATION_JSON_VALUE)
@@ -132,6 +137,12 @@ public class StoreController {
 		
 	}
 	
+	/**
+	 * Retrieve the path segment of the direct children of path 
+	 * 
+	 * @param request - the mapping { "path":"inputpath" } in the request body 
+	 * @return the path segment of the direct children of path 
+	 */
 	@PostMapping(path="/api/read/children/path",
 			consumes = MediaType.APPLICATION_JSON_VALUE,
 			produces = MediaType.APPLICATION_JSON_VALUE)
@@ -149,6 +160,12 @@ public class StoreController {
 		
 	}
 	
+	/**
+	 * Retrieve the latest version of path 
+	 * 
+	 * @param request - the mapping { "path":"inputpath" } in the request body 
+	 * @return the latest version of path 
+	 */
 	@PostMapping(path="/api/read/latest/version",
 			consumes = MediaType.APPLICATION_JSON_VALUE,
 			produces = MediaType.APPLICATION_JSON_VALUE)
@@ -165,7 +182,7 @@ public class StoreController {
 			return ResponseEntity.ok(vmc);
 		}
 		
-		return ResponseEntity.ok(null);
+		return ResponseEntity.notFound().build();
 		
 		} catch (Exception e) {
 			LOGGER.error("getLatestVersion failed", e);
@@ -173,6 +190,12 @@ public class StoreController {
 		}
 	}
 	
+	/**
+	 * Retrieve all versions of path 
+	 * 
+	 * @param request - the mapping { "path":"inputpath" } in the request body 
+	 * @return all versions of path 
+	 */
 	@PostMapping(path="/api/read/all/versions", 
 			consumes = MediaType.APPLICATION_JSON_VALUE, 
 			produces = MediaType.APPLICATION_JSON_VALUE)
@@ -195,6 +218,12 @@ public class StoreController {
 	}
 	
 	
+	/**
+	 * Retrieve the content of the latest version of path 
+	 * 
+	 * @param request - the mapping { "path":"inputpath" } in the request body 
+	 * @return the InputStream containing the content of the latest version of path 
+	 */
 	@PostMapping(path="/api/read/blob/content/latest/version",
 			consumes = MediaType.APPLICATION_JSON_VALUE
 			 )
@@ -225,7 +254,7 @@ public class StoreController {
 			return ResponseEntity.ok().headers(h).body(new InputStreamResource(isOpt.get()));
 		}
 		
-		return ResponseEntity.ok(null);
+		return ResponseEntity.notFound().build();
 		
 		} catch (Exception e) {
 			LOGGER.error("getBlobLatestVersion failed", e);
@@ -233,6 +262,12 @@ public class StoreController {
 		}
 	}
 	
+	/**
+	 * Retrieve the meta information of path 
+	 * 
+	 * @param request - the mapping { "path":"inputpath" } in the request body 
+	 * @return the meta information see {@link PathMeta} of path 
+	 */
 	@PostMapping(path = "/api/read/path/meta", 
 			   consumes = MediaType.APPLICATION_JSON_VALUE, 
 			   produces = MediaType.APPLICATION_JSON_VALUE )
@@ -273,11 +308,22 @@ public class StoreController {
 		return ResponseEntity.badRequest().build();
 	}
 	
-	
+	/**
+	 * 
+	 * @param intentJson the mapping for intent { "path":"inputpath", "operation":inputoperation }
+	 * @param blob  optional  multipartfile depending on operation 
+	 * @param file  optional  multipartfile depending on operation
+	 * @param request the http request tha can be used to add context in header
+	 * @return the version result of the operation
+	 * @throws Exception
+	 */
 	@PostMapping(path = "/api/processor", 
 			consumes = {MediaType.MULTIPART_FORM_DATA_VALUE},
 			produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<VersionMeta> processMultipart(@RequestPart("intent") String intentJson,
+	public ResponseEntity<VersionMeta> processMultipart(
+			@RequestPart("intent") String intentJson,
+			@RequestPart(name = "blob", required=false) MultipartFile blob,
+			@RequestPart(name = "file", required=false) MultipartFile file,
 			MultipartHttpServletRequest request) throws Exception 
 	
 	 {
@@ -285,16 +331,13 @@ public class StoreController {
 		Map<String, String> action = JSON.readValue(intentJson, new TypeReference<Map<String, String>>() {
 		});
 			 
-			Map<String, MultipartFile> fileMap = request.getFileMap();
-		     
 			String path = action.get("path");
 			String operation = action.get("operation");
 			
-			MultipartFile file = fileMap.get("blob");
-			
 			if (file == null) {
-				file = fileMap.get("file");
+				file = blob;
 			}
+			
 			Objects.requireNonNull(path);
 			Objects.requireNonNull(operation);
 
