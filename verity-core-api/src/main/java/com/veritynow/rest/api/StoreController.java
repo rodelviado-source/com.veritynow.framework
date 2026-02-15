@@ -339,7 +339,7 @@ public class StoreController {
 	@PostMapping(path = "/api/read/path/meta", 
 			   consumes = MediaType.APPLICATION_JSON_VALUE, 
 			   produces = MediaType.APPLICATION_JSON_VALUE )
-	public ResponseEntity<PathMeta> meta(@RequestBody Map<String, String> request) {
+	public ResponseEntity<PathMeta> getPathMeta(@RequestBody Map<String, String> request) {
 
 		String path = null;
 		
