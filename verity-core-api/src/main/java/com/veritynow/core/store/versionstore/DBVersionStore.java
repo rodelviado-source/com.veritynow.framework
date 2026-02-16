@@ -296,6 +296,7 @@ public class DBVersionStore extends AbstractStore<PK, BlobMeta, VersionMeta> imp
 
         if (!isDeleted(mx)) {
             LOGGER.warn("Can only undelete a deleted path " + path);
+            return Optional.empty();
         }
         return appendVersion(null, StoreOperation.Undeleted, mx, key);
     }

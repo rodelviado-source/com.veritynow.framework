@@ -134,6 +134,7 @@ public class StoreController {
  * Read the latest (HEAD) {@link VersionMeta} for each <em>direct</em> child of a path.
  *
  * <p>This endpoint is query-like: it always returns a JSON array (possibly empty) and never {@code null}.</p>
+ * <p>Deleted {@link VersionMeta} where {@code versionMeta.operation == "Deleted"}   are filtered out.</p>
  *
  * <p>Request body:</p>
  * <pre>{@code
@@ -197,7 +198,8 @@ public class StoreController {
 	
 	/**
  * Read the latest (HEAD) {@link VersionMeta} for a path.
- *
+ * <p>Deleted {@link VersionMeta} where {@code versionMeta.operation == "Deleted"}  is filtered out.</p>
+ * 
  * <p>Request body:</p>
  * <pre>{@code
  * { "path": "<identity-path>" }
@@ -237,7 +239,7 @@ public class StoreController {
  * Read all versions for a path (newest first).
  *
  * <p>This endpoint is query-like: it always returns a JSON array (possibly empty) and never {@code null}.</p>
- *
+ * <p>All {@link VersionMeta} regardless of {@code versionMeta.operation"}  are included.</p>
  * <p>Request body:</p>
  * <pre>{@code
  * { "path": "<identity-path>" }
@@ -270,9 +272,9 @@ public class StoreController {
 	}
 	
 	
-	/**
+/**
  * Convenience: read the raw content bytes of the latest (HEAD) version at a path.
- *
+ * <p>If HEAD refrences a deleted {@link VersionMeta} where {@code versionMeta.operation == "Deleted"}  it is filtered out.</p>
  * <p>Request body:</p>
  * <pre>{@code
  * { "path": "<identity-path>" }
@@ -322,9 +324,9 @@ public class StoreController {
 		}
 	}
 	
-	/**
+/**
  * Read {@link PathMeta} for a path (children + version listing as configured by the store).
- *
+ * <p>All versions {@link VersionMeta} regardless of {@code versionMeta.operation}  are included.</p>
  * <p>Request body:</p>
  * <pre>{@code
  * { "path": "<identity-path>" }
@@ -333,7 +335,7 @@ public class StoreController {
  * <p>Responses (Optional semantics):</p>
  * <ul>
  *   <li><b>200</b> with {@link PathMeta} if present.</li>
- *   <li><b>404</b> if the path does not exist.</li>
+ *   <li><b>404</b> if the path exist.</li>
  * </ul>
  */
 	@PostMapping(path = "/api/read/path/meta", 
@@ -377,7 +379,7 @@ public class StoreController {
 	}
 	
 	/**
-	 * Single-operation multipart processor (legacy / convenience endpoint).
+	 * Single-operation multipart processor (convenience endpoint).
 	 *
 	 * <p>Consumes {@code multipart/form-data} with:</p>
 	 * <ul>
@@ -489,7 +491,7 @@ public class StoreController {
 		// for your debugging response
 		List<String> available = new ArrayList<>(fileMap.keySet());
 
-		// Verify blobRefs exist (your current error logic)
+		// Verify blobRefs exist 
 		for (Transaction t : txns) {
 			String ref = t.blobRef();
 			if (ref != null && !ref.isBlank()) {
