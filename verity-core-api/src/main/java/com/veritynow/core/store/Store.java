@@ -244,7 +244,8 @@ public interface Store<KEY, I, O> {
      *
      * <p>
      * This method returns {@code true} if and only if the store can resolve a
-     * current (latest) version for the key (i.e. {@code getLatestVersion(key) != null}).
+     * current (latest) version for the key (i.e. {@code getLatestVersion(key) != null})
+     * and is not deleted {@code versionMeta.operation != "Deleted"} 
      * </p>
      *
      * <p>
@@ -253,7 +254,7 @@ public interface Store<KEY, I, O> {
      * </p>
      *
      * @param key logical key
-     * @return {@code true} if a latest version exists for the key
+     * @return {@code true} if a latest version exists and is not deleted for the key
      * @throws IOException on I/O failure
      */
     boolean exists(KEY key) throws IOException;
