@@ -27,6 +27,7 @@ import com.veritynow.core.store.tools.schema.SchemaManager;
 import com.veritynow.util.FSUtil;
 import com.veritynow.util.JSON;
 import com.veritynow.util.ProcessUtil;
+import com.veritynow.util.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -41,6 +42,8 @@ public class EmbeddedPostgresConfig {
 	final static String PGDATA_DIR = "vn-pgdata-justtobesure";
 	final static Logger LOGGER = LogManager.getLogger();
 	
+	@Value("${verity.db.dir:}")
+	private String dbDir;
 
 	@Value("${verity.init.db.enabled:true}")
 	private Boolean initEnabled;
@@ -107,7 +110,10 @@ public class EmbeddedPostgresConfig {
 
 		// if pg did not cleanup, just make sure we don't delete anything aside from
 		// "vn-pgdata-justtobesure"
-		final Path dataDir = Path.of(TMP_DIR).resolve(PGDATA_DIR);
+		
+		String finalDBDir = StringUtils.isEmpty(dbDir) ? TMP_DIR : dbDir;
+		
+		final Path dataDir = Path.of(finalDBDir).resolve(PGDATA_DIR);
 
 		if (Files.exists(dataDir) && Files.isDirectory(dataDir)) {
 			FSUtil.deleteRecursively(dataDir);
